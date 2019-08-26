@@ -1,0 +1,20 @@
+General tools
+- file i/o: 10X h5<->mtx
+
+Preprocessing/QC
+
+Doublet Detection
+- collect my workflow/code, publish on Github
+-- name?
+- can any basic theory be done?
+- test on multiple datasets:
+-- ground truth
+-- 10X, other tech?
+
+Dim reduction/clustering
+
+Differential expression
+
+Plotting
+
+
