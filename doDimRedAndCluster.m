@@ -60,6 +60,15 @@ switch params_pca.scale_method
     case 'zscore'
         % Seurat scaling
         X=(X-mean(X,2))./std(X,[],2); %zscore gene distributions
+        if doPlot
+            figure(10);clf
+%             histogram(max(X,[],2))
+            %how many cells are >maxScaled? set maxScaled so that this
+            %number is < min expected size of rare subpopulation?
+            histogram(sum(X>params_pca.maxScaled,2))
+            xlabel('# cells Z-score > max')
+            ylabel('# of genes')
+        end
         X(X>params_pca.maxScaled)=params_pca.maxScaled;
         X(X<-params_pca.maxScaled)=-params_pca.maxScaled;  %
         
@@ -202,7 +211,7 @@ if exist('params_clust','var')&&~isempty(params_clust)
         case 'modularity'
             disp('Performing graph-based clustering...')
             %Seurat uses KNN=10 and pruning=1/15 as defaults...
-            D=knnGraph(pca_results.coords,params_clust.KNN,params_clust.metric);
+            D=knnGraph(pca_results.coords,params_clust.KNN,params_clust.metric, params_clust.pruneThr);
             COMTY = cluster_jl_cpp(D,1,1,0,0);
             clusterID=COMTY.COM{end};
             clust_results.K=length(COMTY.SIZE{end});

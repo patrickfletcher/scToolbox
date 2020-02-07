@@ -1,4 +1,4 @@
-function M=knnGraph(X,k,type,symmetrize)
+function M=knnGraph(X,k,type,pruneThr,symmetrize)
 % similarity matrix using knn
 
 %TODO: pruning?
@@ -9,6 +9,10 @@ idx(:,1) = []; Dist(:,1) = []; %remove self-distances
 
 if ~exist('type','var')
     type='adjacency';
+end
+
+if ~exist('pruneThr','var')
+    pruneThr=1/15;
 end
 
 if ~exist('symmetrize','var')
@@ -37,7 +41,8 @@ for ii = 1:length(X)
             shared_neighbors = sum(ismember(n_of_n, pt_neighbs),2);
             % intersection and union sum to k
             weights = shared_neighbors ./ (2*k-shared_neighbors); % Jaccard coefficient
-            %pruning?
+            %pruning? seems like if weight<pruneKNN, set weight=0.
+            weights(weights<pruneThr)=0;
             M(ii,idx(ii,:)) = weights;
     end
 end
