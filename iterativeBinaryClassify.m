@@ -38,7 +38,7 @@ genesToTest='group1';
 %get the initial gene name indices
 [gix,initial_markers]=getGeneIndices(initial_markers,genes.name); %remove any IDs not in our data set
 markers=initial_markers; %could be list of string arrays, for multiclass support?
-true_cells=false(size(tcounts,2));
+true_cells=false(size(tcounts,2),1);
 
 %remove any genes not expressed in this cell set
 
@@ -60,7 +60,7 @@ while iter<=params.maxIter
     else
         true_cells=new_true_cells;
     end
-        
+    
     %simple self/other method - advantage: doesn't constrain number of cells in self by imposing maxPrct in a cell type
     self=true_cells;
     other=~self;

@@ -59,7 +59,6 @@ switch lower(colorby)
         if ~iscategorical(group)
             group=categorical(group);
         end
-        group=removecats(group);
         groupNames=categories(group);
         groupCounts=countcats(group);
         
@@ -67,8 +66,9 @@ switch lower(colorby)
             colors=cbrewer('qual','Set1',max(length(groupNames),3));
         end
         
-        group=removecats(group);
         colors=colors(groupCounts>0,:);
+        group=removecats(group);
+        groupNames=categories(group);
             
         if ~exist('subplotdims','var')||isempty(subplotdims)||~(class(subplotdims)=="matlab.graphics.axis.Axes")
 %             ax=subplot(1,1,1);

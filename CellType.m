@@ -137,6 +137,18 @@ classdef CellType < handle %& matlab.mixin.Copyable
             classID=categorical(classID,catnames,catnames);
         end
         
+        function [classID,cellClassID,IDs,tf]=classifyClusterByScore(ct,clusterID,tcounts,genes)
+            % assign all cells of a cluster to the cell type most common in
+            % the cluster. (mode)
+            [cellClassID,IDs,tf]=ct.classifyByScore(tcounts,genes);
+            classID = cellClassID;
+            ids = unique(clusterID);
+            for id = ids
+                thisclass = mode(cellClassID(clusterID==id));
+                classID(clusterID==id) = thisclass;
+            end
+        end
+        
         function setNames(ct,oldNames,newNames)
         end
         

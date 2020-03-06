@@ -7,7 +7,7 @@ group=removecats(group);
 groupNames=categories(group)';
 nTypes=length(groupNames);
 
-highmito=false(1,length(group));
+highmito=false(length(group),1);
 for i=1:nTypes
     thisIx=group==groupNames(i);
     thisFracMT=cells.fracMT(thisIx);
@@ -23,12 +23,20 @@ for i=1:nTypes
 
     perTypeThr(i)=thisThr;
 
-    highmito=highmito | (thisIx & cells.fracMT'>thisThr);
+    highmito=highmito | (thisIx & cells.fracMT>thisThr);
 end
 
 if exist('figID','var') && ~isempty(figID)
-    colors=celltypeTree.Colors(groupNames);
-    names=celltypeTree.Names(groupNames);
+    if exist('celltypeTree','var')
+        colors=celltypeTree.Colors(groupNames);
+        names=celltypeTree.Names(groupNames);
+    else
+        if nTypes==1
+            colors=[0.5,0.5,0.5];
+        else
+            colors = cbrewer('qual','Set1',min(3,nTypes));
+        end
+    end
 
     markerlist=repmat('.',1,nTypes);
 %     markerlist='+o*.xsdph^v><';
@@ -63,7 +71,7 @@ if exist('figID','var') && ~isempty(figID)
 %         ax(i).YLim(2)=ceil(100*MAXF)/100;
         ax(i).YLim(2)=MAXF+0.03;
         ax(i).XTick=[MING,MAXG];
-        ax(i).YTick=0:0.1:0.4;
+%         ax(i).YTick=0:0.1:0.4;
 %         ax(i).YTick=[0,floor(10*MAXF)/10];
         
         line(xlim(),centralFrac(i)*[1,1],'color',colors(i,:)/2,'linestyle','--')
@@ -81,7 +89,9 @@ if exist('figID','var') && ~isempty(figID)
 %             ylabel('Fraction mito')
 %         end
         
-        title(names(i),'FontSize',8)
+        if exist('names','var')
+            title(names(i),'FontSize',8)
+        end
         box on
         ax(i).TickLength=[.05,.05];
         ax(i).FontSize=8;
