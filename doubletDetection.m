@@ -1,4 +1,4 @@
-function [doublets,rep_doublets,rep_counts,tSNE, group]=doubletDetection(rawcounts, params,method)
+function [doublets,rep_doublets,rep_counts,tSNE, group]=doubletDetection(rawcounts, params, method)
 % inspired by Shor's Doublet detection (python3):
 % https://github.com/JonathanShor/DoubletDetection
 
@@ -22,10 +22,10 @@ function [doublets,rep_doublets,rep_counts,tSNE, group]=doubletDetection(rawcoun
 %     s=RandStream('dsfmt19937');
 % end
 
-use_true_cell_HVG=false; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
-resample_HVG_only=false; %if not, use all genes - pre-feb 15 set this true [probably incorrect]
+use_true_cell_HVG=true; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
 use_parents_npc=true; %alternative would be to determine new nPC using perm test- very slow.
-doMultCompareCorrect=1;
+% resample_HVG_only=false; %if not, use all genes - pre-feb 15 set this true [probably incorrect]
+doMultCompareCorrect=true;
 
 if ~exist('method','var')
     method='knn';
@@ -50,9 +50,9 @@ if use_true_cell_HVG
 %     end
 % 
     %subset the counts matrices down to only hvgs to accelerate
-    if resample_HVG_only
-        rawcounts=rawcounts(hvgix,:);
-    end
+%     if resample_HVG_only
+%         rawcounts=rawcounts(hvgix,:);
+%     end
     
     normcounts=normcounts(hvgix,:);
 else
@@ -91,11 +91,11 @@ for it=1:params.nReps
 %     rawcounts_aug(:,nCells+1:end)=rawcounts_synth;
     normcounts_synth=normalizeCounts(rawcounts_synth);
     if use_true_cell_HVG
-        if resample_HVG_only
-            logcounts_aug(:,nCells+1:end)=log10(normcounts_synth+1);
-        else
-            logcounts_aug(:,nCells+1:end)=log10(normcounts_synth(hvgix,:)+1);
-        end
+%         if resample_HVG_only
+%             logcounts_aug(:,nCells+1:end)=log10(normcounts_synth+1);
+%         else
+        logcounts_aug(:,nCells+1:end)=log10(normcounts_synth(hvgix,:)+1);
+%         end
     else
         hvgix=findVariableGenes([normcounts,normcounts_synth],params.hvg);
         logcounts_aug=[logcounts(hvgix,:),log10(normcounts_synth(hvgix,:)+1)];

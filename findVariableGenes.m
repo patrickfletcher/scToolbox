@@ -1,7 +1,11 @@
-function highDispIx=findVariableGenes(ncounts,params,figID,includeNames,gene_ix)
+function result=findVariableGenes(ncounts,genes,params,figID,highlightGenes)
 %operates on normalized counts, which maintains mean-variance relations (negative binomial)
 
-%TODO: minimum % expressing instead of params.minExpr? use # of cells?
+result = params;
+
+%plotting
+%TODO: tooltips for gene-name
+%TODO: switch for plot disp or norm disp
 
 % if ~exist('params.nBins','var') || isempty(params.nBins)
 %     params.nBins=20;
@@ -10,9 +14,6 @@ function highDispIx=findVariableGenes(ncounts,params,figID,includeNames,gene_ix)
 % if ~exist('params.minExpr','var') || isempty(params.minExpr) || params.minExpr==0 
 %     params.minExpr=eps;
 % end
-
-doPlot=exist('figID','var');
-
 
 %normalized dispersion:
 cellsExpr=sum(ncounts>0,2);
@@ -89,43 +90,46 @@ normdispersion(meanExpr<params.minExpr)=nan;
 normdispersion(cellsExpr<params.minCells)=nan;
 
 %remove negative dispersion genes?
-normdispersion(varExpr<meanExpr)=nan;
+% normdispersion(normdispersion<0)=nan;
+normdispersion(dispersion<0)=nan;
+% normdispersion(varExpr<meanExpr)=nan;
 
+[sortedNormDisp,ixs]=sort(normdispersion,'descend','MissingPlacement','last');
+        
 switch params.selectMethod
     case 'number'
-        nHVG=params.nHVG;
-        %get the top nHVG genes
-        [~,ixs]=sort(normdispersion,'descend','MissingPlacement','last');
-        highDispIx=ixs(1:nHVG);
+        hvgix=ixs(1:params.nHVG);
         
     case 'threshold'
-        thresh=params.dispThr;
-        highDispIx=find(normdispersion>thresh);
+        hvgix=ixs(sortedNormDisp>params.dispThr);
         
     case 'allValid'
-        highDispIx=find(~isnan(normdispersion));
+        hvgix=ixs(~isnan(sortedNormDisp));
         
     otherwise
         error('Unknown option')
 end
 
+result.ix=hvgix;
+result.gene_name=genes.name(hvgix);
+result.gene_id=genes.id(hvgix);
 
-if doPlot
+if exist('figID','var')
     figure(figID);clf
     
-    y=dispersion;
-%     y=normdispersion;
+%     y=dispersion; ylab = 'dispersion';
+    y=normdispersion; ylab = 'norm dispersion';
 %     y=normdispersion+min(normdispersion);
 
 %     y=y+abs(min(y));
 %     ycenter=abs(min(y))*[1,1];
 
     %plot only genes with non-negative dispersion (to avoid plot's warnings in log scale)
-%     nonnegative=y>=0;
-    nonnegative=true(size(y));
+    nonnegative=y>=0;
+%     nonnegative=true(size(y));
     
     highdisp=false(size(y));
-    highdisp(highDispIx)=true;
+    highdisp(hvgix)=true;
     
     plot(meanExpr(~highdisp&nonnegative),y(~highdisp&nonnegative),'k.')
     hold on
@@ -135,15 +139,22 @@ if doPlot
 %         plot(xlim,ycenter,'k--')
 %     end
     
-    if exist('includeNames','var')&&~isempty(includeNames)
-        highlightIx=gene_ix;
-        line(meanExpr(highlightIx),y(highlightIx),'color','r','marker','o','linestyle','none');
-        text(meanExpr(highlightIx),y(highlightIx)+0.03,includeNames,'color',[0.8,0,0]);
+    if exist('highlightGenes','var')&&~isempty(highlightGenes)
+        highlightIx=[];
+        if isnumeric(highlightGenes) && isscalar(highlightGenes)
+            highlightIx = hvgix(1:highlightGenes);
+            highlightGenes = genes.name(highlightIx);
+        elseif isstring(highlightGenes) || iscellstr(highlightGenes)
+            highlightIx=getGeneIndices(highlightGenes,genes.name);
+        end
+        
+        line(meanExpr(highlightIx),y(highlightIx),'color',[.5,0,0],'marker','.','markersize',10,'linestyle','none');
+        text(meanExpr(highlightIx),y(highlightIx)+0.03,highlightGenes,'color',[0.5,0,0]);
     end
     
     
     xlabel('mean expression')
-    ylabel('dispersion')
+    ylabel(ylab)
     
     set(gca,'xscale','log','yscale','log')
     

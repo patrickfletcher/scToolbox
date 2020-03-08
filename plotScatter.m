@@ -16,7 +16,9 @@ function [ax, hs, hc]=plotScatter(X,colorby,group,colors,figID,subplotdims,sp_pa
 
 %TODO: pass in args to control marker size etc
 marker='o';
-markerSize=5;
+
+nObs=size(X,1);
+markerSize=11-log(nObs);
 
 %common setup
 if ~exist('sp_params','var')||isempty(sp_params)
@@ -119,7 +121,9 @@ switch lower(colorby)
         end
         
         [m,n]=size(colors);
-        if m~=length(X(:,1)) && n==length(X(:,1))
+        if m~=nObs && n~=nObs
+            error('Number of observations does not match number of scatter points')
+        elseif n==size(X,1)
             colors=colors';
         end
         
