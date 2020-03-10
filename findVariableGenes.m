@@ -85,13 +85,15 @@ else
     
 end
 
+rawnormdisp = normdispersion;
+
 %remove genes below params.minExpr from consideration:
 normdispersion(meanExpr<params.minExpr)=nan;
 normdispersion(cellsExpr<params.minCells)=nan;
 
 %remove negative dispersion genes?
 % normdispersion(normdispersion<0)=nan;
-normdispersion(dispersion<0)=nan;
+% normdispersion(dispersion<0)=nan;
 % normdispersion(varExpr<meanExpr)=nan;
 
 [sortedNormDisp,ixs]=sort(normdispersion,'descend','MissingPlacement','last');
@@ -118,11 +120,9 @@ if exist('figID','var')
     figure(figID);clf
     
 %     y=dispersion; ylab = 'dispersion';
-    y=normdispersion; ylab = 'norm dispersion';
+    y=rawnormdisp; ylab = 'norm dispersion';
+%     y=normdispersion; ylab = 'norm dispersion';
 %     y=normdispersion+min(normdispersion);
-
-%     y=y+abs(min(y));
-%     ycenter=abs(min(y))*[1,1];
 
     %plot only genes with non-negative dispersion (to avoid plot's warnings in log scale)
     nonnegative=y>=0;
@@ -131,13 +131,7 @@ if exist('figID','var')
     highdisp=false(size(y));
     highdisp(hvgix)=true;
     
-    plot(meanExpr(~highdisp&nonnegative),y(~highdisp&nonnegative),'k.')
-    hold on
-    plot(meanExpr(highdisp&nonnegative),y(highdisp&nonnegative),'r.');
-    
-%     if ~isempty(ycenter)
-%         plot(xlim,ycenter,'k--')
-%     end
+    redix=find(highdisp&nonnegative);
     
     if exist('highlightGenes','var')&&~isempty(highlightGenes)
         highlightIx=[];
@@ -147,14 +141,48 @@ if exist('figID','var')
         elseif isstring(highlightGenes) || iscellstr(highlightGenes)
             highlightIx=getGeneIndices(highlightGenes,genes.name);
         end
-        
-        line(meanExpr(highlightIx),y(highlightIx),'color',[.5,0,0],'marker','.','markersize',10,'linestyle','none');
-        text(meanExpr(highlightIx),y(highlightIx)+0.03,highlightGenes,'color',[0.5,0,0]);
+        ishv=ismember(highlightIx,redix);
+        ishvix=highlightIx(ishv);
+        isnothv=~ismember(highlightIx,redix);
+        isnothvix=highlightIx(isnothv);
     end
     
     
+    gap=0.1; margh=[0.15,0.025];margw=[0.1,0.025];
+    tight_subplot(1,2,1, gap, margh, margw);
+    plot(meanExpr(~highdisp&nonnegative),y(~highdisp&nonnegative),'k.');
+    hold on
+    plot(meanExpr(highdisp&nonnegative),y(highdisp&nonnegative),'r.');
+    
+    
+    if exist('highlightGenes','var')&&~isempty(highlightGenes)
+        line(meanExpr(ishvix),y(ishvix),'color',[.5,0,0],'marker','.','markersize',10,'linestyle','none');
+        text(meanExpr(ishvix),y(ishvix)+0.03,highlightGenes(ishv),'color',[.5,0,0]);
+        
+        line(meanExpr(isnothvix),y(isnothvix),'color',[.5,.5,.5],'marker','.','markersize',10,'linestyle','none');
+        text(meanExpr(isnothvix),y(isnothvix)+0.03,highlightGenes(isnothv),'color',[.5,.5,.5]);
+    end
+    
     xlabel('mean expression')
     ylabel(ylab)
+    set(gca,'xscale','log','yscale','log')
+
+    
+    tight_subplot(1,2,2, gap, margh, margw);
+    plot(cellsExpr(~highdisp&nonnegative),y(~highdisp&nonnegative),'k.');
+    hold on
+    plot(cellsExpr(highdisp&nonnegative),y(highdisp&nonnegative),'r.');
+    
+    if exist('highlightGenes','var')&&~isempty(highlightGenes)
+        line(cellsExpr(ishvix),y(ishvix),'color',[.5,0,0],'marker','.','markersize',10,'linestyle','none');
+        text(cellsExpr(ishvix),y(ishvix)+0.03,highlightGenes(ishv),'color',[.5,0,0]);
+        
+        line(cellsExpr(isnothvix),y(isnothvix),'color',[.5,.5,.5],'marker','.','markersize',10,'linestyle','none');
+        text(cellsExpr(isnothvix),y(isnothvix)+0.03,highlightGenes(isnothv),'color',[.5,.5,.5]);
+    end
+    
+    xlabel('cells expressing')
+%     ylabel(ylab)
     
     set(gca,'xscale','log','yscale','log')
     
