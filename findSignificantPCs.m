@@ -2,14 +2,19 @@ function [p,h]=findSignificantPCs(data,nReps,alpha,maxPCs)
 %run a permutation test on the data to determine the number of PCs to use
 %in data reduction. observations in rows, variables in columns
 
+rng('shuffle','simdTwister') %for speedup?
+
 [n,m]=size(data);
 % maxPCs=min(n,m);
 % maxPCs=m;
 
+% maxPCs=100;
 
 %observed svds
 % tic
-svsObs=svd(data);
+e = eig(data'*data);
+svsObs=sqrt(sort(abs(e),'descend'));
+% svsObs=svd(data);
 % svsObs=svds(data,maxPCs);
 % toc
 % lamObs=svsObs.^2./(n-1); %variances of each component
@@ -17,16 +22,23 @@ svsObs=svd(data);
 % permutation test: shuffle labels of observations within each variable independently
 dataPerm=zeros(n,m);
 svs=zeros(nReps,length(svsObs));
+% svs=zeros(nReps,maxPCs);
 tenth=round(nReps/10);
 for it=1:nReps
+%     tic
     for j=1:m
-        dataPerm(:,j)=data(randperm(n),j);
+        dataPerm(:,j)=data(randperm(n,n),j);
     end
+%     toc %10X less time than svd below
     
 %     tic
-    svs(it,:)=svd(dataPerm);
+    d = eig(dataPerm'*dataPerm);
+    svs(it,:) = sqrt(sort(abs(d),'descend')); 
+%     svs(it,:)=svd(dataPerm);
+%     svs(it,:)=svdecon(dataPerm);
 %     svs(it,:)=svd(dataPerm,'econ');
-%     svs(it,:)=svds(dataPerm,1);
+%     svs(it,:)=svd(dataPerm,0);
+%     svs(it,:)=svds(dataPerm,maxPCs);
 %     toc
 
     if mod(it,tenth)==0

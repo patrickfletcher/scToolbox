@@ -11,7 +11,8 @@ end
 
 % n=size(X,1);
 % DOF = max(0,n-1);%expects centered data
-[U, sigma, coeff] = svds(X, npc);  %irlba in MatLab
-score =  U*sigma';
+% [U, sigma, coeff] = svds(X, npc);  %irlba in MatLab
+[U,S,coeff] = svdsecon(X,npc);
+score =  U*S';
 
 %also return eigenvalues of covariance matrix: si^2/(n-1) ?
