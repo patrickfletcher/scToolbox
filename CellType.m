@@ -135,6 +135,7 @@ classdef CellType < handle %& matlab.mixin.Copyable
             end
             catnames=[ct.Names;"Amb";"Unc"]; %to keep hierarchy ordering
             classID=categorical(classID,catnames,catnames);
+            tf=logical(tf);
         end
         
         function [classID,cellClassID,IDs,tf]=classifyClusterByScore(ct,clusterID,tcounts,genes)
