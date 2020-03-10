@@ -1,13 +1,14 @@
-function [highmito, perTypeThr, ax]=findMitoPerType(cells,group,mitoPar,figID, celltypeTree)
+function [mitoexclude, ax]=findMitoPerType(cells,group,params,figID, celltypeTree)
 
 if ~iscategorical(group)
     group=categorical(group);
 end
+group=group(:);
 group=removecats(group);
 groupNames=categories(group)';
 nTypes=length(groupNames);
 
-highmito=false(length(group),1);
+mitoexclude=false(length(group),1);
 for i=1:nTypes
     thisIx=group==groupNames(i);
     thisFracMT=cells.fracMT(thisIx);
@@ -17,13 +18,21 @@ for i=1:nTypes
 %     centralFrac(i)=median(thisFracMT);
     spreadMT(i)=std(thisFracMT);
 %     spreadMT(i)=mad(thisFracMT,1);
-    thisThr=centralFrac(i)+mitoPar*spreadMT(i);
-    
-%     thisThr=prctile(thisFracMT,100-mitoPar); 
 
-    perTypeThr(i)=thisThr;
+    high_thr(i) = min(centralFrac(i)+params.n_dev*spreadMT(i), 1)
+    low_thr(i) = max(centralFrac(i)-params.n_dev*spreadMT(i), 0)
 
-    highmito=highmito | (thisIx & cells.fracMT>thisThr);
+    switch params.tailoption
+        case "high"
+            mitoexclude=mitoexclude | (thisIx & cells.fracMT>high_thr(i));
+        case "low"
+            mitoexclude=mitoexclude | (thisIx & cells.fracMT<low_thr(i));
+        case "both"
+            mitoexclude=mitoexclude | (thisIx & cells.fracMT>high_thr(i));
+            mitoexclude=mitoexclude | (thisIx & cells.fracMT<low_thr(i));
+        otherwise 
+            error('unknown tail option')
+    end
 end
 
 if exist('figID','var') && ~isempty(figID)
@@ -37,7 +46,10 @@ if exist('figID','var') && ~isempty(figID)
             colors = cbrewer('qual','Set1',min(3,nTypes));
         end
     end
-
+    
+%     x = cells.genesPerCell; xlab='Genes per GEM';
+    x = cells.molecPerCell; xlab='UMI per GEM';
+    
     markerlist=repmat('.',1,nTypes);
 %     markerlist='+o*.xsdph^v><';
     figID=figure(figID);clf
@@ -59,12 +71,21 @@ if exist('figID','var') && ~isempty(figID)
 
         thisIx=group==groupNames{i};
 
-        plot(cells.genesPerCell(thisIx),cells.fracMT(thisIx),'color',colors(i,:),'linestyle','none','marker',markerlist(i))
-        line(cells.genesPerCell(thisIx & highmito),cells.fracMT(thisIx & highmito),'color',colors(i,:)/4,'linestyle','none','marker',markerlist(i))
-        
+        plot(x(thisIx),cells.fracMT(thisIx),'color',colors(i,:),'linestyle','none','marker',markerlist(i))
+        line(x(thisIx & mitoexclude),cells.fracMT(thisIx & mitoexclude),'color',colors(i,:)/4,'linestyle','none','marker',markerlist(i))  
+        line(xlim(),centralFrac(i)*[1,1],'color',colors(i,:)/2,'linestyle','--')
+        switch params.tailoption
+            case "high"
+                line(xlim(),high_thr(i)*[1,1],'color',colors(i,:)/4)
+            case "low"
+                line(xlim(),low_thr(i)*[1,1],'color',colors(i,:)/4)
+            case "both"
+                line(xlim(),high_thr(i)*[1,1],'color',colors(i,:)/4)
+                line(xlim(),low_thr(i)*[1,1],'color',colors(i,:)/4)
+        end
 %         axis(ax(i),'tight')
-        MING=min(cells.genesPerCell(thisIx));
-        MAXG=max(cells.genesPerCell(thisIx));
+        MING=min(x(thisIx));
+        MAXG=max(x(thisIx));
         MINF=min(cells.fracMT(thisIx));
         MAXF=max(cells.fracMT(thisIx));
         ax(i).XLim=[MING*0.9,MAXG*1.1];
@@ -74,15 +95,12 @@ if exist('figID','var') && ~isempty(figID)
 %         ax(i).YTick=0:0.1:0.4;
 %         ax(i).YTick=[0,floor(10*MAXF)/10];
         
-        line(xlim(),centralFrac(i)*[1,1],'color',colors(i,:)/2,'linestyle','--')
-        line(xlim(),perTypeThr(i)*[1,1],'color',colors(i,:)/4)
-        
 
         if i==1
             ylabel('f_{MT}')
         end
         if i==nTypes
-            xlabel('Genes per GEM')
+            xlabel(xlab)
         end
 %         if i==(nr-1)*nc+1
 %             xlabel('Genes per gem')
