@@ -44,10 +44,11 @@ end
 if params.npc<1
     % Find number of significant PCs
     if verbose, disp('Performing PCA permutation test...'), end
-    p=findSignificantPCs(X',params.permute_reps,0.05);
-    nPCs=find(~(p==1/params.permute_reps),1,'first')-1;
-    result.npc=nPCs;
+    [npc,p,e,d]=findSignificantPCs(X',params.permute_reps,0.01);
+    result.npc=npc;
     result.p=p;
+    result.explained=e;
+    result.explained_null=d;
 else
     result.npc=params.npc;
 end
