@@ -1,6 +1,6 @@
 function result = doPCA(tcounts, genes, params, hvgix, figID, pcix)
 
-verbose = false;
+verbose = true;
 result = params;
 
 if exist('hvgix','var')&&~isempty(hvgix)

@@ -60,8 +60,8 @@ end
 p=ranks/nReps;
 
 %find the number of components based on alpha
-h=p<alpha;
-nPCs=find(~h,1,'first')-1;
+h=p<=max(alpha,1/nReps);
+npc=find(~h,1,'first')-1;
     
 % fprintf('\n')
 
