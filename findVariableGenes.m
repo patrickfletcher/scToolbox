@@ -62,6 +62,21 @@ else
                         stds(i)=1; %is this correct? makes the normDisp=0
                     end
                     thisDispZ=(thisDisp-means(i))./stds(i);
+                
+                case 'medmad0'
+                    %median + mean absolute deviation
+                    meds(i)=median(thisDisp);
+                    if nnz(thisIx)>1 %to be able to compute variance
+                        mads(i)=mad(thisDisp,0); %median absolute deviation
+                    else
+                        mads(i)=1;
+                    end
+%                     if mads(i)==0
+% %                         factor=1.25; 
+% %                         mads(i)=mad(thisDisp); %mean absolute deviation
+%                         stds(i)=std(thisDisp);
+%                     end
+                    thisDispZ=(thisDisp-meds(i))./mads(i);
                     
                 case 'medmad'
                     %Zheng2017 (10X)
@@ -71,10 +86,12 @@ else
                     else
                         mads(i)=1;
                     end
-                    factor=1.49; %to approximate units of stdev (https://www.ibm.com/support/knowledgecenter/en/SS4QC9/com.ibm.solutions.wa_an_overview.2.0.0.doc/modified_z.html)
+%                     factor=1;
+                    factor=1.48; %to approximate units of stdev (https://www.ibm.com/support/knowledgecenter/en/SS4QC9/com.ibm.solutions.wa_an_overview.2.0.0.doc/modified_z.html)
                     if mads(i)==0
                         factor=1.25; 
                         mads(i)=mad(thisDisp); %mean absolute deviation
+%                         mads(i)=std(thisDisp);
                     end
                     thisDispZ=(thisDisp-meds(i))./(mads(i)*factor);
             end
@@ -112,6 +129,7 @@ switch params.selectMethod
         error('Unknown option')
 end
 
+result.nHVG=length(hvgix);
 result.ix=hvgix;
 result.gene_name=genes.name(hvgix);
 result.gene_id=genes.id(hvgix);

@@ -7,13 +7,13 @@ rng('shuffle','simdTwister') %for speedup?
 [m,n]=size(data);
 
 %observed svds
-tic
+% tic
 eObs = eig(data'*data,'nobalance');
 eObs = sort(abs(eObs),'descend');
 % svsObs=sqrt(eObs); %actually no need to sqrt...
 % svsObs=svd(data);
 % svsObs=svds(data,maxPCs);
-toc
+% toc
 % lamObs=svsObs.^2./(n-1); %variances of each component
 
 % permutation test: shuffle labels of observations within each variable independently

@@ -14,6 +14,11 @@ switch params.scale_method
     case 'zscore'
         % Seurat scaling
         X=(X-mean(X,2))./std(X,[],2); %zscore gene distributions
+        
+        %notes
+        % - largest Zscores occur for small-mean genes.
+        % - 
+                
 %         if doPlot
 %             figure(10);clf
 %             histogram(max(X,[],2))
@@ -26,14 +31,31 @@ switch params.scale_method
         X(X>params.maxScaled)=params.maxScaled;
         X(X<-params.maxScaled)=-params.maxScaled;  %
         
+    case 'meanmad'
+        %use median/mad as more robust measures of center and scale...
+        %however, smaller scale values ==> larger standardized. Those will
+        %hold more weigh, so clipping even more important...
+        MEAN=mean(X,2);
+        MAD=mad(X,0,2); 
+        X=(X-MEAN)./MAD;
+        
+        X(X>params.maxScaled)=params.maxScaled;
+        X(X<-params.maxScaled)=-params.maxScaled;
+        
+    case 'medmad'
+        %use median/mad as more robust measures of center and scale
+        MED=median(X,2);
+        MAD=mad(X,1,2); 
+        MAD(MED==0 & MAD==0)=1; %zero/zero occurs. Setting MAD=1 => X unchanged: X=(X-0)/1
+        X=(X-MED)./MAD;
+        
     case 'unit'
         %unitize
         X=(X-min(X,[],2))./(max(X,[],2)-min(X,[],2));
         
-    case 'unit_center'
+    case 'center_unit'
         %unitize, then subtract mean
-        X=(X-min(X,[],2))./(max(X,[],2)-min(X,[],2));
-        X=(X-mean(X,2));
+        X=(X-mean(X,2))./(max(X,[],2)-min(X,[],2));
 
     case 'center'
         X=(X-mean(X,2));
@@ -104,9 +126,13 @@ if exist('figID','var')
     genelist = pc_gene_name(1,1:2);
     colors=tcounts(pc_gene_ix(1,1:2),:);
     figure(figID);clf
-    plotScatter(S,'value',genelist,colors,figID);
-    
-    %     axis square
-    axis tight
+    [ax,hs]=plotScatter(S,'value',genelist,colors,figID);
+%     for i=1:length(hs)
+%         hs(i).SizeData=5;
+%     end
+    for i=1:length(ax)
+        axis(ax(i),'equal')
+        axis(ax(i),'tight')
+    end
     drawnow
 end
