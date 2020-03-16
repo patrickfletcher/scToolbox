@@ -87,7 +87,7 @@ else
                         mads(i)=1;
                     end
 %                     factor=1;
-                    factor=1.48; %to approximate units of stdev (https://www.ibm.com/support/knowledgecenter/en/SS4QC9/com.ibm.solutions.wa_an_overview.2.0.0.doc/modified_z.html)
+                    factor=1.49; %to approximate units of stdev (https://www.ibm.com/support/knowledgecenter/en/SS4QC9/com.ibm.solutions.wa_an_overview.2.0.0.doc/modified_z.html)
                     if mads(i)==0
                         factor=1.25; 
                         mads(i)=mad(thisDisp); %mean absolute deviation
