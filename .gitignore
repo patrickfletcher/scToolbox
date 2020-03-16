@@ -1,2 +1,4 @@
 *.asv
 .vscode
+
+__pychache__
