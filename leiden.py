@@ -1,8 +1,6 @@
 import leidenalg as la
 import igraph as ig
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import time
 from sklearn.neighbors import kneighbors_graph
 

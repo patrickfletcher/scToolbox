@@ -23,6 +23,12 @@ switch params.method
         result.K=length(COMTY.SIZE{end});
     case 'leiden'
         disp('Performing Leidenalg (python) clustering...')
+        Pypath = py.sys.path;
+        MLpath=string(path).split(';');
+        sctoolpath=MLpath(contains(MLpath,'scToolbox'));
+        if count(Pypath,sctoolpath) == 0 && ~isempty(sctoolpath)
+            insert(Pypath,int32(0),sctoolpath);
+        end
         clusterID=double(py.leiden.run(scores,params.kNN,params.resolution));
         clusterID=clusterID+1; %python is 0-based
         result.K=max(clusterID); 
