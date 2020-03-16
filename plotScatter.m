@@ -182,6 +182,10 @@ switch lower(colorby)
         
 end
 
+if nargout==0
+    clear ax
+end
+
 end
 
 
