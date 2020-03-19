@@ -81,16 +81,17 @@ if verbose, disp('Computing PCA...'), end
 [coeff,score]=fast_pca(X',result.npc);
 
 pc_gene_name(size(X,1),result.npc)="";
+% pc_gene_id(size(X,1),result.npc)="";
 pc_gene_ix(size(X,1),result.npc)=0;
 for i=1:length(coeff(1,:))
     [cs,ix]=sort(coeff(:,i),'descend');
     if exist('hvgix','var')&&~isempty(hvgix)
         pc_gene_name(:,i)=genes.name(hvgix(ix));
-        pc_gene_id(:,i)=genes.id(hvgix(ix));
+%         pc_gene_id(:,i)=genes.id(hvgix(ix));
         pc_gene_ix(:,i)=hvgix(ix);
     else
         pc_gene_name(:,i)=genes.name(ix);
-        pc_gene_id(:,i)=genes.id(ix);
+%         pc_gene_id(:,i)=genes.id(ix);
         pc_gene_ix(:,i)=ix;
     end
 end
@@ -98,8 +99,8 @@ end
 result.coeff=coeff;
 result.coords=score;
 result.pc_gene_name=pc_gene_name;
-result.pc_gene_id=pc_gene_id;
-result.pc_gene_ix=pc_gene_ix;
+% result.pc_gene_id=pc_gene_id;
+% result.pc_gene_ix=pc_gene_ix;
         
 if exist('figID','var')
     

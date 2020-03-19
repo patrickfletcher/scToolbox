@@ -3,12 +3,12 @@ function result = doUMAP(score, params, figID, valuenames, colors)
 disp('Computing UMAP...')
 result = params;
 
-Pypath = py.sys.path;
-MLpath=string(path).split(';');
-sctoolpath=MLpath(contains(MLpath,'scToolbox'));
-if count(Pypath,sctoolpath) == 0 && ~isempty(sctoolpath)
-    insert(Pypath,int32(0),sctoolpath);
-end
+% Pypath = py.sys.path;
+% MLpath=string(path).split(';');
+% sctoolpath=MLpath(contains(MLpath,'scToolbox'));
+% if count(Pypath,sctoolpath) == 0 && ~isempty(sctoolpath)
+%     insert(Pypath,int32(0),sctoolpath);
+% end
 
 umap=py.importlib.import_module('umap');
 
@@ -47,13 +47,16 @@ end
 %                 'n_components',int32(2),'verbose',true,'init',initY));
 % res=py.runumap.run(score,kwargs);
 
+%just run umap directly
 kwargs = pyargs('n_neighbors',int32(params.n_neighbors),'min_dist',params.min_dist,...
                 'n_epochs',int32(params.n_epochs),'verbose','text',...
                 'n_components',int32(2),'verbose',true,'init',initY);
-res=umap.UMAP(kwargs).fit_transform(score);
+umap_obj=umap.UMAP(kwargs).fit(score);
+res=umap_obj.transform(score);
 res=double(res);
 
 result.coords=res;
+result.graph=sparse(double(umap_obj.graph_.toarray())); %just save the scipy.csr_matrix to be passed to leiden
 
 if exist('figID','var')
     figure(figID);clf

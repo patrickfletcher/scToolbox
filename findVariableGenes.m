@@ -131,8 +131,8 @@ end
 
 result.nHVG=length(hvgix);
 result.ix=hvgix;
-result.gene_name=genes.name(hvgix);
-result.gene_id=genes.id(hvgix);
+% result.gene_name=genes.name(hvgix);
+% result.gene_id=genes.id(hvgix);
 
 if exist('figID','var')
     figure(figID);clf
