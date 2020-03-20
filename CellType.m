@@ -1,4 +1,4 @@
-classdef CellType < handle %& matlab.mixin.Copyable
+classdef CellType < handle & matlab.mixin.Copyable
     %a class to represent a cell type
     % - subtypes (array of CellTypes) provides support for hierarchy definition
     % - pre-order search the tree for info, or to classify.
@@ -73,7 +73,7 @@ classdef CellType < handle %& matlab.mixin.Copyable
             disp(['No CellType with name ' name ' found.'])
         end
         
-        function [classID,IDs,tf]=classifyByScore(ct,tcounts,genes)
+        function [classID,IDs,tf,markerScore]=classifyByScore(ct,tcounts,genes)
             % classify cells into leaf-types of the CellType tree
             %
             % classIDs are in {unclassified, ambiguous, ct.Names()}
@@ -105,14 +105,16 @@ classdef CellType < handle %& matlab.mixin.Copyable
             end
             
             %otherwise:
-            tf=[];
+            tf=logical.empty();
             tf_parent=this_condition;
+            markerScore=[];
             
             %classify subtypes. leaf nodes inherit parent node's markers
             for i=1:ct.nSubtypes
-                [~,classID_sub,tf_sub]=ct.subtypes(i).classifyByScore(tcounts,genes);
+                [~,classID_sub,tf_sub,mscore_sub]=ct.subtypes(i).classifyByScore(tcounts,genes);
                 tf_sub=repmat(tf_parent,size(tf_sub,1),1)&tf_sub;
                 tf=[tf ; tf_sub];
+                markerScore=[markerScore; mscore_sub];
                 ix=find(any(tf_sub,1));
                 for j=ix
                     IDs{j}=[IDs{j},classID_sub{j}];
@@ -120,7 +122,8 @@ classdef CellType < handle %& matlab.mixin.Copyable
             end
             
             %resolve ambiguous and unclassified
-            nID=cellfun(@numel,IDs);
+%             nID=cellfun(@numel,IDs);
+            nID=sum(tf,1);
             unc=nID==0;
             uniqueClass=nID==1;
             amb=nID>1;
@@ -135,7 +138,6 @@ classdef CellType < handle %& matlab.mixin.Copyable
             end
             catnames=[ct.Names;"Amb";"Unc"]; %to keep hierarchy ordering
             classID=categorical(classID,catnames,catnames);
-            tf=logical(tf);
         end
         
         function [classID,cellClassID,IDs,tf]=classifyClusterByScore(ct,clusterID,tcounts,genes)

@@ -36,19 +36,19 @@ for i=1:length(groupNames)
                 case 'none'
 
                 case 'optim'
-                    K=min(groupCounts(i),minK);
+%                     K=min(groupCounts(i),minK);
                     if doClustOnPCscores
                         xD=pdist(PCscores(thisGroup,:),distanceMetric); 
                     else
                         xD=pdist(Ysub',distanceMetric); 
                     end
                     Z=linkage(xD,linkageType);
-                    T=cluster(Z,'maxClust',K);
+%                     T=cluster(Z,'maxClust',K);
     
                     %slow when nObs is large
-                    % cellOrder=optimalleaforder(Z,xD);
-                    % cellOrder=optimalleaforder(Z,xD,'Transformation','linear');
-                    ixs=optimalleaforder(Z,xD,'Transformation','inverse');
+                    ixs=optimalleaforder(Z,xD);
+                    % ixs=optimalleaforder(Z,xD,'Transformation','linear');
+%                     ixs=optimalleaforder(Z,xD,'Transformation','inverse');
                     subOrder=subOrder(ixs);
 
                 case 'clust'
