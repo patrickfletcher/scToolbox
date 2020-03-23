@@ -1,4 +1,4 @@
-classdef CellType < handle & matlab.mixin.Copyable
+classdef CellType %< handle & matlab.mixin.Copyable
     %a class to represent a cell type
     % - subtypes (array of CellTypes) provides support for hierarchy definition
     % - pre-order search the tree for info, or to classify.
@@ -28,7 +28,7 @@ classdef CellType < handle & matlab.mixin.Copyable
             end
         end
         
-        function newct=addSubtype(ct,varargin)
+        function ct=addSubtype(ct,varargin)
             
             if class(varargin{1})=="CellType"
                 newct=varargin{1};
@@ -48,7 +48,7 @@ classdef CellType < handle & matlab.mixin.Copyable
             ct.nSubtypes=numel(ct.subtypes);
         end
         
-        function removeSubtype(ct,name)
+        function ct=removeSubtype(ct,name)
             %remove first cell type found with given name, pre-order search
             for i=1:ct.nSubtypes
                 if name==ct.subtypes(i).name
@@ -131,10 +131,10 @@ classdef CellType < handle & matlab.mixin.Copyable
             %return classID as categorical
             classID(uniqueClass)=IDs(uniqueClass);
             if any(amb)
-                classID(amb)={"Amb"};
+                classID(amb)="Amb";
             end
             if any(unc)
-                classID(unc)={"Unc"};
+                classID(unc)="Unc";
             end
             catnames=[ct.Names;"Amb";"Unc"]; %to keep hierarchy ordering
             classID=categorical(classID,catnames,catnames);
@@ -152,7 +152,7 @@ classdef CellType < handle & matlab.mixin.Copyable
             end
         end
         
-        function setNames(ct,oldNames,newNames)
+        function ct=setNames(ct,oldNames,newNames)
         end
         
         function nameArray=Names(ct,option)
@@ -163,7 +163,7 @@ classdef CellType < handle & matlab.mixin.Copyable
             nameArray=ct.preorderQuery('name',option);
         end
         
-        function setMarkers(ct,names,newMarkers,newThreshold,append)
+        function ct=setMarkers(ct,names,newMarkers,newThreshold,append)
         end
         
         function markerList=Markers(ct,option)
@@ -174,7 +174,7 @@ classdef CellType < handle & matlab.mixin.Copyable
             markerList=ct.preorderQuery('markers',option);
         end
         
-        function setColors(ct,names,colors)
+        function ct=setColors(ct,names,colors)
             %names could be 'all' or 'leaves' or list of specific names?
         end
         
