@@ -1,13 +1,25 @@
 function [cellID,new_ct,IDs,TF,mscores]=...
-    iterativeGroupClassify(tcounts,genes,init_ct,params)
+    iterativeGroupClassify(tcounts,genes,init_ct,params,scores)
 %iterative classifier given initial celltype tree
 
 %initial partition
 [cellID,IDs,TF,mscores]=init_ct.classifyByScore(tcounts,genes);
+
+if params.doImpute
+    new_cellID=cellID;
+    cellsToImpute=new_cellID=="Unc";
+    [new_cellID_imp, newID]=imputeCellType(new_cellID,cellsToImpute,params.impute,scores);
+    ix=find(cellsToImpute); 
+    new_cellID_imp(ix(newID=="Amb"))="Unc"; %don't impute to "Ambiguous" class.
+    numImputed=nnz(new_cellID=="Unc")-nnz(new_cellID_imp=="Unc")
+    new_cellID=new_cellID_imp;
+    cellID=new_cellID;
+end
 summary(cellID)
 
 iter=1;
-new_ct=copy(init_ct);
+% new_ct=copy(init_ct);
+new_ct=init_ct;
 while iter<=params.maxIter
     
     % for each type in cellID that is not Amb/Unc, try to refine markers:
@@ -42,11 +54,21 @@ while iter<=params.maxIter
         genesAbove=tcounts(gix,:)>=geneThresholds;
         markerScore=sum(genesAbove,1);
         scoreThreshold=round(geneThresholdOtsu(markerScore));
+        scoreThreshold=max(init_ct.subtypes(i).threshold,scoreThreshold); %don't go below init thr
         new_ct.subtypes(i).threshold=scoreThreshold;
     end
 
     % classify based on new markers
     [new_cellID,IDs,TF,mscores]=new_ct.classifyByScore(tcounts,genes);
+    
+    if params.doImpute
+        cellsToImpute=new_cellID=="Unc";
+        [new_cellID_imp, newID]=imputeCellType(new_cellID,cellsToImpute,params.impute,scores);
+        ix=find(cellsToImpute); 
+        new_cellID_imp(ix(newID=="Amb"))="Unc"; %don't impute to "Ambiguous" class.
+        numImputed=nnz(new_cellID=="Unc")-nnz(new_cellID_imp=="Unc")
+        new_cellID=new_cellID_imp;
+    end
     summary(new_cellID)
     
     if isequal(cellID,new_cellID)
