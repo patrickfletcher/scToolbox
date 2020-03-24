@@ -1,6 +1,9 @@
 function [cellID,new_ct,IDs,TF,mscores]=...
-    iterativeGroupClassify(tcounts,genes,init_ct,params,scores)
+    iterativeGroupClassify(tcounts,genes,init_ct,params,coords)
 %iterative classifier given initial celltype tree
+
+%TODO: make this hierarchical. i.e. make it a method of CellType class, use
+%the tree-search methods there.
 
 %initial partition
 [cellID,IDs,TF,mscores]=init_ct.classifyByScore(tcounts,genes);
@@ -8,7 +11,7 @@ function [cellID,new_ct,IDs,TF,mscores]=...
 if params.doImpute
     new_cellID=cellID;
     cellsToImpute=new_cellID=="Unc";
-    [new_cellID_imp, newID]=imputeCellType(new_cellID,cellsToImpute,params.impute,scores);
+    [new_cellID_imp, newID]=imputeCellType(new_cellID,cellsToImpute,params.impute,coords);
     ix=find(cellsToImpute); 
     new_cellID_imp(ix(newID=="Amb"))="Unc"; %don't impute to "Ambiguous" class.
     numImputed=nnz(new_cellID=="Unc")-nnz(new_cellID_imp=="Unc")
@@ -63,7 +66,7 @@ while iter<=params.maxIter
     
     if params.doImpute
         cellsToImpute=new_cellID=="Unc";
-        [new_cellID_imp, newID]=imputeCellType(new_cellID,cellsToImpute,params.impute,scores);
+        [new_cellID_imp, newID]=imputeCellType(new_cellID,cellsToImpute,params.impute,coords);
         ix=find(cellsToImpute); 
         new_cellID_imp(ix(newID=="Amb"))="Unc"; %don't impute to "Ambiguous" class.
         numImputed=nnz(new_cellID=="Unc")-nnz(new_cellID_imp=="Unc")
