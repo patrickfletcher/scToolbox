@@ -62,7 +62,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
                             ct.subtypes=[ct.subtypes(1:i-1),ct.subtypes(i).subtypes,ct.subtypes(i+1:end)];
                         end
                     end
-                    
+                    ct.subtypes(i)=[]; %actually delete it
                     ct.nSubtypes=numel(ct.subtypes);
                     return
                 end
@@ -83,19 +83,12 @@ classdef CellType %< handle & matlab.mixin.Copyable
             % condition
             
             IDs=cell(1,size(tcounts,2));
-%             classID=cell(1,size(tcounts,2));
             classID=strings(1,size(tcounts,2));
-            
-            %keep intermediate nodes separate
             this_condition=true(1,size(tcounts,2));
+            
+            %check this node
             if ~(ct.markers=="")
-                [gix,ct.markers]=getGeneIndices(ct.markers,genes.name);
-                M=tcounts(gix,:);
-                markersAbove=M>=genes.thr(gix); %shows which genes are above
-                markerScore=sum(markersAbove,1); %# per cell
-%                 scoreThreshold=geneThresholdOtsu(markerScore);
-                scoreThreshold=ct.threshold;
-                this_condition=markerScore>=scoreThreshold;
+                [this_condition, markerScore]=ct.evaluateMarkers(tcounts, genes);
             end
             
             if isempty(ct.subtypes)
@@ -105,14 +98,14 @@ classdef CellType %< handle & matlab.mixin.Copyable
             end
             
             %otherwise:
-            tf=logical.empty();
+            markerScore=[]; %what is desired behavior? return only leaf TF for now. traversing the tree means flattening to leaves... add function that individually evaluates a ct node if desired.
+            tf=logical.empty(); 
             tf_parent=this_condition;
-            markerScore=[];
             
             %classify subtypes. leaf nodes inherit parent node's markers
             for i=1:ct.nSubtypes
                 [~,classID_sub,tf_sub,mscore_sub]=ct.subtypes(i).classifyByScore(tcounts,genes);
-                tf_sub=repmat(tf_parent,size(tf_sub,1),1)&tf_sub;
+                tf_sub=repmat(tf_parent,size(tf_sub,1),1) & tf_sub; %parent AND subtype conditions pass
                 tf=[tf ; tf_sub];
                 markerScore=[markerScore; mscore_sub];
                 ix=find(any(tf_sub,1));
@@ -139,6 +132,15 @@ classdef CellType %< handle & matlab.mixin.Copyable
             catnames=[ct.Names;"Amb";"Unc"]; %to keep hierarchy ordering
             classID=categorical(classID,catnames,catnames);
         end
+        
+        
+        function [this_condition,markerScore] = evaluateMarkers(ct, tcounts, genes)
+            [gix,ct.markers]=getGeneIndices(ct.markers,genes.name); %note this erases unfound markers!
+            markersAbove=tcounts(gix,:)>=genes.thr(gix); %shows which genes are above
+            markerScore=sum(markersAbove,1); %# per cell
+            this_condition=markerScore>=ct.threshold;
+        end
+        
         
         function [classID,IDs,tf,markerScore]=iterativeClassifyByScore(ct,tcounts,genes,params,coords)
             %initial partition
@@ -293,7 +295,9 @@ classdef CellType %< handle & matlab.mixin.Copyable
             %if has subtypes, return this result only if "all" were requested, otherwise returns only leaves of the tree
             if isempty(option) && isempty(ct.subtypes)
                 result=ct.(query);
-            elseif any(strcmp(option,ct.name))
+            elseif any(strcmp(option,ct.name)) %strcmp to handle empty option
+                result=ct.(query);
+            elseif any(strcmp(option,"all")) && ~any(ct.markers=="")
                 result=ct.(query);
             end
             
