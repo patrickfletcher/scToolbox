@@ -74,7 +74,7 @@ if nsubsample>0
         else
             thissub=ix;
         end
-        subsamp=[subsamp;thissub];
+        subsamp=[subsamp,thissub];
     end
     X=X(:,subsamp);
     obsGroup=obsGroup(subsamp);

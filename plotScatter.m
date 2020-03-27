@@ -7,9 +7,7 @@ function [ax, hs, hc]=plotScatter(X,colorby,group,colors,figID,subplotdims,sp_pa
 %        - if 'value', one color per point (column vector); if more than one column, one subplot per column
 
 
-%TODO: this needs cleanup, inputparser.
-%TODO: handling for dumping plot into existing axis (for single plot only)
-%      Value plot doesn't support this yet
+%TODO: interface is horrendous. refactor. inputparser?
 %TODO: move away from "exist" method of input checking
 %TODO: option - add callback function for lasso select points, return their coords/indices to a workspace var
 %TODO: mouse-over function: make it display the type name or expr value
@@ -115,22 +113,31 @@ switch lower(colorby)
         cmap=cbrewer('seq','OrRd',17); %test binning?
         cmap=[[.7,.85,0.9];cmap(4:end,:)]; %add a teal color for zero; skip lower couple colors
 
-        
-        if ischar(group)
-            group={group};
-        end
+        %group - simply labels for the plots...
+        %colors - size(X,1) by number of variables to plot
         
         [m,n]=size(colors);
         if m~=nObs && n~=nObs
             error('Number of observations does not match number of scatter points')
-        elseif n==size(X,1)
-            colors=colors';
+        elseif n==size(X,1) 
+            colors=colors'; %force columns
+            [~,n]=size(colors);
+        end
+        nVars=n;
+        
+        if isempty(group)
+            group=repmat("",n,1);
         end
         
-        nVars=length(group);
-        
-        %subplot layout
-        if exist('subplotdims','var')&&~isempty(subplotdims)
+        mustMakeAxes=true;
+        if ~exist('subplotdims','var')||isempty(subplotdims)
+            p=numSubplots(nVars);
+            nr=p(1);
+            nc=p(2);
+        elseif class(subplotdims)=="matlab.graphics.axis.Axes"
+            mustMakeAxes=false;
+            ax=subplotdims; %could be an array of axes
+        elseif isnumeric(subplotdims)
             if prod(subplotdims)>=nVars
                 nr=subplotdims(1);
                 nc=subplotdims(2);
@@ -139,15 +146,13 @@ switch lower(colorby)
                 nr=p(1);
                 nc=p(2);
             end
-        else
-            p=numSubplots(nVars);
-            nr=p(1);
-            nc=p(2);
+        end
+        if mustMakeAxes
+            ax=tight_subplot(nr,nc,[],sp_params.gap,sp_params.marg_h,sp_params.marg_w);
         end
         
         for i=1:nVars
-%             ax(i)=subplot_tight(nr,nc,i,spmargins);
-            ax(i)=tight_subplot(nr,nc,i,sp_params.gap,sp_params.marg_h,sp_params.marg_w);
+            axes(ax(i));
             
             hs(i)=scatter(X(:,1),X(:,2),markerSize,colors(:,i),marker,'filled');
             hs(i).MarkerEdgeColor=hs(i).MarkerFaceColor;
