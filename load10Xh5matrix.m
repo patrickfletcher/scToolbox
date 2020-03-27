@@ -41,13 +41,21 @@ else
     genes=h5read(filename,[h5path 'features/name']);
 end
 
+barcodes=string(barcodes(:));
+genes=string(genes(:));
+geneIDs=string(geneIDs(:));
+
 %slight cleanup
-for i=1:length(genes)
-    genes{i}=deblank(genes{i});
-end
-for i=1:length(geneIDs)
-    geneIDs{i}=deblank(geneIDs{i});
-end
-for i=1:length(barcodes)
-    barcodes{i}=deblank(barcodes{i});
-end
+genes=deblank(genes);
+geneIDs=deblank(geneIDs);
+barcodes=deblank(barcodes);
+
+% for i=1:length(genes)
+%     genes{i}=deblank(genes{i});
+% end
+% for i=1:length(geneIDs)
+%     geneIDs{i}=deblank(geneIDs{i});
+% end
+% for i=1:length(barcodes)
+%     barcodes{i}=deblank(barcodes{i});
+% end
