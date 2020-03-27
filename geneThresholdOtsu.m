@@ -7,9 +7,12 @@ if ~exist('nz','var')
     nz=false;
 end
 
+ix=find(sum(X,2)>0)'; %work only on rows with at least one non-zero
+
 nGenes=length(X(:,1));
 B=zeros(nGenes,levels);
-for i=1:nGenes
+thr=zeros(nGenes,1);
+for i=ix
     edges=linspace(min(X(i,:)),max(X(i,:)),levels+1);
     thisX=X(i,:);
     if nz
