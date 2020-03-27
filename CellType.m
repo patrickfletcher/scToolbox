@@ -259,6 +259,14 @@ classdef CellType %< handle & matlab.mixin.Copyable
             %names could be 'all' or 'leaves' or list of specific names?
         end
         
+        function colorArray=Thresholds(ct,option)
+            if ~exist('option','var')
+%                 option="leaves";
+                option=[];
+            end
+            colorArray=ct.preorderQuery('threshold',option);
+        end
+        
         function colorArray=Colors(ct,option)
             if ~exist('option','var')
 %                 option="leaves";
