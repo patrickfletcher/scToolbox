@@ -1,7 +1,7 @@
 function result = doPCA(tcounts, genes, params, hvgix, figID, pcix)
 
 verbose = true;
-result = params;
+result.params = params;
 
 if exist('hvgix','var')&&~isempty(hvgix)
     X=tcounts(hvgix,:);

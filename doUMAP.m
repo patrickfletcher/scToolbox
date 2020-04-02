@@ -1,16 +1,7 @@
-function result = doUMAP(score, params, figID, valuenames, colors)
+function result = doUMAP(X, params, knn, figID, valuenames, colors)
 
 disp('Computing UMAP...')
-result = params;
-
-% Pypath = py.sys.path;
-% MLpath=string(path).split(';');
-% sctoolpath=MLpath(contains(MLpath,'scToolbox'));
-% if count(Pypath,sctoolpath) == 0 && ~isempty(sctoolpath)
-%     insert(Pypath,int32(0),sctoolpath);
-% end
-
-umap=py.importlib.import_module('umap');
+result.params = params;
 
 rng(params.rngSeed)
 
@@ -20,47 +11,110 @@ if isempty(initY)
 
 elseif isnumeric(initY)&&numel(initY)==2
     %initY=[pc1,pc2] indicates index of PCs to use as initial points
-
     pcix=initY;
     signix=sign(pcix);
     pcix=abs(pcix);
-    initY=score(:,pcix);
+    initY=X(:,pcix);
     initY(:,1)=signix(1)*initY(:,1);
     initY(:,2)=signix(2)*initY(:,2);
     initY=py.numpy.array(initY);
 
-elseif size(initY,1)==size(score,1)
+elseif size(initY,1)==size(X,1)
     initY=py.numpy.array(initY);
 
+elseif initY~="spectral" && initY~="random"
+    error('unknown initialization method for UMAP');
+    
 end
 
-%non-standard for run_umap api: 'init', 'spread'
-% 'init',initY, 'spread',params.spread, ...    
+doKNN=true;
+if exist('knn','var') && params.n_neighbors<=size(knn.indices,2)
+    doKNN=false;
+    knn_indices=knn.indices(:,1:params.n_neighbors);
+    knn_dists=knn.dists(:,1:params.n_neighbors);
+end
+    
+%common python function arguments
+n_neighbors=int64(params.n_neighbors);
+verbose=true;
+metric='euclidean';
+metric_kwargs=py.dict();
+py_rand_state=py.numpy.random.RandomState(int64(params.rngSeed));
 
-% res=run_umap(score,'n_neighbors',params.n_neighbors,...
-%     'n_epochs',params.n_epochs,'verbose','text','min_dist',params.min_dist,...
-%     'randomize',params.randomize,'method',params.method,...
-%     'python',params.python);
+% break into three steps for reuse of intermediates.
 
-% kwargs =py.dict(pyargs('n_neighbors',int32(params.n_neighbors),'min_dist',params.min_dist,...
-%                 'n_epochs',int32(params.n_epochs),'verbose','text',...
-%                 'n_components',int32(2),'verbose',true,'init',initY));
-% res=py.runumap.run(score,kwargs);
+% 1. nearest neighbors --> nnIDX, nnDist (for impute!) - in python, quite slow! the bottleneck.
+%matlab knn
+if doKNN
+    tic
+    [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors); %quite fast!
+    % knn_indices(:,1)=[]; %remove self distances
+    % knn_dists(:,1)=[];
+    disp("knnsearch time: " + num2str(toc) + "s")
+    result.knn_indices=knn_indices;
+    result.knn_dists=knn_dists;
+end
 
-%just run umap directly
-kwargs = pyargs('n_neighbors',int32(params.n_neighbors),'min_dist',params.min_dist,...
-                'n_epochs',int32(params.n_epochs),'verbose','text',...
-                'n_components',int32(2),'verbose',true,'init',initY);
-umap_obj=umap.UMAP(kwargs).fit(score);
-res=umap_obj.transform(score);
-res=double(res);
+%python version
+% do_sparse=1; %seems much faster for py nearest neighbors
+% if do_sparse %transform seemed to fail when X is sparse.
+%     X=py.scipy.sparse.csr_matrix(X);
+% end
+% tic
+% kwargs = pyargs('verbose',true,'random_state',py_rand_state);
+% out=py.umap.umap_.nearest_neighbors(py.scipy.sparse.csr_matrix(X),n_neighbors,...
+%     metric,metric_kwargs,false,kwargs); 
+% result.knn_indices=double(out{1})+1; %+1 to convert to Matlab 1-based
+% result.knn_dists=double(out{2});
+% toc
 
-result.coords=res;
-result.graph=sparse(double(umap_obj.graph_.toarray())); %just save the scipy.csr_matrix to be passed to leiden
+
+% 2. fuzzy simplicial set --> graph
+tic
+kwargs = pyargs('knn_indices',int64(knn_indices-1), 'knn_dists', py.numpy.array(knn_dists), 'verbose',verbose);
+fuzzy_simplicial_set=py.umap.umap_.fuzzy_simplicial_set(X,...
+    n_neighbors, py_rand_state, metric, kwargs);
+result.graph=sparse(double(fuzzy_simplicial_set.toarray())); %is this correct?
+disp("fuzzy_simplicial_set time: " + num2str(toc) + "s")
+
+
+% 3. embedding --> result
+tic
+n_components=int64(2);
+initial_alpha=1.0; %alpha is SGD learning rate
+gam=1.0; %gamma is repulsion strength
+negative_sample_rate=5; %double or int?
+n_epochs=int64(params.n_epochs);
+init=initY;
+
+out=py.umap.umap_.find_ab_params(params.spread, params.min_dist);
+a=out{1}; b=out{2};
+result.a=double(a);
+result.b=double(b);
+
+kwargs = pyargs('verbose',verbose);
+embedded = py.umap.umap_.simplicial_set_embedding(X, fuzzy_simplicial_set,...
+    n_components, initial_alpha, a, b, gam, negative_sample_rate,... 
+    n_epochs, init, py_rand_state, metric, metric_kwargs, kwargs);
+result.coords=double(embedded);
+disp("simplicial_set_embedding time: " + num2str(toc) + "s")
+    
+% %just run umap directly
+% kwargs = pyargs('n_neighbors',int32(params.n_neighbors),...
+%     'min_dist',params.min_dist,'spread',params.spread,...
+%     'n_epochs',int32(params.n_epochs),...
+%     'n_components',int32(2),'verbose',verbose,'init',initY,...
+%     'random_state',int32(params.rngSeed));
+% 
+% umap_obj=py.umap.UMAP(kwargs).fit(X);
+% % res=umap_obj.transform(X); %this is for transforming new data.
+% result.coords=double(umap_obj.embedding_);
+% result.graph=sparse(double(umap_obj.graph_.toarray())); %just save the scipy.csr_matrix to be passed to leiden
 
 if exist('figID','var')
     figure(figID);clf
-    plotScatter(res,'value',valuenames,colors,figID);
+    plotScatter(result.coords,'value',valuenames,colors,figID);
     axis tight
+    axis equal
     drawnow
 end

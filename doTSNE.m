@@ -1,7 +1,7 @@
 function result = doTSNE(score, params, figID, valuenames, colors)
 
 disp('Computing tSNE...')
-result = params;
+result.params = params;
 
 rng(params.rngSeed)
 
