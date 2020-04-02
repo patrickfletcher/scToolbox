@@ -1,4 +1,4 @@
-function geneTable=getExpression(genes,ncounts,tcounts,factor1,factor2)
+function geneTable=getExpression(genes,ncounts,tcounts,factor1,factor2,threshgroup)
 %get gene expression for groups defined by two levels of factors
 
 factor1Names=categories(factor1);
@@ -9,19 +9,35 @@ if exist('factor2','var')&&~isempty(factor2)
     do2factor=true;
 end
 
+threshgroups=1;
+if exist('threshgroup','var')
+    threshgroup=categorical(threshgroup);
+    threshgroups=categories(threshgroup);
+end
+
+T=tcounts;
+if length(threshgroups)>1
+    for i=1:length(threshgroups)
+        thisgroup=threshgroup==threshgroups{i};
+        T(:,thisgroup)=T(:,thisgroup)-genes.("thr_"+threshgroups{i});
+    end
+else
+    T=T-genes.thr;
+end
+
 geneTable=genes(:,{'id','name'});
 for i=1:length(factor1Names)
     if do2factor
         for j=1:length(factor2Names)
             thisName=[factor1Names{i},'_',factor2Names{j}];
             thisGroup=factor1==factor1Names(i) & factor2==factor2Names{j};
-            geneTable.(['prct_',thisName])=sum(tcounts(:,thisGroup)>genes.thr,2)./nnz(thisGroup)*100;
+            geneTable.(['prct_',thisName])=sum(T(:,thisGroup)>0,2)./nnz(thisGroup)*100;
             geneTable.(['expr_',thisName])=mean(ncounts(:,thisGroup),2);
         end
     else
         thisName=factor1Names{i};
         thisGroup=factor1==factor1Names(i);
-        geneTable.(['prct_',thisName])=sum(tcounts(:,thisGroup)>genes.thr,2)./nnz(thisGroup)*100;
+        geneTable.(['prct_',thisName])=sum(T(:,thisGroup)>0,2)./nnz(thisGroup)*100;
         geneTable.(['expr_',thisName])=mean(ncounts(:,thisGroup),2);
     end
 end
