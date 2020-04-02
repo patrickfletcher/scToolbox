@@ -156,7 +156,9 @@ switch lower(colorby)
             
             hs(i)=scatter(X(:,1),X(:,2),markerSize,colors(:,i),marker,'filled');
             hs(i).MarkerEdgeColor=hs(i).MarkerFaceColor;
-%             axis tight
+            
+            axis equal
+            axis tight
             axis off
             
             colormap(cmap);
