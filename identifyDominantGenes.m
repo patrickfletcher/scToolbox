@@ -216,8 +216,8 @@ end
 
 function [pwtest,dprct,fcprct,fcexpr,exprTest,prctTest]=compareTwoGroups(Panova,pmc,Pchi2,pz,prct1,prct2,expr1,expr2,par)
 dprct=prct1-prct2;
-fcprct=prct1./prct2;
-fcexpr=expr1./expr2;
+fcprct=prct1./prct2;  fcprct(prct1==0 & prct2==0)=1; %ie. no fold change: 0==0
+fcexpr=expr1./expr2;  fcexpr(expr1==0 & expr1==0)=1;
 
 switch par.prctMetric
     case 'diff'
@@ -227,11 +227,11 @@ switch par.prctMetric
 end
 
 % exprTest=fcexpr>=par.fcExprThr;
-exprTest=Panova<=par.pthr & pmc<=par.pthrpw & fcexpr>=par.fcExprThr;
+exprTest=Panova<par.pthr & pmc<par.pthrpw & fcexpr>=par.fcExprThr;
 % pwtest =exprTest;
 
 % prctTest=prctEffectSize>=par.prctESThr;
-prctTest=Pchi2<=par.pprothr & pz<=par.pprothrpw & prctEffectSize>=par.prctESThr;
+prctTest=Pchi2<par.pprothr & pz<par.pprothrpw & prctEffectSize>=par.prctESThr;
 
 if par.prctOrExpr
     pwtest=exprTest | prctTest;
@@ -240,7 +240,7 @@ else
 end
 
 % pwtest = pwtest & prct1>=par.minprct;
-pwtest = pwtest & prct1>=par.minprct & prctEffectSize>=par.minPrctEffect & fcexpr>=par.minFcExpr;
+pwtest = pwtest & prct1>=par.minprct & prctEffectSize>par.minPrctEffect & fcexpr>par.minFcExpr;
 
 %     if par.prctOrExpr
 %         sufficientEffectSize=prctEffectSize>=par.prctESThr | fcexpr>=par.fcExprThr;
