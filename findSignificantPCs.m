@@ -8,7 +8,7 @@ rng('shuffle','simdTwister') %for speedup?
 
 %observed svds
 % tic
-eObs = eig(data'*data,'nobalance');
+eObs = eig(data'*data); %,'nobalance'
 eObs = sort(abs(eObs),'descend');
 % svsObs=sqrt(eObs); %actually no need to sqrt...
 % svsObs=svd(data);
@@ -30,7 +30,7 @@ for it=1:nReps
 %     toc %10X less time than svd below
     
 %     tic
-    d = eig(dataPerm'*dataPerm,'nobalance');
+    d = eig(dataPerm'*dataPerm); %,'nobalance'
     e_null(:,it) = sort(abs(d),'descend');
 %     d = sort(abs(d),'descend');
 %     svs(it,:)=sqrt(d); %actually no need to sqrt...
