@@ -26,7 +26,7 @@ if ~exist('sp_params','var')||isempty(sp_params)
     sp_params.cb_width=0.02;
     sp_params.minArea=0;
     sp_params.maxArea=144;
-    sp_params.prct_leg=25:25:100;
+    sp_params.prct_leg=25:25:100; %should these be generated from data?
     sp_params.cb_prct_gap=0.01;
 end
 minArea=sp_params.minArea; 
@@ -48,7 +48,7 @@ if ~iscategorical(varGroup); varGroup=categorical(varGroup); end
 nPerGroup=countcats(varGroup);
 
 
-if exist('sortmethod','var')
+if exist('sortmethod','var') && ~isempty(sortmethod)
     switch sortmethod
         case 'alpha'
             [varNames,ixs]=sort(varNames);

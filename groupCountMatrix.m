@@ -34,7 +34,16 @@ for i=1:length(groupNames)
 
             switch orderCellsOption
                 case 'none'
-
+                    ixs=1:size(Ysub,2);
+                    
+                case 'nnz'
+                    NNZ=sum(Ysub>0,1);
+                    [~,ixs]=sort(NNZ,'descend');
+                    
+                case 'mean'
+                    MEAN=mean(Ysub,1);
+                    [~,ixs]=sort(MEAN,'descend');
+        
                 case 'optim'
 %                     K=min(groupCounts(i),minK);
                     if doClustOnPCscores
@@ -49,7 +58,6 @@ for i=1:length(groupNames)
                     ixs=optimalleaforder(Z,xD);
                     % ixs=optimalleaforder(Z,xD,'Transformation','linear');
 %                     ixs=optimalleaforder(Z,xD,'Transformation','inverse');
-                    subOrder=subOrder(ixs);
 
                 case 'clust'
                     K=min(groupCounts(i),minK);
@@ -62,8 +70,9 @@ for i=1:length(groupNames)
                     T=cluster(Z,'maxClust',K);
                     
                     [~,ixs]=sort(T);
-                    subOrder=subOrder(ixs);
+                    
             end
+            subOrder=subOrder(ixs);
         end
         
         Ysub=Ysub(:,subOrder);
