@@ -173,43 +173,53 @@ specificCondition = dominantCondition & otherMaxPrctCriterionPool;
 dominant=table();
 dominant.id=genes.id(dominantCondition);
 dominant.name=genes.name(dominantCondition);
-dominant.min_self_prct=minSelfPrct(dominantCondition);
-dominant.min_self_expr=minSelfExpr(dominantCondition);
+if length(selfpars.names)>1
+    dominant.min_self_prct=minSelfPrct(dominantCondition);
+    dominant.min_self_expr=minSelfExpr(dominantCondition);
+else
+    dominant.self_prct=minSelfPrct(dominantCondition);
+    dominant.self_expr=minSelfExpr(dominantCondition);
+end
+%specific (max other test)
+dominant.max_other_prct=maxOtherPrct(dominantCondition);
+
+%effect sizes
+dominant.min_fc_expr=minFCexpr(dominantCondition);
+dominant.min_d_prct=minDprct(dominantCondition);
 
 %fc test
 dominant.fc_test=exprTestPooled(dominantCondition);
-dominant.min_fc_expr=minFCexpr(dominantCondition);
 dominant.p_anova=P.anova(dominantCondition);
 dominant.max_pwp=maxPairwiseP(dominantCondition);
 
 %proportion test
 dominant.prct_test=prctTestPooled(dominantCondition);
-dominant.min_d_prct=minDprct(dominantCondition);
 if doProportionTest
     dominant.p_chi2=P.chi2(dominantCondition);
-    dominant.max_pz=maxPairwisePz(dominantCondition);
+    dominant.max_pwz=maxPairwisePz(dominantCondition);
 end
 
-%specific (max other test)
-dominant.max_other_prct=maxOtherPrct(dominantCondition);
 
 % dominant.min_d_expr=minDexpr(dominantCondition);
 % dominant.min_fc_prct=minFCprct(dominantCondition);
 
-%all group info
+%raw expression/prct values per type
 dominant=[dominant,genes(dominantCondition,...
     ismember(genes.Properties.VariableNames,[prctselfnames;prctothernames])...
     |ismember(genes.Properties.VariableNames,[exprselfnames;exprothernames]))];
-dominant=[dominant,array2table(thisPmc(dominantCondition,:),'variablenames',strcat('pmc_',fcCombs(:,1),'_',fcCombs(:,2)))];
-if doProportionTest
-    dominant=[dominant,array2table(thisPz(dominantCondition,:),'variablenames',strcat('pz_',fcCombs(:,1),'_',fcCombs(:,2)))];
-end
+
+%effect sizes
 dominant=[dominant,array2table(dPrct(dominantCondition,:),'variablenames',strcat('dprct_',fcCombs(:,1),'_',fcCombs(:,2)))];
 % dominant=[dominant,array2table(fcPrct(dominantCondition,:),'variablenames',strcat('fcprct_',fcCombs(:,1),'_',fcCombs(:,2)))];
 dominant=[dominant,array2table(fcExpr(dominantCondition,:),'variablenames',strcat('fcexpr_',fcCombs(:,1),'_',fcCombs(:,2)))];
 
-specific=dominant(specificCondition(dominantCondition),:);
+%pvals
+dominant=[dominant,array2table(thisPmc(dominantCondition,:),'variablenames',strcat('pmc_',fcCombs(:,1),'_',fcCombs(:,2)))];
+if doProportionTest
+    dominant=[dominant,array2table(thisPz(dominantCondition,:),'variablenames',strcat('pz_',fcCombs(:,1),'_',fcCombs(:,2)))];
+end
 
+specific=dominant(specificCondition(dominantCondition),:);
 
 end
 
