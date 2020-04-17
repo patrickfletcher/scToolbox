@@ -11,6 +11,10 @@ function [dominant,specific, dominantCondition, specificCondition]...
 % - "genes" should include prct_self/prct_other/expr_...
 % - combinations not needed - set it to {'self','other'}?
 
+%BUG: sometimes fctest 
+
+%TODO: internally convert foldchange to log10foldchange?
+
 %TODO: check for & exclude internal dominance when self is a group? i.e. homogeneity constraint
 
 doProportionTest=false;
@@ -100,10 +104,11 @@ for i=1:length(selfpars.names)
     pairwiseExprTests=false(nGenes,length(otherpars.names));
     pairwisePrctTests=false(nGenes,length(otherpars.names));
     for j=1:length(otherpars.names)
-        ix=(i-1)*length(otherpars.names)+j;
         
+        ix=(i-1)*length(otherpars.names)+j;
         pmc=thisPmc(:,ix);
         pz=thisPz(:,ix);
+        
         prct1=selfPrct(:,i);
         prct2=otherPrct(:,j);
         expr1=selfExpr(:,i);
@@ -116,22 +121,26 @@ for i=1:length(selfpars.names)
         
 %         ix=ix+1;
     end
-    selfDominant(:,i)=all(pairwiseTests,2);
+    
+    %thresholds on self%, minimum effect sizes
+    selfMinTest(:,i)=prct1>selfpars.minprct;
+    
+    thisDprct=selfPrct(:,i)-otherPrct;
+    pairwisePrctEffectTests=thisDprct>selfpars.minPrctEffect;
+    
+    thisFCexpr=selfExpr(:,i)./otherExpr;
+    pairwiseFCexprTests=thisFCexpr>selfpars.minFcExpr;
+    
+    pairwiseDominance=selfMinTest(:,i) & pairwisePrctEffectTests & pairwiseFCexprTests & (pairwiseExprTests|pairwisePrctTests);
+    
+    %pairwise other pooling - any reason to use "any"?
+    selfDominant(:,i)=all(pairwiseDominance,2);
+%     selfDominant(:,i)=all(pairwiseTests,2);
+    minPrctEffectTest(:,i)=all(pairwisePrctEffectTests,2);
+    minFCexprTest(:,i)=all(pairwiseFCexprTests,2);
     selfExprTest(:,i)=all(pairwiseExprTests,2);
     selfPrctTest(:,i)=all(pairwisePrctTests,2);
     
-    
-% %     %within-self dominance - heterogeneity of group
-% %     % exclude these?
-% %     HETERO={};
-% %     hix=[];
-% %     for j=1:length(selfpars.names)-1
-% %         oix=~strcmp(selfpars.names,selfpars.names(i);
-% %         
-% %         [inter,ia]=intersect(genes.id,genes.id);
-% %         HETERO=[HETERO;inter];
-% %         hix=[hix;ia];
-% %     end
 end
 
 maxPairwiseP=max(thisPmc,[],2);
@@ -143,7 +152,7 @@ minSelfPrct=min(selfPrct,[],2);
 minSelfExpr=min(selfExpr,[],2);
 maxOtherPrct=max(otherPrct,[],2);
 
-%pairwise test pooling
+%pairwise self pooling
 if selfpars.poolmethod=="all"
     pairwiseTestPooled=all(selfDominant,2);
     exprTestPooled=all(selfExprTest,2);
@@ -188,17 +197,20 @@ dominant.min_fc_expr=minFCexpr(dominantCondition);
 dominant.min_d_prct=minDprct(dominantCondition);
 
 %fc test
-dominant.fc_test=exprTestPooled(dominantCondition);
+dominant.all_fc_test=exprTestPooled(dominantCondition);
 dominant.p_anova=P.anova(dominantCondition);
 dominant.max_pwp=maxPairwiseP(dominantCondition);
 
 %proportion test
-dominant.prct_test=prctTestPooled(dominantCondition);
+dominant.all_prct_test=prctTestPooled(dominantCondition);
 if doProportionTest
     dominant.p_chi2=P.chi2(dominantCondition);
     dominant.max_pwz=maxPairwisePz(dominantCondition);
 end
 
+%NOTE: all_fc_test=0 & all_prct_test=0 means for some pairs, one of the two
+%tests passed but not the other, so that not ALL pairs passed FC and not
+%ALL pairs passed PRCT.
 
 % dominant.min_d_expr=minDexpr(dominantCondition);
 % dominant.min_fc_prct=minFCprct(dominantCondition);
@@ -226,8 +238,8 @@ end
 
 function [pwtest,dprct,fcprct,fcexpr,exprTest,prctTest]=compareTwoGroups(Panova,pmc,Pchi2,pz,prct1,prct2,expr1,expr2,par)
 dprct=prct1-prct2;
-fcprct=prct1./prct2;  fcprct(prct1==0 & prct2==0)=1; %ie. no fold change: 0==0
-fcexpr=expr1./expr2;  fcexpr(expr1==0 & expr1==0)=1;
+fcprct=prct1./prct2;  %fcprct(prct1==0 & prct2==0)=1; %ie. no fold change: 0==0  - nan's don't compare anyways..
+fcexpr=expr1./expr2;  %fcexpr(expr1==0 & expr1==0)=1;
 
 switch par.prctMetric
     case 'diff'
@@ -238,7 +250,6 @@ end
 
 % exprTest=fcexpr>=par.fcExprThr;
 exprTest=Panova<par.pthr & pmc<par.pthrpw & fcexpr>=par.fcExprThr;
-% pwtest =exprTest;
 
 % prctTest=prctEffectSize>=par.prctESThr;
 prctTest=Pchi2<par.pprothr & pz<par.pprothrpw & prctEffectSize>=par.prctESThr;
@@ -249,8 +260,7 @@ else
     pwtest=exprTest & prctTest;
 end
 
-% pwtest = pwtest & prct1>=par.minprct;
-pwtest = pwtest & prct1>=par.minprct & prctEffectSize>par.minPrctEffect & fcexpr>par.minFcExpr;
+pwtest = pwtest & prct1>=par.minprct & fcexpr>par.minFcExpr & prctEffectSize>par.minPrctEffect;
 
 %     if par.prctOrExpr
 %         sufficientEffectSize=prctEffectSize>=par.prctESThr | fcexpr>=par.fcExprThr;

@@ -23,7 +23,7 @@ if ~exist('minFrac','var')||isempty(minFrac)
 end
 
 if ~exist('genesToTest','var')||isempty(genesToTest)
-    genesToTest='both';
+    genesToTest='either';
 end
 
 [nGenes,nCells]=size(X);
@@ -42,7 +42,7 @@ switch genesToTest
         keep=frac1 > minFrac;
     case 'group2'
         keep=frac2 > minFrac;
-    otherwise
+    case 'either'
         keep=frac1 > minFrac | frac2 > minFrac;
 end
 
