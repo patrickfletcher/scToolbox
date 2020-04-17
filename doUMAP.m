@@ -28,7 +28,7 @@ elseif initY~="spectral" && initY~="random"
 end
 
 doKNN=true;
-if exist('knn','var') && params.n_neighbors<=size(knn.indices,2)
+if exist('knn','var') && ~isempty(knn) && params.n_neighbors<=size(knn.indices,2)
     doKNN=false;
     knn_indices=knn.indices(:,1:params.n_neighbors);
     knn_dists=knn.dists(:,1:params.n_neighbors);

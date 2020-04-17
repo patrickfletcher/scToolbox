@@ -1,4 +1,4 @@
-function result=doDimRedAndCluster(scdata,ncounts,tcounts,cells,genes,params, doPlot, group, colors)
+function result=doDimRedAndCluster(scdata,ncounts,tcounts,cells,genes,params, doPlot, group, colors, markers)
 % HVGs, PCA, tSNE, UMAP, clustering
 % result is a struct with fields hvg, pca, tsne, umap, and clust
 % params are copied into the result struct. 
@@ -10,6 +10,7 @@ if ~isempty(scdata) && isstruct(scdata)
     result=scdata; %appends results to existing struct
     ncounts=ncounts(scdata.genesub,scdata.subset);
     tcounts=tcounts(scdata.genesub,scdata.subset);
+    cells=cells(scdata.subset,:);
     genes=genes(scdata.genesub,:);
 end
 
@@ -20,14 +21,17 @@ end
 % result.umap=params.umap;
 % result.clust=params.clust;
 
+if ~exist('doPlot','var')||isempty(doPlot)
+    doPlot=false;
+end
 if ~exist('group','var')||isempty(group)
     group=ones(1,size(ncounts,2));
 end
 if ~exist('colors','var')||isempty(colors)
     colors=[0.5,0.5,0.5];
 end
-if ~exist('doPlot','var')||isempty(doPlot)
-    doPlot=false;
+if ~exist('markers','var')
+    markers=[];
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -38,7 +42,7 @@ disp('Finding highly variable genes...')
 
 %can optionally pass extra genes to highlight or force include? store these in
 %params?
-markers=["POMC","GH1","PRL","LHB","TSHB","SOX2"];
+% markers=["POMC","GH1","PRL","LHB","TSHB","SOX2"];
 if doPlot
     figure(1);clf
     result.hvg=findVariableGenes(ncounts,genes,params.hvg,1,markers);
@@ -62,7 +66,11 @@ colors = X(ixm(1:4),:);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 1b. regressout
-% X = regressOut([cells.molecPerCell(scdata.subset), cells.genesPerCell(scdata.subset), cells.fracMT(scdata.subset)],X')';
+if isfield(params,'regress')&&~isempty(params.regress)
+    %pass in names of "cells" table variables to regress out?
+    P = cells{:,params.regress.vars};
+    X = regressOut(P, X')';
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 2. pca
@@ -71,25 +79,42 @@ pcplotix = [1,2];
 if isfield(params.tsne,'initY') && isnumeric(params.tsne.initY)&&numel(params.tsne.initY)==2
     pcplotix=params.tsne.initY;
 end
-result.pca = doPCA(X, G, params.pca, [], 2, pcplotix);
+if doPlot
+    result.pca = doPCA(X, G, params.pca, [], 2, pcplotix);
+else
+    result.pca = doPCA(X, G, params.pca, []);
+end
 disp(['Number of PCs: ',num2str(result.pca.npc)])
 pcatime=toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 3. Nearest Neighbors
+% [knn.indices,knn.dists]=knnsearch(X,X,'K',params.n_neighbors); %quite fast!
+knn=[];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 3. tSNE on first npc PCs
 tic
-if isfield(params,'tsne')&&~isempty(params.tsne)
-    result.tsne = doTSNE(result.pca.coords, params.tsne, 3, valuenames, colors);
-else
-    result.tsne=[];
-end
+% if isfield(params,'tsne')&&~isempty(params.tsne)
+%     if doPlot
+%         result.tsne = doTSNE(result.pca.coords, params.tsne, 3, valuenames, colors);
+%     else
+%         result.tsne = doTSNE(result.pca.coords, params.tsne);
+%     end
+% else
+%     result.tsne=[];
+% end
 tsnetime=toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 3. UMAP on first npc PCs
 tic
 if isfield(params,'umap')&&~isempty(params.umap)
-    result.umap = doUMAP(result.pca.coords, params.umap, 4, valuenames, colors);   
+    if doPlot
+        result.umap = doUMAP(result.pca.coords, params.umap, knn, 4, valuenames, colors);
+    else
+        result.umap = doUMAP(result.pca.coords, params.umap, knn);
+    end   
 else
     result.umap=[];
 end
@@ -100,20 +125,31 @@ umaptime=toc
 tic
 if isfield(params,'clust')&&~isempty(params.clust)
  
-    result.clust = doClustering(result.pca.coords,params.clust);
+%     result.clust = doClustering(result.pca.coords,params.clust);
+    result.clust = doClustering(result.umap.graph,params.clust);
     
     if doPlot && ~isempty(result.tsne)
         figure(5);clf
-        plotScatter(result.tsne.coords,'group',result.clust.clusterID,colors,5);
-        % axis square
-        axis tight
+        [ax,hs]=plotScatter(result.tsne.coords,'group',result.clust.clusterID,colors,5);
+%         for i=1:length(hs)
+%             hs(i).SizeData=5;
+%         end
+        for i=1:length(ax)
+            axis(ax(i),'equal')
+            axis(ax(i),'tight')
+        end
         drawnow
     end
     if doPlot && ~isempty(result.umap)
         figure(6);clf
-        plotScatter(result.umap.coords,'group',result.clust.clusterID,colors,6);
-        % axis square
-        axis tight
+        [ax,hs]=plotScatter(result.umap.coords,'group',result.clust.clusterID,colors,6);
+%         for i=1:length(hs)
+%             hs(i).SizeData=5;
+%         end
+        for i=1:length(ax)
+            axis(ax(i),'equal')
+            axis(ax(i),'tight')
+        end
         drawnow
     end
 else
