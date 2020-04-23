@@ -1,6 +1,6 @@
-function [dominant,specific, dominantCondition, specificCondition]...
-    =identifyDominantGenes(genes, selfin, otherin, P)
-%
+function [dominant,specific,allgenes,dominantCondition, specificCondition]...
+    =identifyDominantGenes(genes, selfin, otherin, P, params)
+
 %self/other names must be categories used to generate pairwise P values..
 
 %put combo names as varnames in P table? eg. E_Le -> get tokens surrounding
@@ -11,18 +11,214 @@ function [dominant,specific, dominantCondition, specificCondition]...
 % - "genes" should include prct_self/prct_other/expr_...
 % - combinations not needed - set it to {'self','other'}?
 
-%BUG: sometimes fctest 
-
-%TODO: internally convert foldchange to log10foldchange?
-
 %TODO: check for & exclude internal dominance when self is a group? i.e. homogeneity constraint
 
-doProportionTest=false;
-if isfield(P,'chi2')
-    doProportionTest=true;
-end
+%TODO: alternate interface - tcounts+categorical; compute the mean expr &
+%prct expressing here. 
 
 %parameters
+[self,other]=parse_input_pars(selfin,otherin);
+
+nGenes=height(genes);
+
+% whole group quantities, tests: P.anova, P.chi2
+test_pAnova = P.anova<self.pthr;
+test_pChi2 = P.chi2<self.pprothr;
+
+% group-wise quantities, tests: prct, expr
+exprselfnames=strcat("expr_",self.names(:));
+exprothernames=strcat("expr_",other.names(:));
+prctselfnames=strcat("prct_",self.names(:));
+prctothernames=strcat("prct_",other.names(:));
+
+expr_self=genes{:,"expr_"+self.names(:)};
+expr_other=genes{:,"expr_"+other.names(:)};
+prct_self=genes{:,"prct_"+self.names(:)};
+prct_other=genes{:,"prct_"+other.names(:)};
+
+test_selfMinPrct=prct_self>self.minprct;
+test_otherMaxPrct=all(prct_other<other.maxprct,2);
+
+% group reductions
+minSelfExpr=min(expr_self,[],2);
+maxSelfExpr=max(expr_self,[],2);
+minSelfPrct=min(prct_self,[],2);
+maxSelfPrct=max(prct_self,[],2);
+minOtherPrct=min(prct_other,[],2);
+maxOtherPrct=max(prct_other,[],2);
+
+%make the following parameters:
+exprESname='fc_expr';
+prctESname='d_prct';
+
+% pairwise quantities, tests: effect sizes, P values
+fcCombs=allcomb(self.names,other.names); %nFcCombs=size(fcCombs,1);
+pairwise_fc_expr=[];
+pairwise_logfc_expr=[];
+pairwise_d_prct=[];
+pairwise_d_prct_rel=[];
+pairwise_exprES=[]; 
+pairwise_prctES=[]; 
+pairwise_Pmc=[]; %store pairwise quantities in matrices for export
+pairwise_Pz=[];
+self_dominant=zeros(nGenes,length(self.names));
+self_test_prctES=zeros(nGenes,length(self.names));
+self_test_exprES=zeros(nGenes,length(self.names));
+for i=1:length(self.names)
+    
+    %metrics
+    this_fc_expr=expr_self(:,i)./expr_other; %one-centered, positive
+    this_logfc_expr=log10(this_fc_expr); %zero-centered
+    this_d_prct=prct_self(:,i)-prct_other; %zero-centered
+    this_d_prct_rel=this_d_prct./maxOtherPrct;%zero-centered
+    
+    pairwise_fc_expr=[pairwise_fc_expr,this_fc_expr];
+    pairwise_logfc_expr=[pairwise_logfc_expr,this_logfc_expr];
+    pairwise_d_prct=[pairwise_d_prct,this_d_prct];
+    pairwise_d_prct_rel=[pairwise_d_prct_rel,this_d_prct_rel];
+
+    %effect sizes (TODO: add options to select different metrics)
+%     switch par.prctMetric, par.exprMetric
+%         case 'diff'
+%         case 'reldiff'
+%         case 'fc'
+%         case 'logfc'
+%     end
+    this_exprES=this_fc_expr;
+    this_prctES=this_d_prct;
+    
+    pairwise_exprES=[pairwise_exprES,this_exprES];
+    pairwise_prctES=[pairwise_prctES,this_prctES];
+    
+    %Pairwise p-values. loop only to get otherNameInCombo
+    selfNameInCombo=any(strcmp(P.combs,self.names{i}),2);
+    otherNameInCombo=any(ismember(P.combs,other.names),2);
+        
+    this_pmc=P.mc(:,selfNameInCombo&otherNameInCombo);
+    this_pz=P.z(:,selfNameInCombo&otherNameInCombo);
+
+    pairwise_Pmc=[pairwise_Pmc, this_pmc];
+    pairwise_Pz=[pairwise_Pz, this_pz];
+
+    %TODO: option for downreg?
+    test_thisExpr=test_pAnova & this_pmc<self.pthrpw & this_exprES>=self.fcExprThr;
+    test_thisPrct=test_pChi2 & this_pz<self.pprothrpw & this_prctES>=self.prctESThr;
+    
+    %thresholds on self%, minimum effect sizes, to remove cases like expr
+    %fc pass but prct goes down, or vice versa...
+    test_pairwiseMinESexpr=this_exprES>self.minFcExpr;
+    test_pairwiseMinESprct=this_prctES>self.minPrctEffect;
+    
+    switch self.combine_prct_expr
+        case 'or'
+            test_ES=test_thisPrct|test_thisExpr;
+        case 'and'
+            test_ES=test_thisPrct&test_thisExpr;
+    end
+        
+    pairwise_dominant=test_selfMinPrct(:,i) & test_pairwiseMinESprct & test_pairwiseMinESexpr & test_ES;
+    
+    %option for any?
+    self_dominant(:,i)=all(pairwise_dominant,2);
+    self_test_exprES(:,i)=all(test_thisExpr,2);
+    self_test_prctES(:,i)=all(test_thisPrct,2);
+end
+
+% pariwise effect size reductions
+min_fc_expr=min(pairwise_fc_expr,[],2);
+max_fc_expr=max(pairwise_fc_expr,[],2);
+min_logfc_expr=min(pairwise_logfc_expr,[],2);
+max_logfc_expr=max(pairwise_logfc_expr,[],2);
+min_d_prct=min(pairwise_d_prct,[],2);
+max_d_prct=max(pairwise_d_prct,[],2);
+max_abs_d_prct=max(abs(pairwise_d_prct),[],2);
+min_d_prct_rel=min(pairwise_d_prct_rel,[],2);
+max_d_prct_rel=max(pairwise_d_prct_rel,[],2);
+
+% pariwise p-value reductions
+max_Pmc=max(pairwise_Pmc,[],2);
+max_Pz=max(pairwise_Pz,[],2);
+
+%pairwise self pooling
+if self.poolmethod=="all"
+    pairwiseTestPooled=all(self_dominant,2);
+    exprTestPooled=all(self_test_exprES,2);
+    prctTestPooled=all(self_test_prctES,2);
+else
+    pairwiseTestPooled=any(self_dominant,2);
+    exprTestPooled=any(self_test_exprES,2);
+    prctTestPooled=any(self_test_prctES,2);
+end
+
+%assemble the final selections
+dominantCondition = pairwiseTestPooled;
+specificCondition = dominantCondition & test_otherMaxPrct;
+
+%tables for output
+allgenes=table();
+allgenes.id=genes.id;
+allgenes.name=genes.name;
+if length(self.names)>1
+    allgenes.min_self_expr=minSelfExpr;
+    allgenes.max_self_expr=maxSelfExpr;
+    allgenes.min_self_prct=minSelfPrct;
+    allgenes.max_self_prct=maxSelfPrct;
+else
+    allgenes.self_expr=minSelfExpr;
+    allgenes.self_prct=minSelfPrct;
+end
+%specific (max other test)
+allgenes.min_other_prct=minOtherPrct;
+allgenes.max_other_prct=maxOtherPrct;
+
+%effect sizes
+allgenes.min_fc_expr=min_fc_expr;
+allgenes.min_logfc_expr=min_logfc_expr;
+allgenes.min_d_prct=min_d_prct;
+allgenes.min_d_prct_rel=min_d_prct_rel;
+
+%fc test
+allgenes.all_expr_test=exprTestPooled;
+allgenes.p_anova=P.anova;
+allgenes.max_pwp=max_Pmc;
+
+%proportion test
+allgenes.all_prct_test=prctTestPooled;
+allgenes.p_chi2=P.chi2;
+allgenes.max_pwz=max_Pz;
+
+%note: can have all_fc_test=0 + all_prct_test=0, e.g., expr test passes but
+%prct fails for one group, and vice-versa for a different group. So, not
+%ALL expr tests pass, and also not ALL prct tests pass. (higher expression
+%but no change in prct, or vice versa)
+
+allgenes.max_fc_expr=max_fc_expr;
+allgenes.max_logfc_expr=max_logfc_expr;
+allgenes.max_d_prct=max_d_prct;
+allgenes.max_d_prct_rel=max_d_prct_rel;
+
+allgenes.max_abs_d_prct=max_abs_d_prct;
+
+%raw expression/prct values per type
+allgenes=[allgenes,genes(:,...
+    ismember(genes.Properties.VariableNames,[prctselfnames;prctothernames])...
+   |ismember(genes.Properties.VariableNames,[exprselfnames;exprothernames]))];
+
+%effect sizes
+allgenes=[allgenes,array2table(pairwise_prctES,'variablenames',strcat(prctESname,'_',fcCombs(:,1),'_',fcCombs(:,2)))];
+allgenes=[allgenes,array2table(pairwise_exprES,'variablenames',strcat(exprESname,'_',fcCombs(:,1),'_',fcCombs(:,2)))];
+
+%pvals
+allgenes=[allgenes,array2table(pairwise_Pmc,'variablenames',strcat('pmc_',fcCombs(:,1),'_',fcCombs(:,2)))];
+allgenes=[allgenes,array2table(pairwise_Pz,'variablenames',strcat('pz_',fcCombs(:,1),'_',fcCombs(:,2)))];
+
+dominant=allgenes(dominantCondition,:);
+specific=allgenes(specificCondition,:);
+
+end
+
+
+function [selfpars,otherpars]=parse_input_pars(selfin,otherin)
 selfpars.names={'self'};
 selfpars.minprct=0;
 selfpars.prctMetric='diff';
@@ -30,7 +226,7 @@ selfpars.prctESThr=30;
 selfpars.minPrctEffect=0;
 selfpars.fcExprThr=0;
 selfpars.minFcExpr=0;
-selfpars.prctOrExpr=false;
+selfpars.combine_prct_expr='or';
 selfpars.pthr=0.1;
 selfpars.pthrpw=0.1;
 selfpars.pprothr=0.1;
@@ -56,273 +252,5 @@ end
 %     warning('unused fields in self-struct')
 % end
 
-nGenes=height(genes);
-
-%extract the relevant prct, expr, and P values
-prctselfnames=strcat('prct_',selfpars.names(:));
-exprselfnames=strcat('expr_',selfpars.names(:));
-prctothernames=strcat('prct_',otherpars.names(:));
-exprothernames=strcat('expr_',otherpars.names(:));
-selfPrct=genes{:,prctselfnames};
-otherPrct=genes{:,prctothernames};
-selfExpr=genes{:,exprselfnames};
-otherExpr=genes{:,exprothernames};
-
-%all possible combinations of self with other
-fcCombs=allcomb(selfpars.names,otherpars.names);
-nFcCombs=size(fcCombs,1);
-
-%get p-values for comparisons of interest
-thisPmc=ones(nGenes,nFcCombs);
-thisPz=zeros(nGenes,nFcCombs); %defaults to below thresh if ~doProportionTest
-ix=1;
-for i=1:length(selfpars.names)
-    selfNameInCombo=any(strcmp(P.combs,selfpars.names{i}),2);
-    for j=1:length(otherpars.names)
-        otherNameInCombo=any(strcmp(P.combs,otherpars.names{j}),2);
-        thisPmc(:,ix)=P.mc(:,selfNameInCombo&otherNameInCombo);
-        if doProportionTest
-            thisPz(:,ix)=P.z(:,selfNameInCombo&otherNameInCombo);
-        end
-        ix=ix+1; %(i-1)*length(otherpars.names)+j
-    end
 end
 
-%apply expr and prct test pairwise.  All pairs containing a single "self" group must pass. pool self groups using "all"
-%or "any" as needed
-dPrct=zeros(nGenes,nFcCombs);
-dExpr=ones(nGenes,nFcCombs);
-fcPrct=ones(nGenes,nFcCombs);
-fcExpr=ones(nGenes,nFcCombs);
-% pairwiseTests=false(nGenes,nFcCombs);
-selfDominant=false(nGenes,length(selfpars.names));
-selfExprTest=false(nGenes,length(selfpars.names));
-selfPrctTest=false(nGenes,length(selfpars.names));
-% ix=1;
-for i=1:length(selfpars.names)
-    pairwiseTests=false(nGenes,length(otherpars.names));
-    pairwiseExprTests=false(nGenes,length(otherpars.names));
-    pairwisePrctTests=false(nGenes,length(otherpars.names));
-    for j=1:length(otherpars.names)
-        
-        ix=(i-1)*length(otherpars.names)+j;
-        pmc=thisPmc(:,ix);
-        pz=thisPz(:,ix);
-        
-        prct1=selfPrct(:,i);
-        prct2=otherPrct(:,j);
-        expr1=selfExpr(:,i);
-        expr2=otherExpr(:,j);
-        
-        dExpr(:,ix)=expr1-expr2;
-        
-        [pairwiseTests(:,j),dPrct(:,ix),fcPrct(:,ix),fcExpr(:,ix),pairwiseExprTests(:,j),pairwisePrctTests(:,j)]...
-            =compareTwoGroups(P.anova,pmc,P.chi2,pz,prct1,prct2,expr1,expr2,selfpars);
-        
-%         ix=ix+1;
-    end
-    
-    %thresholds on self%, minimum effect sizes
-    selfMinTest(:,i)=prct1>selfpars.minprct;
-    
-    thisDprct=selfPrct(:,i)-otherPrct;
-    pairwisePrctEffectTests=thisDprct>selfpars.minPrctEffect;
-    
-    thisFCexpr=selfExpr(:,i)./otherExpr;
-    pairwiseFCexprTests=thisFCexpr>selfpars.minFcExpr;
-    
-    pairwiseDominance=selfMinTest(:,i) & pairwisePrctEffectTests & pairwiseFCexprTests & (pairwiseExprTests|pairwisePrctTests);
-    
-    %pairwise other pooling - any reason to use "any"?
-    selfDominant(:,i)=all(pairwiseDominance,2);
-%     selfDominant(:,i)=all(pairwiseTests,2);
-    minPrctEffectTest(:,i)=all(pairwisePrctEffectTests,2);
-    minFCexprTest(:,i)=all(pairwiseFCexprTests,2);
-    selfExprTest(:,i)=all(pairwiseExprTests,2);
-    selfPrctTest(:,i)=all(pairwisePrctTests,2);
-    
-end
-
-maxPairwiseP=max(thisPmc,[],2);
-minDprct=min(dPrct,[],2);
-minDexpr=min(dExpr,[],2);
-minFCprct=min(fcPrct,[],2);
-minFCexpr=min(fcExpr,[],2);
-minSelfPrct=min(selfPrct,[],2);
-minSelfExpr=min(selfExpr,[],2);
-maxOtherPrct=max(otherPrct,[],2);
-
-%pairwise self pooling
-if selfpars.poolmethod=="all"
-    pairwiseTestPooled=all(selfDominant,2);
-    exprTestPooled=all(selfExprTest,2);
-    prctTestPooled=all(selfPrctTest,2);
-else
-    pairwiseTestPooled=any(selfDominant,2);
-    exprTestPooled=any(selfExprTest,2);
-    prctTestPooled=any(selfPrctTest,2);
-end
-
-% %ANOVA-type tests
-% pCriterionANOVA = P.anova<selfpars.pthr;
-if doProportionTest
-    %     pCriterionANOVA=pCriterionANOVA & P.chi2<selfpars.pthr;
-    maxPairwisePz=max(thisPz,[],2);
-end
-
-%other percent tests
-otherMaxPrctCriterionPool=maxOtherPrct<=otherpars.maxprct;
-
-%assemble the final selections
-dominantCondition = pairwiseTestPooled;
-% dominantCondition = pCriterionANOVA & pairwiseTestPooled;
-specificCondition = dominantCondition & otherMaxPrctCriterionPool;
-
-%tables for output
-dominant=table();
-dominant.id=genes.id(dominantCondition);
-dominant.name=genes.name(dominantCondition);
-if length(selfpars.names)>1
-    dominant.min_self_prct=minSelfPrct(dominantCondition);
-    dominant.min_self_expr=minSelfExpr(dominantCondition);
-else
-    dominant.self_prct=minSelfPrct(dominantCondition);
-    dominant.self_expr=minSelfExpr(dominantCondition);
-end
-%specific (max other test)
-dominant.max_other_prct=maxOtherPrct(dominantCondition);
-
-%effect sizes
-dominant.min_fc_expr=minFCexpr(dominantCondition);
-dominant.min_d_prct=minDprct(dominantCondition);
-
-%fc test
-dominant.all_fc_test=exprTestPooled(dominantCondition);
-dominant.p_anova=P.anova(dominantCondition);
-dominant.max_pwp=maxPairwiseP(dominantCondition);
-
-%proportion test
-dominant.all_prct_test=prctTestPooled(dominantCondition);
-if doProportionTest
-    dominant.p_chi2=P.chi2(dominantCondition);
-    dominant.max_pwz=maxPairwisePz(dominantCondition);
-end
-
-%NOTE: all_fc_test=0 & all_prct_test=0 means for some pairs, one of the two
-%tests passed but not the other, so that not ALL pairs passed FC and not
-%ALL pairs passed PRCT.
-
-% dominant.min_d_expr=minDexpr(dominantCondition);
-% dominant.min_fc_prct=minFCprct(dominantCondition);
-
-%raw expression/prct values per type
-dominant=[dominant,genes(dominantCondition,...
-    ismember(genes.Properties.VariableNames,[prctselfnames;prctothernames])...
-    |ismember(genes.Properties.VariableNames,[exprselfnames;exprothernames]))];
-
-%effect sizes
-dominant=[dominant,array2table(dPrct(dominantCondition,:),'variablenames',strcat('dprct_',fcCombs(:,1),'_',fcCombs(:,2)))];
-% dominant=[dominant,array2table(fcPrct(dominantCondition,:),'variablenames',strcat('fcprct_',fcCombs(:,1),'_',fcCombs(:,2)))];
-dominant=[dominant,array2table(fcExpr(dominantCondition,:),'variablenames',strcat('fcexpr_',fcCombs(:,1),'_',fcCombs(:,2)))];
-
-%pvals
-dominant=[dominant,array2table(thisPmc(dominantCondition,:),'variablenames',strcat('pmc_',fcCombs(:,1),'_',fcCombs(:,2)))];
-if doProportionTest
-    dominant=[dominant,array2table(thisPz(dominantCondition,:),'variablenames',strcat('pz_',fcCombs(:,1),'_',fcCombs(:,2)))];
-end
-
-specific=dominant(specificCondition(dominantCondition),:);
-
-end
-
-
-function [pwtest,dprct,fcprct,fcexpr,exprTest,prctTest]=compareTwoGroups(Panova,pmc,Pchi2,pz,prct1,prct2,expr1,expr2,par)
-dprct=prct1-prct2;
-fcprct=prct1./prct2;  %fcprct(prct1==0 & prct2==0)=1; %ie. no fold change: 0==0  - nan's don't compare anyways..
-fcexpr=expr1./expr2;  %fcexpr(expr1==0 & expr1==0)=1;
-
-switch par.prctMetric
-    case 'diff'
-        prctEffectSize=dprct;
-    case 'fc'
-        prctEffectSize=fcprct;
-end
-
-% exprTest=fcexpr>=par.fcExprThr;
-exprTest=Panova<par.pthr & pmc<par.pthrpw & fcexpr>=par.fcExprThr;
-
-% prctTest=prctEffectSize>=par.prctESThr;
-prctTest=Pchi2<par.pprothr & pz<par.pprothrpw & prctEffectSize>=par.prctESThr;
-
-if par.prctOrExpr
-    pwtest=exprTest | prctTest;
-else
-    pwtest=exprTest & prctTest;
-end
-
-pwtest = pwtest & prct1>=par.minprct & fcexpr>par.minFcExpr & prctEffectSize>par.minPrctEffect;
-
-%     if par.prctOrExpr
-%         sufficientEffectSize=prctEffectSize>=par.prctESThr | fcexpr>=par.fcExprThr;
-%     else
-%         sufficientEffectSize=prctEffectSize>=par.prctESThr & fcexpr>=par.fcExprThr;
-%     end
-%
-%     pwtest = prct1>=par.minprct & pmc<=par.pthr & pz<=par.pthr & sufficientEffectSize;
-end
-
-
-% %pvalue tests
-% pCriterionANOVA = Panova<self.pthr;
-% pCriterion = thisP<self.pthrpw;
-% pCriterionPool = all(pCriterion,2);
-%
-% if doPZ
-% pZCriterion = thisPz<self.pthr;
-% pZCriterionPool = all(pZCriterion,2);
-% end
-%
-% %fold change tests
-% % selfDPrctCriterion= dPrct >= self.dPrctThr;
-% selfFCprctCriterion= fcPrct >= self.fcPrctThr;
-% selfFCexprCriterion= fcExpr >= self.fcExprThr;
-% selfFCprctCriterionPool=all( fcPrct >= self.fcPrctThr, 2);
-% selfFCexprCriterionPool=all( fcExpr >= self.fcExprThr, 2);
-% if self.prctOrExpr
-%     selfFCCriterion=selfFCprctCriterion | selfFCexprCriterion;
-% else
-%     selfFCCriterion=selfFCprctCriterion & selfFCexprCriterion;
-% end
-
-% %self percent tests
-% minSelfPrct=min(selfPrct,[],2);
-% selfMinPrctCriterionPool=minSelfPrct>=self.minprct;
-%
-% selfMinPrctCriterionRep=false(size(selfFCCriterion));
-% selfMinPrctCriterion=selfPrct>self.minprct;
-% for i=1:nFcCombs
-%     selfIdx=strcmp(self.names,fcCombs{i,1});
-%     selfMinPrctCriterionRep(:,i)=selfMinPrctCriterion(:,selfIdx);  %replicate the self % test for each pairwise test
-% end
-% selfMinPrctCriterion=selfPrct>=self.minprct;
-% selfMinPrctCriterion=all(selfPrct>=self.minprct,2)
-
-%self homogeneity if self is a group
-% if length(self.names)>1
-%     selfCombs=combnk(self.names,2);
-%     nCombs=size(selfCombs,1);
-%     for i=1:nCombs
-%         selfIdx=strcmp(self.names,fcCombs{i,1});
-%         otherIdx=strcmp(other.names,fcCombs{i,2});
-%         selfDiff(:,i)=selfPrct(:,selfIdx)-otherPrct(:,otherIdx);
-%     end
-% end
-
-
-%collect self tests - this way, each pairwise test is also coupled with the self min% test, so that genes with <self%
-%but passing FC test are not included.
-% if doPZ
-% pairwiseTests=pCriterion & pZCriterion & selfFCCriterion & selfMinPrctCriterionRep;
-% else
-% pairwiseTests=pCriterionANOVA &pCriterion & selfFCCriterion & selfMinPrctCriterionRep;
-% end
