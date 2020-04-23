@@ -1,7 +1,7 @@
 classdef upsetplot
     %for set intersection visuals of >3 sets (or alternative to venn for 3)
     
-    %make something like:https://github.com/ImSoErgodic/py-upset, https://github.com/hms-dbmi/UpSetR
+    %make something like: https://github.com/ImSoErgodic/py-upset, https://github.com/hms-dbmi/UpSetR
     
     properties
         %make separate classes containing each plot
