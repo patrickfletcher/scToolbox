@@ -1,13 +1,13 @@
-function [exclusive_intersections, intersection_ix]=get_exclusive_intersections(varargin)
+function [exclusive_intersections, intersection_ix]=get_exclusive_intersections(sets, setnames)
 % computes the "exclusive intserctions" of the input sets. That is, the
 % partitions of all elements into all possible combinations of
 % intersections.
-% input: one or more sets (cell array, elements set-operation compatible)
+% input: one or more sets (cell array, each element is a set, elements of sets are set-operation compatible)
 % outputs:
 % - exclusive_intersections: cell array with intersection data
 % - intersection_ix: which sets 
 
-sets=varargin;
+% sets=varargin;
 n_sets=length(sets);
 
 n_exclusive_intersections=0;
