@@ -28,7 +28,7 @@ if doThreshold
     end
 end
 
-geneTable=genes(:,{'id','name'});
+geneTable=table();
 for i=1:length(factor1Names)
     if do2factor
         for j=1:length(factor2Names)
@@ -47,3 +47,4 @@ end
 
 %reorder the columns in alphabetical order
 geneTable=geneTable(:,sort(geneTable.Properties.VariableNames));
+geneTable=[genes(:,{'id','name'}),geneTable];
