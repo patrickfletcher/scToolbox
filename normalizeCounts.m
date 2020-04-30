@@ -1,6 +1,8 @@
 function [ncounts,sfs]=normalizeCounts(counts, scale, max_frac)
 %normalize counts
 
+%TODO: params.method, etc. 
+
 exclude_hiexp=false;
 if exist('max_frac','var')
     exclude_hiexp=true;
@@ -11,7 +13,7 @@ counts_per_cell=full(sum(counts,1));
 
 %scale computed before exclude genes
 if ~exist('scale','var')||isempty(scale)
-    scale=median(counts_per_cell);
+    scale=median(counts_per_cell,1);
 end
 
 if exclude_hiexp
@@ -20,10 +22,12 @@ if exclude_hiexp
     counts_per_cell=full(sum(counts(~high_frac,:),1));
 end
 
-
 %size factors
 sfs=counts_per_cell/scale;
 
+% %alt: DESeq - do I need to geomean only positive vals to avoid divbyzeros?
+% gm=geomean(counts,2); %pseudoreference sample (cell)
+% sfs=median(counts./gm,1);
 
 if issparse(counts)
 %     A=spfun(@(x)1./x,sfs);
