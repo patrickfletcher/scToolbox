@@ -41,6 +41,17 @@ switch method
     case 'mode'
         classImpute=mode(NnClass,2); %assign by majority vote: mode
 
+    case 'mode_notme'
+        %nearest neighbor that is not also unc
+        classImpute=classID(to_impute)';
+        for i=1:n_to_impute
+            myID=NnClass(i,1);
+            thisnns=NnClass(i,NnClass(i,:)~=myID & NnClass(i,:)~="Unc");
+            if ~isempty(thisnns)
+                classImpute(i,1)=mode(thisnns);
+            end %otherwise, stays unc.
+        end
+        
     case 'nearest'
         %nearest neighbor that is not also unc
         classImpute=classID(to_impute)';
@@ -48,9 +59,10 @@ switch method
             myID=NnClass(i,1);
             thisnix=find(NnClass(i,:)~=myID&NnClass(i,:)~="Unc",1,'first'); %what if this fails? returns []
             if ~isempty(thisnix)
-                nix(i,1)=thisnix;
-                d(i,1)=Dix(i,nix(i));
-                classImpute(i,1)=NnClass(i,nix(i));
+                classImpute(i,1)=NnClass(i,thisnix);
+%                 nix(i,1)=thisnix;
+%                 d(i,1)=Dix(i,nix(i));
+%                 classImpute(i,1)=NnClass(i,nix(i));
             end %otherwise, stays unc.
         end
         
