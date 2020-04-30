@@ -1,5 +1,5 @@
 % function [ax,c,lCG,htypelabs]=plotHeatMap(X,geneNames,ident,groupColors,subclusterOpt,figID,nPerGroup,doCellTypeBars,doTypeLabels,nsubsample,PCscores)
-function [ax,c,lCG,htypelabs,subsamp]=plotHeatMap(X,varNames,obsGroup,obsGroupColors,figID,varGroup,nsubsample,doTypeLabels,subclusterOpt,sp_params,PCscores)
+function [ax,hc,lCG,htypelabs,subsamp]=plotHeatMap(X,varNames,groups,colors,figID,varGroup,nsubsample,doTypeLabels,subclusterOpt,sp_params,PCscores)
 
 % heatmap: cells vs genes. genes labeled. cells(genes) optionally grouped by categories, specified in categorical arrays
 
@@ -7,6 +7,7 @@ function [ax,c,lCG,htypelabs,subsamp]=plotHeatMap(X,varNames,obsGroup,obsGroupCo
 
 %TODO: clean up interface & options
 %todo: manage groups of zero size consistently
+%TODO: column vs row vector group sub
 
 %%%% input parsing
 % p=inputParser();
@@ -48,11 +49,31 @@ if bar_leg_width==0
     bar_gap=0;
 end
 
-
-if ~iscategorical(obsGroup)
-    obsGroup=categorical(obsGroup);
+if isempty(groups)
+    groups=ones(size(X,1),1);
 end
-groupNames=categories(obsGroup);
+
+if ~iscategorical(groups)
+    groups=categorical(groups);
+end
+groupNames=categories(groups);
+groupCounts=countcats(groups);
+
+autoColors=true;
+if ~isempty(colors)
+    if size(colors,1)==length(groupNames)
+        colors=colors(groupCounts>0,:);
+        autoColors=false;
+    end
+end
+
+groups=removecats(groups);
+groupNames=categories(groups);
+groupCounts=countcats(groups);
+
+if autoColors
+    colors=cbrewer('qual','Set1',max(length(groupNames),3));
+end
 
 if ~exist('varGroup','var') || isempty(varGroup)
     varGroup=ones(size(varNames));
@@ -68,7 +89,7 @@ end
 subsamp=[];
 if nsubsample>0
     for i=1:length(groupNames)
-        ix=find(obsGroup==groupNames(i));
+        ix=find(groups==groupNames(i));
         if length(ix)>nsubsample
             thissub=ix(randi(length(ix),nsubsample,1));
         else
@@ -77,15 +98,7 @@ if nsubsample>0
         subsamp=[subsamp,thissub];
     end
     X=X(:,subsamp);
-    obsGroup=obsGroup(subsamp);
-end
-
-groupCounts=countcats(obsGroup);
-
-if ~exist('obsGroupColors','var')||size(obsGroupColors,1)<length(groupNames)
-    warning('number of colors does not match number of groups')
-    obsGroupColors=cbrewer('qual','Set1',length(groupNames));
-    %alt: just cycle back through colors?
+    groups=groups(subsamp);
 end
 
 % HMgeneAxlabel='Genes';
@@ -116,9 +129,9 @@ axHM=axes('Position',[sp_params.marg_w(1),sp_params.marg_h(1),...
 
 %%%% build the grouped count data matrix
 if exist('PCscores','var')
-[X,cellPerm]=groupCountMatrix(X,obsGroup,subclusterOpt,PCscores);
+[X,cellPerm]=groupCountMatrix(X,groups,subclusterOpt,PCscores);
 else
-[X,cellPerm]=groupCountMatrix(X,obsGroup,subclusterOpt);
+[X,cellPerm]=groupCountMatrix(X,groups,subclusterOpt);
 end
 
 %%%% build the cell and gene group marker arrays
@@ -136,7 +149,7 @@ keepticks=keepticks(groupCounts>0);
 
 %%%% main axis for heatmap %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-imagesc(axHM,X);
+him=imagesc(axHM,X);
 colormap(axHM,cmap);
 
 %boost nG separations
@@ -165,20 +178,20 @@ cbPos(4)=2*axPos(4)/3;
 
 % c=colorbar(axHM);
 % c.Position=cbPos;
-c=colorbar(axHM,'Position',cbPos);
+hc=colorbar(axHM,'Position',cbPos);
 
 % cy=ylabel(c,cbLabel);
 % cy.Position(1)=cy.Position(1)*0.66;
 
 %             c.Limits=[0,max(colors(:,i))];
 if any(X(:)<0)
-    c.Ticks=[ceil(10*c.Limits(1)),0,floor(10*c.Limits(2))]/10; %round to 1 decimal point
+    hc.Ticks=[ceil(10*hc.Limits(1)),0,floor(10*hc.Limits(2))]/10; %round to 1 decimal point
     CLIM=caxis(axHM);
     cExt=max(abs(CLIM));
     axHM.CLim=[-cExt,cExt]; %symmetric color axis so middle color of divergent colormaps is at zero
-    ylim(c,CLIM)
+    ylim(hc,CLIM)
 else
-    c.Ticks=[0,floor(10*c.Limits(2))]/10; %round to 1 decimal point
+    hc.Ticks=[0,floor(10*hc.Limits(2))]/10; %round to 1 decimal point
 end
 
 
@@ -201,7 +214,7 @@ if doCellTypeBars
     barline_y=zeros(size(cvals));
     lCG=line(axBL,barline_x,barline_y);
     for i=1:length(groupNames(groupCounts>0))
-        lCG(i).Color=obsGroupColors(i,:);
+        lCG(i).Color=colors(i,:);
         lCG(i).LineWidth=bar_linewidth;
     end
     barTextOffset=0.2;
