@@ -13,7 +13,7 @@ counts_per_cell=full(sum(counts,1));
 
 %scale computed before exclude genes
 if ~exist('scale','var')||isempty(scale)
-    scale=median(counts_per_cell,1);
+    scale=median(counts_per_cell);
 end
 
 if exclude_hiexp
