@@ -1,6 +1,10 @@
 function result=stratify_factors(factor1,factor2)
 %combine two categorical arrays into one stratified array
 
+%remove cats first?
+factor1=removecats(factor1);
+factor2=removecats(factor2);
+
 factor1Names=categories(factor1);
 factor2Names=categories(factor2);
 result=factor1;
