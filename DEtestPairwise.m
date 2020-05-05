@@ -75,6 +75,7 @@ for i=1:nGenes2Test
 end
 toc
 
+groupNames=groupNames(:)'; %force row vector to get simple pair compare right:
 combs=groupNames(c(:,1:2));
 
 %give the smallest representable value to zero p-values so multiple comparisons has something to work with.
