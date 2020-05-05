@@ -96,6 +96,7 @@ if nsubsample>0
             thissub=ix;
         end
         subsamp=[subsamp,thissub];
+        groupCounts(i)=length(thissub);
     end
     X=X(:,subsamp);
     groups=groups(subsamp);
@@ -156,13 +157,14 @@ colormap(axHM,cmap);
 yGridValues=cumsum(nPerGroup)+0.5;
 line(repmat(xlim()',1,length(yGridValues)),[1;1]*yGridValues(:)','color',0.25*[1,1,1])
 
-set(axHM,'xtick',cvals(2,keepticks(1:end-1))+0.5,'xticklabel',[])
+axHM.XTick=cvals(2,keepticks(1:end-1))+0.5;
+axHM.XTickLabel=[];
 axHM.XGrid='on';
 axHM.GridColor=0.3*[1,1,1];
 axHM.GridAlpha=.7;
 
-set(axHM,'ytick',1:length(geneLabels),'yticklabel',geneLabels)
-% ylabel(axHM,HMgeneAxlabel)
+axHM.YTick=1:length(geneLabels);
+axHM.YTickLabel=geneLabels;
 
 % axHM.Units='points';
 axPos=axHM.Position;
