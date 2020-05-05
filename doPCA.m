@@ -84,7 +84,7 @@ pc_gene_name(size(X,1),result.npc)="";
 % pc_gene_id(size(X,1),result.npc)="";
 pc_gene_ix(size(X,1),result.npc)=0;
 for i=1:length(coeff(1,:))
-    [cs,ix]=sort(coeff(:,i),'descend');
+    [~,ix]=sort(coeff(:,i),'descend');
     if exist('hvgix','var')&&~isempty(hvgix)
         pc_gene_name(:,i)=genes.name(hvgix(ix));
 %         pc_gene_id(:,i)=genes.id(hvgix(ix));
@@ -124,8 +124,9 @@ if exist('figID','var')
 %     plotScatter(S,'group',group,colors,figID);
 %     plotScatter(S,'group',group,colors,figID);
     
-    genelist = pc_gene_name(1,1:2);
-    colors=tcounts(pc_gene_ix(1,1:2),:);
+    genelist = [pc_gene_name(1,1:2),pc_gene_name(end,1:2)];
+    gix=[pc_gene_ix(1,1:2),pc_gene_ix(end,1:2)];
+    colors=tcounts(gix,:);
     figure(figID);clf
     [ax,hs]=plotScatter(S,'value',genelist,colors,figID);
 %     for i=1:length(hs)
