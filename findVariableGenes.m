@@ -17,7 +17,7 @@ result.params = params;
 
 %normalized dispersion:
 cellsExpr=sum(ncounts>0,2);
-fracExpr=cellsExpr/size(ncounts,2);
+% fracExpr=cellsExpr/size(ncounts,2);
 meanExpr=mean(ncounts,2,'omitnan');
 stdExpr=std(ncounts,[],2,'omitnan');
 varExpr=stdExpr.^2;
@@ -63,9 +63,9 @@ else
                     end
                     thisDispZ=(thisDisp-means(i))./stds(i);
                 
-                case 'medmad0'
-                    %median + mean absolute deviation
-                    meds(i)=median(thisDisp);
+                case 'meanmad'
+                    %mean + mean absolute deviation
+                    meds(i)=mean(thisDisp);
                     if nnz(thisIx)>1 %to be able to compute variance
                         mads(i)=mad(thisDisp,0); %median absolute deviation
                     else
@@ -86,10 +86,10 @@ else
                     else
                         mads(i)=1;
                     end
-%                     factor=1;
-                    factor=1.49; %to approximate units of stdev (https://www.ibm.com/support/knowledgecenter/en/SS4QC9/com.ibm.solutions.wa_an_overview.2.0.0.doc/modified_z.html)
+                    factor=1;
+%                     factor=1.49; %to approximate units of stdev (https://www.ibm.com/support/knowledgecenter/en/SS4QC9/com.ibm.solutions.wa_an_overview.2.0.0.doc/modified_z.html)
                     if mads(i)==0
-                        factor=1.25; 
+%                         factor=1.25; 
                         mads(i)=mad(thisDisp); %mean absolute deviation
 %                         mads(i)=std(thisDisp);
                     end
