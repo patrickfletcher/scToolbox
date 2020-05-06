@@ -5,6 +5,7 @@ function [ax,hc,lCG,htypelabs,subsamp]=plotHeatMap(X,varNames,groups,colors,figI
 
 %bar_width=zero => no bars, empty obsNames => no text labels
 
+%TODO: redo this object oriented (solves many interface problems)
 %TODO: clean up interface & options
 %todo: manage groups of zero size consistently
 %TODO: column vs row vector group sub
@@ -16,6 +17,12 @@ if ~exist('doTypeLabels','var')
     doTypeLabels=true;
 end
 % doCellTypeLegend=false;
+
+
+% HMgeneAxlabel='Genes';
+HMgeneAxlabel='Marker genes';
+cbLabel='log_{10} fold threshold';
+geneLabels=strcat(repmat({'\it '},size(varNames)),varNames);
 
 %unpack inputs
 % cellGroupAxLabel='cell type';
@@ -102,13 +109,6 @@ if nsubsample>0
     groups=groups(subsamp);
 end
 
-% HMgeneAxlabel='Genes';
-HMgeneAxlabel='Marker genes';
-cbLabel='log_{10} fold threshold';
-geneLabels=strcat(repmat({'\it '},size(varNames)),varNames);
-
-
-
 %%%% set up the figure and axes
 if exist('figID','var')
     figH=figure(figID);clf
@@ -123,10 +123,12 @@ end
 cellMarkWidth=6; %units: points - axCG position should use points too.
 
 %main axis
-axHM=axes('Position',[sp_params.marg_w(1),sp_params.marg_h(1),...
-    1-2*sum(sp_params.marg_w),1-2*sum(sp_params.marg_h)-bar_gap-bar_leg_width]);
+% axHM=axes('Position',[sp_params.marg_w(1),sp_params.marg_h(1),...
+%     1-2*sum(sp_params.marg_w),1-2*sum(sp_params.marg_h)-bar_gap-bar_leg_width]);
 % axHM=axes('Position',[sp_params.marg_w(1),sp_params.marg_h(1),...
 %     1-sum(sp_params.marg_w)-cb_gap-cb_width,1-sum(sp_params.marg_h)-bar_gap-bar_leg_width]);
+
+axHM=tight_subplot(1,1,1,0,sp_params.marg_h,sp_params.marg_w);
 
 %%%% build the grouped count data matrix
 if exist('PCscores','var')
@@ -178,12 +180,10 @@ cbPos(3)=cb_width;
 cbPos(2)=axPos(2)+axPos(4)/6;
 cbPos(4)=2*axPos(4)/3;
 
-% c=colorbar(axHM);
-% c.Position=cbPos;
 hc=colorbar(axHM,'Position',cbPos);
 
-% cy=ylabel(c,cbLabel);
-% cy.Position(1)=cy.Position(1)*0.66;
+cy=ylabel(hc,cbLabel);
+cy.VerticalAlignment='baseline';
 
 %             c.Limits=[0,max(colors(:,i))];
 if any(X(:)<0)
