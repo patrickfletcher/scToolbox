@@ -20,7 +20,7 @@ exclusive_intersections={};
 intersection_ix={};
 for k=1:n_sets
     in_ix=combnk(set_ix_list,k);
-    
+    if k>1, in_ix=flipud(in_ix); end %put combos with first ix's first
     for i=1:size(in_ix,1)
         %compute the intersection of in_sets
         this_in_ix=in_ix(i,:);
