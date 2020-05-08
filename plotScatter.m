@@ -13,6 +13,7 @@ function [ax, hs, hc]=plotScatter(X,colorby,groups,colors,figID,subplotdims,sp_p
 %TODO: mouse-over function: make it display the type name or expr value
 
 %TODO: pass in args to control marker size etc
+%TODO: input checking... :/
 nObs=size(X,1);
 marker='o';
 markerSize=11-log(nObs);
@@ -76,7 +77,7 @@ mustMakeAxes=true;
 if exist('subplotdims','var')&&~isempty(subplotdims)
     if class(subplotdims)=="matlab.graphics.axis.Axes"
         ax=subplotdims; %could be an array of axes
-        if length(ax)==nPlots
+        if length(ax)>=nPlots
             mustMakeAxes=false;
         end
     elseif isnumeric(subplotdims)
@@ -140,11 +141,10 @@ switch lower(colorby)
             end
             hold off
 
+            axis(ax(i),'equal');
+            axis(ax(i),'tight');
+            axis(ax(i),'off');
             ax(i).SortMethod='depth';
-
-            legend off %create user legend outside
-    %         axis tight
-            axis off
 
             hc=[];
         end
@@ -166,14 +166,7 @@ switch lower(colorby)
             hs(i)=scatter(X(:,1),X(:,2),markerSize,colors(:,i),marker,'filled');
             hs(i).MarkerEdgeColor=hs(i).MarkerFaceColor;
             
-            axis equal
-            axis tight
-            axis off
-            
-            colormap(cmap);
-            
             %custom colobar, small & centered to the right. shows only max/min color
-
             if ~exist('docolorbar','var')||isempty(docolorbar)
                 docolorbar=true;
             end
@@ -195,7 +188,11 @@ switch lower(colorby)
             hs(i).ZData=rand(size(hs(i).XData))*0.01;  %randomize the "depth" of points
 %             hs(i).ZData=colors(:,i); %high expr on top
             
+            axis(ax(i),'equal');
+            axis(ax(i),'tight');
+            axis(ax(i),'off');
             ax(i).SortMethod='depth';
+            colormap(cmap);
             
             title(groups(i));
             
