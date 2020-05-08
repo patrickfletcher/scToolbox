@@ -78,7 +78,13 @@ for i=1:length(self.names)
     pairwise_d_prct_rel=[pairwise_d_prct_rel,this_d_prct_rel];
 
     %effect sizes (TODO: add options to select different metrics)
-%     switch par.prctMetric, par.exprMetric
+%     switch par.prctMetric
+%         case 'diff'
+%         case 'reldiff'
+%         case 'fc'
+%         case 'logfc'
+%     end
+%     switch par.exprMetric
 %         case 'diff'
 %         case 'reldiff'
 %         case 'fc'

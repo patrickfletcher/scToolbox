@@ -37,7 +37,7 @@ if length(ixb)~=nQuery
     end
 end
 
-index(setxor(1:nQuery,[dupeix;notfoundix]))=ixb;
+index(setxor(1:nQuery,[dupeix;notfoundix],'stable'))=ixb;
 
 if removeDupes
     index(dupeix)=[];

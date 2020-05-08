@@ -51,8 +51,8 @@ if doKNN
     % knn_indices(:,1)=[]; %remove self distances
     % knn_dists(:,1)=[];
     disp("knnsearch time: " + num2str(toc) + "s")
-    result.knn_indices=knn_indices;
-    result.knn_dists=knn_dists;
+%     result.knn_indices=knn_indices;
+%     result.knn_dists=knn_dists;
 end
 
 %python version

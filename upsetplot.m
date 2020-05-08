@@ -9,9 +9,9 @@ classdef upsetplot < handle %graphics object??
         
         %data selection and display order options
         count_thr=1
-%         order_method='size'
-        order_method='comb'
-        n_member_thr=Inf %max num members in a combo
+        order_method='size'
+%         order_method='comb'
+%         n_member_thr=Inf %max num members in a combo
         
         %bar chart look shortcuts
         

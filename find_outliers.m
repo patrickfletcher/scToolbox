@@ -113,6 +113,7 @@ for i=1:size(tf,1)
 end
 
 result.vals=qcvals;
+result.subix=tf;
 result.outsub=outsub;
 result.outliers=outliers;
 result.lowthr=lowthr;
