@@ -1,4 +1,4 @@
-function [ax, c, ixs]=plotPercentageHeatmap(PRCT,typeLabels,geneNames,varGroup,figID,sortmethod,sp_params)
+function [ax, c, ixs]=plotPercentageHeatmap(PRCT,typeLabels,geneNames,varGroup,figOrAxis,sortmethod,sp_params)
 
 %TODO: group indicator/name; gene group as grouping var
 
@@ -16,12 +16,14 @@ if ~exist('sp_params','var')||isempty(sp_params)
 end
 
 %TODO: granularity of colormap?
-nbins=round((max(PRCT(:))-min(PRCT(:)))/5);
+max_prct=max(PRCT(:));
+min_prct=min(PRCT(:));
+nbins=round((max_prct-min_prct)/5);
 cmap=cbrewer('seq','Greens',nbins+3);
 cmap=[1,1,1;cmap(5:end,:)];
 
 
-nGenes=length(geneNames);
+[nGenes,nTypes]=size(PRCT);
 
 if ~exist('varGroup','var') || isempty(varGroup)
     varGroup=ones(nGenes,1);
@@ -53,47 +55,61 @@ else
 end
 
 
-
 %%%% set up the figure and axes
-if exist('figID','var')
-    figH=figure(figID);clf
+mustMakeAxes=true;
+if exist('figOrAxis','var')
+    if isa(figOrAxis,'matlab.ui.Figure')
+        figH=figure(figOrAxis);clf
+    elseif isa(figOrAxis,'matlab.graphics.axis.Axes')
+        ax=figOrAxis;
+        axes(ax);
+        mustMakeAxes=false;
+    end
 else
     figH=figure();
 end
 
-% figH.Position
+if mustMakeAxes
+    ax=tight_subplot(1,1,1,sp_params.gap,sp_params.marg_h,sp_params.marg_w);
+end
 
-ax=tight_subplot(1,1,1,sp_params.gap,sp_params.marg_h,sp_params.marg_w);
-
-colormap(cmap)
 imagesc(ax,PRCT)
 
-%horizontal lines for visual aid
-yGridValues=0.5:1:nGenes;
-line(repmat(xlim()',1,nGenes),[1;1]*yGridValues,'color',0.9*[1,1,1])
+%minor grid for visual aid
+grid_color=0.9*[1,1,1];
+xGridValues=1.5:1:nTypes;
+yGridValues=1.5:1:nGenes;
+line(repmat(xlim()',1,nGenes-1),[1;1]*yGridValues,'color',grid_color)
+line([1;1]*xGridValues,repmat(ylim()',1,nTypes-1),'color',grid_color)
 
 %boost nG separations
 if exist('nPerGroup','var') && ~isempty(nPerGroup)
+    grid_boost_color=0.*[1,1,1];
     nPerGroup=nPerGroup(:)';
-    yGridValues=cumsum(nPerGroup(1:end-1))+0.5;
-    line(repmat(xlim()',1,length(yGridValues)),[1;1]*yGridValues,'color',0.*[1,1,1],'tag','groupdiv','linewidth',0.5)
+    yGridBoost=cumsum(nPerGroup(1:end-1))+0.5;
+    line(repmat(xlim()',1,length(yGridBoost)),[1;1]*yGridBoost,'color',grid_boost_color,'tag','groupdiv','linewidth',0.5)
 end
 
-set(ax,'XTick',1:length(typeLabels),'XTickLabel',typeLabels)
+ax.XTick=1:nTypes;
+ax.XTickLabel=typeLabels;
+ax.XTickLabelRotation=90;
 
 geneLabels=strcat(repmat({'\it '},size(geneNames)),geneNames);
-set(ax,'YTick',1:length(geneLabels),'YTickLabel',geneLabels)
+ax.YTick=1:nGenes;
+ax.YTickLabel=geneLabels;
+
+ax.TickLength=[0,0]; %remove ticks, rely on grid
+
+colormap(ax,cmap)
+ax.CLim=[floor(min_prct/10),floor(max_prct/10)]*10;
+
 axPos=ax.Position;
 
 c=colorbar('orientation','horizontal'); 
 ylabel(c,sp_params.cbLabel)
 c.Ticks=0:25:100;
 c.TickLength=0.025;
-
 c.Ticks=sp_params.c_ticks;
-
-% caxis([0,100]);
-caxis([min(PRCT(:)),max(PRCT(:))]);
 
 c.Position(1)=axPos(1)+0.1*axPos(3);
 c.Position(2)=axPos(2)+axPos(4)+sp_params.cb_gap;
