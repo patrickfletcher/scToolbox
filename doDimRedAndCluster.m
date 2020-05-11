@@ -44,8 +44,8 @@ disp('Finding highly variable genes...')
 %params?
 % markers=["POMC","GH1","PRL","LHB","TSHB","SOX2"];
 if doPlot
-    figure(1);clf
-    result.hvg=findVariableGenes(ncounts,genes,params.hvg,1,markers);
+    fh=figure(111);clf
+    result.hvg=findVariableGenes(ncounts,genes,params.hvg,fh,markers);
     drawnow
 else
     result.hvg=findVariableGenes(ncounts,genes,params.hvg);
@@ -80,7 +80,8 @@ if isfield(params.tsne,'initY') && isnumeric(params.tsne.initY)&&numel(params.ts
     pcplotix=params.tsne.initY;
 end
 if doPlot
-    result.pca = doPCA(X, G, params.pca, [], 2, pcplotix);
+    fh=figure(112);clf
+    result.pca = doPCA(X, G, params.pca, [], fh, pcplotix);
 else
     result.pca = doPCA(X, G, params.pca, []);
 end
@@ -95,15 +96,16 @@ knn=[];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 3. tSNE on first npc PCs
 tic
-% if isfield(params,'tsne')&&~isempty(params.tsne)
-%     if doPlot
-%         result.tsne = doTSNE(result.pca.coords, params.tsne, 3, valuenames, colors);
-%     else
-%         result.tsne = doTSNE(result.pca.coords, params.tsne);
-%     end
-% else
-%     result.tsne=[];
-% end
+if isfield(params,'tsne')&&~isempty(params.tsne)
+    if doPlot
+        fh=figure(113);clf
+        result.tsne = doTSNE(result.pca.coords, params.tsne, fh, valuenames, colors);
+    else
+        result.tsne = doTSNE(result.pca.coords, params.tsne);
+    end
+else
+    result.tsne=[];
+end
 tsnetime=toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -111,7 +113,8 @@ tsnetime=toc
 tic
 if isfield(params,'umap')&&~isempty(params.umap)
     if doPlot
-        result.umap = doUMAP(result.pca.coords, params.umap, knn, 4, valuenames, colors);
+        fh=figure(114);clf
+        result.umap = doUMAP(result.pca.coords, params.umap, knn, fh, valuenames, colors);
     else
         result.umap = doUMAP(result.pca.coords, params.umap, knn);
     end   
@@ -129,8 +132,8 @@ if isfield(params,'clust')&&~isempty(params.clust)
     result.clust = doClustering(result.umap.graph,params.clust);
     
     if doPlot && ~isempty(result.tsne)
-        figure(5);clf
-        [ax,hs]=plotScatter(result.tsne.coords,'group',result.clust.clusterID,colors,5);
+        fh=figure(115);clf
+        [ax,hs]=plotScatter(result.tsne.coords,'group',result.clust.clusterID,colors,fh);
 %         for i=1:length(hs)
 %             hs(i).SizeData=5;
 %         end
@@ -141,8 +144,8 @@ if isfield(params,'clust')&&~isempty(params.clust)
         drawnow
     end
     if doPlot && ~isempty(result.umap)
-        figure(6);clf
-        [ax,hs]=plotScatter(result.umap.coords,'group',result.clust.clusterID,colors,6);
+        fh=figure(116);clf
+        [ax,hs]=plotScatter(result.umap.coords,'group',result.clust.clusterID,colors,fh);
 %         for i=1:length(hs)
 %             hs(i).SizeData=5;
 %         end
