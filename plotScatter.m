@@ -1,4 +1,4 @@
-function [ax, hs, hc]=plotScatter(X,colorby,groups,colors,figID,subplotdims,sp_params,docolorbar)
+function [AX, HS, HC]=plotScatter(X,colorby,groups,colors,figID,subplotdims,sp_params,docolorbar)
 %scatter plot of points in X, colored by either category or values
 % X - data, rows are points, colums dimension (2 or 3 only)
 % colorby - {'group','value'}.
@@ -16,6 +16,7 @@ function [ax, hs, hc]=plotScatter(X,colorby,groups,colors,figID,subplotdims,sp_p
 %TODO: input checking... :/
 nObs=size(X,1);
 marker='o';
+% markerSize=5;
 markerSize=11-log(nObs);
 
 %common setup
@@ -73,26 +74,24 @@ elseif colorby=="value"
     nPlots=n;
 end
 
-mustMakeAxes=true;
+mustMakeAxes=true; 
+p=numSubplots(nPlots);
+nr=p(1); nc=p(2);    
 if exist('subplotdims','var')&&~isempty(subplotdims)
     if class(subplotdims)=="matlab.graphics.axis.Axes"
-        ax=subplotdims; %could be an array of axes
-        if length(ax)>=nPlots
+        AX=subplotdims; %could be an array of axes
+        if length(AX)>=nPlots
             mustMakeAxes=false;
         end
     elseif isnumeric(subplotdims)
         if prod(subplotdims)==nPlots
             nr=subplotdims(1);
             nc=subplotdims(2);
-            mustMakeAxes=false;
         end
     end
 end
 if mustMakeAxes
-    p=numSubplots(nPlots);
-    nr=p(1);
-    nc=p(2);
-    ax=tight_subplot(nr,nc,[],sp_params.gap,sp_params.marg_h,sp_params.marg_w);
+    AX=tight_subplot(nr,nc,[],sp_params.gap,sp_params.marg_h,sp_params.marg_w);
 end
 
 
@@ -101,7 +100,7 @@ switch lower(colorby)
     case 'group'
         
         for i=1:nPlots
-            axes(ax(i));
+            axes(AX(i));
             
             group=groups{i};
             color=colors{i};
@@ -141,12 +140,13 @@ switch lower(colorby)
             end
             hold off
 
-            axis(ax(i),'equal');
-            axis(ax(i),'tight');
-            axis(ax(i),'off');
-            ax(i).SortMethod='depth';
+            axis(AX(i),'equal');
+            axis(AX(i),'tight');
+            axis(AX(i),'off');
+            AX(i).SortMethod='depth';
 
             hc=[];
+            HS{i}=hs;
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -161,7 +161,7 @@ switch lower(colorby)
         end
         
         for i=1:nPlots
-            axes(ax(i));
+            axes(AX(i));
             
             hs(i)=scatter(X(:,1),X(:,2),markerSize,colors(:,i),marker,'filled');
             hs(i).MarkerEdgeColor=hs(i).MarkerFaceColor;
@@ -172,7 +172,7 @@ switch lower(colorby)
             end
             if docolorbar
                 c=colorbar;
-                c.Position(1)=ax(i).Position(1)+ax(i).Position(3)+cb_gap;
+                c.Position(1)=AX(i).Position(1)+AX(i).Position(3)+cb_gap;
                 c.Position(3)=cb_width;
                 c.Position(2)=c.Position(2)+c.Position(4)/4;
                 c.Position(4)=c.Position(4)/2;
@@ -188,23 +188,25 @@ switch lower(colorby)
             hs(i).ZData=rand(size(hs(i).XData))*0.01;  %randomize the "depth" of points
 %             hs(i).ZData=colors(:,i); %high expr on top
             
-            axis(ax(i),'equal');
-            axis(ax(i),'tight');
-            axis(ax(i),'off');
-            ax(i).SortMethod='depth';
+            axis(AX(i),'equal');
+            axis(AX(i),'tight');
+            axis(AX(i),'off');
+            AX(i).SortMethod='depth';
             colormap(cmap);
             
             title(groups(i));
-            
+            HS{i}=hs;
+            HC{i}=hc;
         end
         
 end
 
 if nargout==0
-    clear ax
+    clear AX
 end
 
-end
+
+% end
 
 
 % function []=parseArgs(t, X, varargin)

@@ -101,7 +101,7 @@ ax.YTickLabel=geneLabels;
 ax.TickLength=[0,0]; %remove ticks, rely on grid
 
 colormap(ax,cmap)
-ax.CLim=[floor(min_prct/10),floor(max_prct/10)]*10;
+ax.CLim=[floor(min_prct/10),ceil(max_prct/10)]*10;
 
 axPos=ax.Position;
 

@@ -87,6 +87,7 @@ colormap(cmap)
 %rescale frac to [minArea,maxArea]
 
 %can't have markers of size zero
+sizeData=(sizeData-min(sizeData(:)))./(max(sizeData(:))-min(sizeData(:))); %force sizedata into [0,1]
 sizeData=minArea+(maxArea-minArea)*sizeData; %area represents prct: 
 
 %quantize the size data into bins of 5%
