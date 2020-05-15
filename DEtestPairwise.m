@@ -2,6 +2,9 @@ function [adj_pANOVA, adj_pMC, combs]=DEtestPairwise(X, group, method)
 %this tests if all groups have same or different distributions (like 1-way anova with K-S two sample test)
 % if not, multcompare is used to find out which are different
 
+%NOTE: if 2 groups, pANOVA is same as 2-sample test (eg. kruskalwallis
+%pANOVA = p from ranksum).
+
 % method='kruskalwallis'; % could use anova, etc.
 
 displayopt='off';
@@ -35,15 +38,15 @@ groupFrac=zeros(nGenes,nGroups);  %pass this in if available?
 for i=1:nGroups
     groupFrac(:,i)=sum(X(:,group==groupNames{i})>0,2)/groupCounts(i);
 end
-keep=any(groupFrac > minFrac, 2); %any group expresses gene in at least some minimum fraction of cells
+keep=any(groupFrac > minFrac, 2); %any group expresses gene in at least some minimum fraction of cells (equiv to "either" in DEtest2)
 
 keepix=find(keep);
 nGenes2Test=nnz(keep);
 
 % FDR is computed assuming all genes are present, to be conservative (?)
-% should these be initialized to 1? I think so: expression=0 in all groups
-pANOVA=ones(nGenes,1); 
-pMC=ones(nGenes,nPairs); 
+% should these be initialized to 1 or nan?
+pANOVA=nan(nGenes,1); 
+pMC=nan(nGenes,nPairs); 
 % C=nan(nGenes,6); %full comparisons matrix, includes estimate (difference between means?), CIs, p
 
 tic
