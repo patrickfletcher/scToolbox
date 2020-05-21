@@ -16,6 +16,7 @@ function [outliers, result] = find_outliers(qcvals, tf, ctnames, params)
 result.params=params; %store params and results together idiom
 
 % individual type outlier cutoffs
+ctcounts=sum(tf,2);
 outsub=false(size(tf));
 outliers=false(size(qcvals));
 for i=1:size(tf,1)
@@ -75,18 +76,27 @@ for i=1:size(tf,1)
     % - min/max of kept values observed in any other type
     if ctnames(i)=="Unc"
         otherlow=lowthr(1:i-1);
+        cts=ctcounts(1:i-1);
+        cts(isnan(otherlow))=[];
+        cts(otherlow==params.lowthr_clipval)=[];
 %         otherlow(ctnames(1:i-1)=="T")=[];
         otherlow(isnan(otherlow))=[];
         otherlow(otherlow==params.lowthr_clipval)=[];
         if ~isempty(otherlow)
-            lowthr(i)=min(otherlow); 
+%             lowthr(i)=min(otherlow); 
+            lowthr(i)=sum(cts/sum(cts).*otherlow(:));  
         end
+        
         otherhi=hithr(1:i-1);
+        cts=ctcounts(1:i-1);
+        cts(isnan(hithr))=[];
+        cts(otherhi==params.hithr_clipval)=[];
 %         otherhi(ctnames(1:i-1)=="T")=[];
         otherhi(isnan(otherhi))=[];
         otherhi(otherhi==params.hithr_clipval)=[];
         if ~isempty(otherhi)
-            hithr(i)=max(otherhi); 
+%             hithr(i)=max(otherhi); 
+            hithr(i)=sum(cts/sum(cts).*otherhi(:)); 
         end
     end
     
