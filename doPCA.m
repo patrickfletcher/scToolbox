@@ -100,7 +100,7 @@ result.coeff=coeff;
 result.coords=score;
 result.pc_gene_name=pc_gene_name;
 % result.pc_gene_id=pc_gene_id;
-% result.pc_gene_ix=pc_gene_ix;
+result.pc_gene_ix=pc_gene_ix;
         
 if exist('figID','var')
     
