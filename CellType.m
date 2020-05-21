@@ -256,6 +256,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
                 option=[];
             end
             markerList=ct.preorderQuery('markers',option);
+            markerList(markerList=="")=[];
         end
         
         function ct=setColors(ct,names,colors)
