@@ -15,7 +15,7 @@ if ~iscategorical(group)
     group=categorical(group);
 end
 groupNames=categories(group);
-groupCounts=countcats(group);
+groupCounts=countcats(group); groupCounts=groupCounts(:)';
 totalCells=sum(groupCounts);
 nGroups=length(groupNames);
 
@@ -25,7 +25,7 @@ for i=1:nGroups
     g=group==groupNames{i};
     observedCounts(:,i)=sum(X(:,g)>0,2);   %or =prct/100*groupCounts
 end
-expectedCounts=sum(observedCounts,2)./totalCells .*groupCounts'; %probability * N_celltype
+expectedCounts=sum(observedCounts,2)./totalCells .*groupCounts; %probability * N_celltype
 dof=nGroups-1;
 
 %if not enough expected counts, the chi2 test isn't valid...
@@ -35,8 +35,8 @@ nExpectedLT1=sum(expectedCounts<1,2);
 valid1=nExpectedLT1==0;
 
 % full table version - #<thr and #>=thr (makes things more significant...?)
-observedCounts=[observedCounts,groupCounts'-observedCounts];
-expectedCounts=[expectedCounts,groupCounts'-expectedCounts];
+observedCounts=[observedCounts,groupCounts-observedCounts];
+expectedCounts=[expectedCounts,groupCounts-expectedCounts];
 % dof=max(1,nRows-1)*max(1,nCols-1); %nRows=nGroups; nCols=2 (>thr or <=thr)
 
 %chi2 statistic
