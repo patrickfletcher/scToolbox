@@ -7,6 +7,8 @@ function [exclusive_intersections, intersection_ix]=get_exclusive_intersections(
 % - exclusive_intersections: cell array with intersection data
 % - intersection_ix: which sets 
 
+%TODO: output a nice struct instead. 
+
 % sets=varargin;
 n_sets=length(sets);
 
@@ -20,7 +22,7 @@ exclusive_intersections={};
 intersection_ix={};
 for k=1:n_sets
     in_ix=combnk(set_ix_list,k);
-    if k>1, in_ix=flipud(in_ix); end %put combos with first ix's first
+%     if k>1, in_ix=flipud(in_ix); end %put combos with first ix's first
     for i=1:size(in_ix,1)
         %compute the intersection of in_sets
         this_in_ix=in_ix(i,:);
