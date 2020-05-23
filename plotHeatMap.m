@@ -1,5 +1,4 @@
-% function [ax,c,lCG,htypelabs]=plotHeatMap(X,geneNames,ident,groupColors,subclusterOpt,figID,nPerGroup,doCellTypeBars,doTypeLabels,nsubsample,PCscores)
-function [ax,hc,lCG,htypelabs,subsamp]=plotHeatMap(X,varNames,groups,colors,figID,varGroup,nsubsample,doTypeLabels,subclusterOpt,sp_params,PCscores)
+function [ax,hc,lCG,htypelabs,subsamp]=plotHeatMap(X,varNames,groups,colors,figID,varGroup,nsubsample,doTypeLabels,subclusterOpt,sp_params,PCscores,varClusterOpt)
 
 % heatmap: cells vs genes. genes labeled. cells(genes) optionally grouped by categories, specified in categorical arrays
 
@@ -22,7 +21,7 @@ end
 % HMgeneAxlabel='Genes';
 HMgeneAxlabel='Marker genes';
 cbLabel='log_{10} fold threshold';
-geneLabels=strcat(repmat({'\it '},size(varNames)),varNames);
+varLabels=strcat(repmat({'\it '},size(varNames)),varNames);
 
 %unpack inputs
 % cellGroupAxLabel='cell type';
@@ -42,6 +41,10 @@ end
 
 if ~exist('subclusterOpt')
     subclusterOpt='none';
+end
+
+if ~exist('varClusterOpt')
+    varClusterOpt='none';
 end
 
 cb_gap=sp_params.cb_gap;
@@ -102,7 +105,7 @@ if nsubsample>0
         else
             thissub=ix;
         end
-        subsamp=[subsamp,thissub];
+        subsamp=[subsamp(:);thissub(:)];
         groupCounts(i)=length(thissub);
     end
     X=X(:,subsamp);
@@ -130,12 +133,19 @@ cellMarkWidth=6; %units: points - axCG position should use points too.
 
 axHM=tight_subplot(1,1,1,0,sp_params.marg_h,sp_params.marg_w);
 
+%sorting on variables too?
+varPerm=1:length(varNames);
+[Y,varPerm]=groupCountMatrix(X',varGroup,varClusterOpt);
+X=Y';
+varLabels=varLabels(varPerm);
+
 %%%% build the grouped count data matrix
-if exist('PCscores','var')
+if exist('PCscores','var')&&~isempty(PCscores)
 [X,cellPerm]=groupCountMatrix(X,groups,subclusterOpt,PCscores);
 else
 [X,cellPerm]=groupCountMatrix(X,groups,subclusterOpt);
 end
+
 
 %%%% build the cell and gene group marker arrays
 % groupby will be contiguous
@@ -165,8 +175,8 @@ axHM.XGrid='on';
 axHM.GridColor=0.3*[1,1,1];
 axHM.GridAlpha=.7;
 
-axHM.YTick=1:length(geneLabels);
-axHM.YTickLabel=geneLabels;
+axHM.YTick=1:length(varLabels);
+axHM.YTickLabel=varLabels;
 
 % axHM.Units='points';
 axPos=axHM.Position;
@@ -235,6 +245,9 @@ end
 if doTypeLabels
     middles=mean(cvals+0.5,1);
     % middles=middles(groupCounts>0);
+%     htypelabs=text(middles,barTextOffset*ones(size(middles)),groupNames(groupCounts>0),...
+%         'horizontalalignment','center','verticalalignment','bottom','tag','typelab',...
+%         'Interpreter','none');
     htypelabs=text(middles,barTextOffset*ones(size(middles)),groupNames(groupCounts>0),...
         'horizontalalignment','center','verticalalignment','bottom','tag','typelab');
 end
