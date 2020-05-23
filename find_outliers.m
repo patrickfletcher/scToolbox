@@ -21,6 +21,7 @@ outsub=false(size(tf));
 outliers=false(size(qcvals));
 for i=1:size(tf,1)
     thissub=tf(i,:);
+    thisctname=ctnames{i};
     thisqc=qcvals(thissub);
     
     %stats (for export too)
@@ -62,12 +63,20 @@ for i=1:size(tf,1)
             
         case 'prctile'
             lowthr(i)=prctile(thisqc,params.lowptile);
-            hithr(i)=prctile(thisqc,params.hiptile);
+            hithr(i)=prctile(thisqc,100-params.hiptile);
             
     end
     
     lowthr(i)=max(lowthr(i),params.lowthr_clipval); %clamp thresholds
     hithr(i)=min(hithr(i),params.hithr_clipval); 
+    
+    
+    if ismember(thisctname,params.manual_low.names)
+        lowthr(i)=params.manual_low.vals(params.manual_low.names==thisctname);
+    end
+    if ismember(thisctname,params.manual_high.names)
+        hithr(i)=params.manual_high.vals(params.manual_high.names==thisctname);
+    end
     
     %special value for "Unc": lowthr=min(others), hithr=max(others)
     % Assumes Unc is last. 
@@ -98,13 +107,6 @@ for i=1:size(tf,1)
 %             hithr(i)=max(otherhi); 
             hithr(i)=sum(cts/sum(cts).*otherhi(:)); 
         end
-    end
-    
-    for j=1:length(params.manual_low.names)
-        lowthr(ctnames==params.manual_low.names(j))=params.manual_low.vals(j);
-    end
-    for j=1:length(params.manual_high.names)
-        hithr(ctnames==params.manual_high.names(j))=params.manual_high.vals(j);
     end
     
     switch params.tailoption
