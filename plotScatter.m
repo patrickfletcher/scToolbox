@@ -1,4 +1,4 @@
-function [AX, HS, HC]=plotScatter(X,colorby,groups,colors,figID,subplotdims,sp_params,docolorbar)
+function [AX, HS, HC]=plotScatter(X,colorby,groups,colors,figID,subplotdims,sp_params,draworder,docolorbar)
 %scatter plot of points in X, colored by either category or values
 % X - data, rows are points, colums dimension (2 or 3 only)
 % colorby - {'group','value'}.
@@ -42,6 +42,10 @@ if ~exist('figID','var')||isempty(figID)
     figID=figure();
 else
     figure(figID);
+end
+
+if ~exist('draworder','var')||isempty(draworder)
+    draworder='random';
 end
 
 %handle subplotting...
@@ -135,7 +139,14 @@ switch lower(colorby)
                 thisGroup=group==groupNames{j};
                 hs(j)=scatter(X(thisGroup,1),X(thisGroup,2),markerSize,color(j,:),marker,'filled');
                 hs(j).MarkerEdgeColor=color(j,:)*0.66; %darker edge of same color
-                hs(j).ZData=rand(size(hs(j).XData));  %randomize the "depth" of points
+                
+                switch draworder
+                    case 'index'
+                        hs(j).ZData=j*ones(size(hs(j).XData));  %randomize the "depth" of points
+                    otherwise
+                        hs(j).ZData=rand(size(hs(j).XData));  %randomize the "depth" of points
+                end
+                
                 hs(j).DisplayName=groupNames{j};
             end
             hold off
@@ -145,8 +156,12 @@ switch lower(colorby)
             axis(AX(i),'off');
             AX(i).SortMethod='depth';
 
-            hc=[];
-            HS{i}=hs;
+            HC=[];
+            if nPlots>1
+                HS{i}=hs;
+            else
+                HS=hs;
+            end
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -185,8 +200,12 @@ switch lower(colorby)
                 hc=[];
             end
             
-            hs(i).ZData=rand(size(hs(i).XData))*0.01;  %randomize the "depth" of points
-%             hs(i).ZData=colors(:,i); %high expr on top
+            switch draworder
+                case 'value'
+                    hs(i).ZData=colors(:,i); %high expr on top
+                otherwise
+                    hs(i).ZData=rand(size(hs(i).XData));  %randomize the "depth" of points
+            end
             
             axis(AX(i),'equal');
             axis(AX(i),'tight');
@@ -195,8 +214,13 @@ switch lower(colorby)
             colormap(cmap);
             
             title(groups(i));
-            HS{i}=hs;
-            HC{i}=hc;
+            if nPlots>1
+                HS{i}=hs;
+                HC{i}=hc;
+            else
+                HS=hs;
+                HC=hc;
+            end
         end
         
 end
