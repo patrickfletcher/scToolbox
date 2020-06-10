@@ -18,8 +18,8 @@ classdef upsetplot < handle %graphics object??
         %combination plot look shortcuts
     end
     
-    %internal handles and data
-    properties (Access=private) 
+    %internal handles and data (Access=private) 
+    properties 
         ax_intersect %bar showing size of intersections
         h_bar %the bar chart object
         
@@ -27,7 +27,7 @@ classdef upsetplot < handle %graphics object??
         hl_bg_dot %gray background line plots with wider marker/lines
         hl_combs %the set of line plots indicating combinations
         
-        ax_setcount %bar showing size of each set
+%         ax_setcount %bar showing size of each set
     end
     
     methods 
@@ -118,6 +118,11 @@ classdef upsetplot < handle %graphics object??
             ax_combs.YDir='reverse';
             
             linkaxes([ax_intersect,ax_combs],'x')
+            
+            hup.ax_combs=ax_combs;
+            hup.ax_intersect=ax_intersect;
+            hup.hl_combs=hl_combs;
+            hup.h_bar=h_bar;
         end
         
         %getters/setters
