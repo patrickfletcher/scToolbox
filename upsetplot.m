@@ -22,6 +22,7 @@ classdef upsetplot < handle %graphics object??
     properties 
         ax_intersect %bar showing size of intersections
         h_bar %the bar chart object
+        ht_counts %text labels for counts above bars
         
         ax_combs %line/dot plot showing set combination for each bar
         hl_bg_dot %gray background line plots with wider marker/lines
@@ -65,7 +66,7 @@ classdef upsetplot < handle %graphics object??
             s_inter_counts(discard)=[];
             
             n_combs=length(ixs);
-            XLIM=[0.5,n_combs+0.5];
+            XLIM=[0.25,n_combs+0.5];
             [~,max_ix]=max(s_inter_counts);
             
             %bar chart for intersection counts
@@ -123,6 +124,7 @@ classdef upsetplot < handle %graphics object??
             hup.ax_intersect=ax_intersect;
             hup.hl_combs=hl_combs;
             hup.h_bar=h_bar;
+            hup.ht_counts=ht_counts;
         end
         
         %getters/setters
