@@ -32,7 +32,7 @@ classdef upsetplot < handle %graphics object??
     end
     
     methods 
-        function hup=upsetplot(sets, setnames)
+        function hup=upsetplot(sets, setnames, ordermethod)
             
             %prepare axis layout
             t=tiledlayout(2,1);
@@ -43,6 +43,9 @@ classdef upsetplot < handle %graphics object??
             
             if nargin==0 
                 return
+            end
+            if exist('ordermethod','var')
+                hup.order_method = ordermethod;
             end
             
             %prepare data

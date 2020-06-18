@@ -216,7 +216,7 @@ switch lower(colorby)
             title(groups(i));
             if nPlots>1
                 HS{i}=hs;
-                HC{i}=hc;
+                HC=hc;
             else
                 HS=hs;
                 HC=hc;
