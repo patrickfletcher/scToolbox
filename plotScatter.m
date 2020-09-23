@@ -1,4 +1,4 @@
-function [AX, HS, HC]=plotScatter(X,colorby,groups,colors,figID,subplotdims,sp_params,draworder,docolorbar)
+function [AX, HS, HC]=plotScatter(coords,colorby,groups,colors,figID,subplotdims,sp_params,draworder,docolorbar)
 %scatter plot of points in X, colored by either category or values
 % X - data, rows are points, colums dimension (2 or 3 only)
 % colorby - {'group','value'}.
@@ -13,8 +13,8 @@ function [AX, HS, HC]=plotScatter(X,colorby,groups,colors,figID,subplotdims,sp_p
 %TODO: mouse-over function: make it display the type name or expr value
 
 %TODO: pass in args to control marker size etc
-%TODO: input checking... :/
-nObs=size(X,1);
+%TODO: input che`cking... :/
+nObs=size(coords,1);
 marker='o';
 % markerSize=5;
 markerSize=11-log(nObs);
@@ -71,7 +71,7 @@ elseif colorby=="value"
     [m,n]=size(colors);
     if m~=nObs && n~=nObs
         error('Number of observations does not match number of scatter points')
-    elseif n==size(X,1) 
+    elseif n==size(coords,1) 
         colors=colors'; %force columns
         [~,n]=size(colors);
     end
@@ -110,7 +110,7 @@ switch lower(colorby)
             color=colors{i};
             
             if isempty(group)
-                group=ones(size(X,1),1);
+                group=ones(size(coords,1),1);
             end
 
             if ~iscategorical(group)
@@ -137,7 +137,7 @@ switch lower(colorby)
             hold on
             for j=1:length(groupNames)
                 thisGroup=group==groupNames{j};
-                hs(j)=scatter(X(thisGroup,1),X(thisGroup,2),markerSize,color(j,:),marker,'filled');
+                hs(j)=scatter(coords(thisGroup,1),coords(thisGroup,2),markerSize,color(j,:),marker,'filled');
                 hs(j).MarkerEdgeColor=color(j,:)*0.66; %darker edge of same color
                 
                 switch draworder
@@ -178,7 +178,7 @@ switch lower(colorby)
         for i=1:nPlots
             axes(AX(i));
             
-            hs(i)=scatter(X(:,1),X(:,2),markerSize,colors(:,i),marker,'filled');
+            hs(i)=scatter(coords(:,1),coords(:,2),markerSize,colors(:,i),marker,'filled');
             hs(i).MarkerEdgeColor=hs(i).MarkerFaceColor;
             
             %custom colobar, small & centered to the right. shows only max/min color
@@ -215,7 +215,7 @@ switch lower(colorby)
             
             title(groups(i));
             if nPlots>1
-                HS{i}=hs;
+                HS=hs;
                 HC=hc;
             else
                 HS=hs;

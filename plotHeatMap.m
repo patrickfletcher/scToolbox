@@ -1,4 +1,4 @@
-function [ax,hc,lCG,htypelabs,subsamp]=plotHeatMap(X,varNames,groups,colors,figID,varGroup,nsubsample,doTypeLabels,subclusterOpt,sp_params,PCscores,varClusterOpt)
+function [ax,hc,lCG,htypelabs,subsamp, cellPerm, varPerm]=plotHeatMap(X,varNames,groups,colors,figID,varGroup,nsubsample,doTypeLabels,subclusterOpt,sp_params,PCscores,varClusterOpt)
 
 % heatmap: cells vs genes. genes labeled. cells(genes) optionally grouped by categories, specified in categorical arrays
 
@@ -12,10 +12,6 @@ function [ax,hc,lCG,htypelabs,subsamp]=plotHeatMap(X,varNames,groups,colors,figI
 %%%% input parsing
 % p=inputParser();
 
-if ~exist('doTypeLabels','var')
-    doTypeLabels=true;
-end
-% doCellTypeLegend=false;
 
 
 % HMgeneAxlabel='Genes';
@@ -39,11 +35,15 @@ if ~exist('sp_params','var')||isempty(sp_params)
     sp_params.bar_leg_width=0.05;
 end
 
-if ~exist('subclusterOpt')
+if ~exist('doTypeLabels','var')||isempty(doTypeLabels)
+    doTypeLabels=true;
+end
+
+if ~exist('subclusterOpt')||isempty(subclusterOpt)
     subclusterOpt='none';
 end
 
-if ~exist('varClusterOpt')
+if ~exist('varClusterOpt')||isempty(varClusterOpt)
     varClusterOpt='none';
 end
 
@@ -250,6 +250,8 @@ if doTypeLabels
 %         'Interpreter','none');
     htypelabs=text(middles,barTextOffset*ones(size(middles)),groupNames(groupCounts>0),...
         'horizontalalignment','center','verticalalignment','bottom','tag','typelab');
+else
+    htypelabs=[];
 end
 
 %%%% secondary axis for geneGroupMarkers (and/or gene dendrogram) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -70,6 +70,9 @@ for i=1:length(groupNames)
                     T=cluster(Z,'maxClust',K);
                     
                     [~,ixs]=sort(T);
+
+                otherwise % 'none'
+                    ixs=1:size(Ysub,2);
                     
             end
             subOrder=subOrder(ixs);

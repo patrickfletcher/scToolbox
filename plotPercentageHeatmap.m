@@ -18,9 +18,9 @@ end
 %TODO: granularity of colormap?
 max_prct=max(PRCT(:));
 min_prct=min(PRCT(:));
-nbins=round((max_prct-min_prct)/5);
-cmap=cbrewer('seq','Greens',nbins+3);
-cmap=[1,1,1;cmap(5:end,:)];
+nbins=ceil(ceil(max_prct-min_prct)/5);
+cmap=cbrewer('seq','Greens',nbins+4);
+cmap=[1,1,1;cmap(4:end,:)];
 
 
 [nGenes,nTypes]=size(PRCT);

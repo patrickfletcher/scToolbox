@@ -2,6 +2,8 @@ function [ax,hh,lh]=multihist(X,names,group,showZeros,thresh,colors,figID,panels
 
 %TODO: reorder argument list to make fast use easier (eg. X, thresh, names, group, 
         
+%TODO: a stacked bar chart variant
+
 maxBins=30;
 
 doGroupedHistograms=false;
@@ -108,7 +110,7 @@ for i=1:nsub
     
     if doThresh
         YLIM=ylim();
-        line(thresh(i)*[1,1],YLIM,'color','k','linewidth',1)
+        line(thresh(i)*[1,1],YLIM,'color','k','linewidth',2)
     end
     
 %     xlabel('log_{10} expression')
