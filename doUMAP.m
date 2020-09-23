@@ -17,10 +17,10 @@ elseif isnumeric(initY)&&numel(initY)==2
     initY=X(:,pcix);
     initY(:,1)=signix(1)*initY(:,1);
     initY(:,2)=signix(2)*initY(:,2);
-    initY=py.numpy.array(initY);
+    initY=py.numpy.array(initY,'float32',pyargs('order','C'));
 
 elseif size(initY,1)==size(X,1)
-    initY=py.numpy.array(initY);
+    initY=py.numpy.array(initY,'float32',pyargs('order','C'));
 
 elseif initY~="spectral" && initY~="random"
     error('unknown initialization method for UMAP');
@@ -71,9 +71,13 @@ end
 
 % 2. fuzzy simplicial set --> graph
 tic
-kwargs = pyargs('knn_indices',int64(knn_indices-1), 'knn_dists', py.numpy.array(knn_dists), 'verbose',verbose);
-fuzzy_simplicial_set=py.umap.umap_.fuzzy_simplicial_set(X,...
+kwargs = pyargs('knn_indices',py.numpy.int64(knn_indices-1),...
+                'knn_dists', py.numpy.array(knn_dists,'float32',pyargs('order','C')),...
+                'verbose',verbose);
+out_tuple=py.umap.umap_.fuzzy_simplicial_set(py.numpy.array(X,'float32',pyargs('order','C')),...
     n_neighbors, py_rand_state, metric, kwargs);
+out_tuple=cell(out_tuple);
+fuzzy_simplicial_set=out_tuple{1};
 result.graph=sparse(double(fuzzy_simplicial_set.toarray())); %is this correct?
 disp("fuzzy_simplicial_set time: " + num2str(toc) + "s")
 
