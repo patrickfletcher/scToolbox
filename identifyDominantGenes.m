@@ -46,6 +46,8 @@ minSelfPrct=min(prct_self,[],2);
 maxSelfPrct=max(prct_self,[],2);
 minOtherPrct=min(prct_other,[],2);
 maxOtherPrct=max(prct_other,[],2);
+minOtherExpr=min(expr_other,[],2);
+maxOtherExpr=max(expr_other,[],2);
 
 %make the following parameters:
 exprESname='fc_expr';
@@ -64,6 +66,7 @@ pairwise_Pz=[];
 self_dominant=zeros(nGenes,length(self.names));
 self_test_prctES=zeros(nGenes,length(self.names));
 self_test_exprES=zeros(nGenes,length(self.names));
+
 for i=1:length(self.names)
     
     %metrics
@@ -83,6 +86,8 @@ for i=1:length(self.names)
 %         case 'reldiff'
 %         case 'fc'
 %         case 'logfc'
+%         case 'cohen_h'
+%             h=2*asin(sqrt(prct_self/100)) - 2*asin(sqrt(prct_other/100));
 %     end
 %     switch par.exprMetric
 %         case 'diff'
@@ -106,9 +111,21 @@ for i=1:length(self.names)
     pairwise_Pmc=[pairwise_Pmc, this_pmc];
     pairwise_Pz=[pairwise_Pz, this_pz];
 
-    %TODO: option for downreg?
-    test_thisExpr=test_pAnova & this_pmc<self.pthrpw & this_exprES>=self.fcExprThr;
-    test_thisPrct=test_pChi2 & this_pz<self.pprothrpw & this_prctES>=self.prctESThr;
+    test_thisExpr_P=test_pAnova & this_pmc<self.pthrpw;
+    test_thisPrct_P=test_pChi2 & this_pz<self.pprothrpw;
+    
+%     switch params.Expr_ES_direction
+%         case 'up'
+            test_thisExpr_ES=this_exprES>=self.fcExprThr;
+            test_thisPrct_ES=this_prctES>=self.prctESThr;
+%         case 'down'
+%             test_thisExpr_ES=this_exprES<=self.fcExprThr;
+%             test_thisPrct_ES=this_prctES<=self.prctESThr;
+%         case 'both'
+%     end
+    
+    test_thisExpr= test_thisExpr_P & test_thisExpr_ES;
+    test_thisPrct= test_thisPrct_P & test_thisPrct_ES;
     
     %thresholds on self%, minimum effect sizes, to remove cases like expr
     %fc pass but prct goes down, or vice versa...
@@ -176,6 +193,8 @@ end
 %specific (max other test)
 allgenes.min_other_prct=minOtherPrct;
 allgenes.max_other_prct=maxOtherPrct;
+allgenes.min_other_expr=minOtherExpr;
+allgenes.max_other_expr=maxOtherExpr;
 
 %effect sizes
 allgenes.min_fc_expr=min_fc_expr;
@@ -220,6 +239,12 @@ allgenes=[allgenes,array2table(pairwise_Pz,'variablenames',strcat('pz_',fcCombs(
 
 dominant=allgenes(dominantCondition,:);
 specific=allgenes(specificCondition,:);
+
+if length(self.names)>1
+    allgenes=allgenes(~(allgenes.max_self_expr==0)&~(allgenes.max_other_expr==0),:);
+else
+    allgenes=allgenes(~(allgenes.self_expr==0)&~(allgenes.max_other_expr==0),:);
+end
 
 end
 

@@ -116,3 +116,9 @@ for i=1:nPairs
 end
 
 adj_pMC(adj_pMC>1)=1;
+
+%for simple two-sample test, kruskal-wallace p = ranksum p. The
+%multiple-comparison by multcompare doesn't make sense?
+if nGroups==2
+    adj_pMC=adj_pANOVA;
+end
