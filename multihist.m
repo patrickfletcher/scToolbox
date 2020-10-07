@@ -14,24 +14,29 @@ if exist('group','var')&&~isempty(group)
         group=categorical(group);
     end
     groupNames=categories(group);
-%     nTypes=length(groupNames);
+    typeCounts=countcats(group);
+
+    %don't plot groups with no members
+    keep_groups=typeCounts>0;
+    nTypes=nnz(keep_groups);
+    groupNames=groupNames(keep_groups);
     
     %reorder, smallest to largest counts
-    typeCounts=countcats(group);
-    [typeCounts,ixs]=sort(typeCounts,'descend');
+    [~,ixs]=sort(typeCounts,'ascend');
     group=reordercats(group,groupNames(ixs));
     groupNames=groupNames(ixs);
-     
-    if ~exist('colors','var')||size(colors,1)<length(groupNames)
-        colors=cbrewer('qual','Set1',max(length(groupNames),3));
-    end
-    colors=colors(ixs,:);
     
-    %don't plot groups with no members
-    nTypes=nnz(typeCounts>0);
-    groupNames=groupNames(typeCounts>0);
-    colors=colors(typeCounts>0,:);
+    if ~exist('colors','var')||size(colors,1)<length(groupNames)
+        %make some colors for groups if needed
+        colors=cbrewer('qual','Set1',max(length(groupNames),3));
+    else
+        colors=colors(keep_groups,:);
+        colors=colors(ixs,:);
+    end
+    
+    
 end
+
 if ~exist('showZeros','var')||isempty(showZeros)
     showZeros=true;
 end
@@ -41,16 +46,14 @@ else
     nonzero=X>0;
 end
 
+doThresh=false;
 if exist('thresh','var')&&~isempty(thresh)
     doThresh=true;
-else
-    doThresh=false;
 end
 
 if isscalar(thresh) && ~isscalar(names)
     thresh=repmat(thresh,1,length(names));
 end
-
 
 
 if ~exist('figID','var')
@@ -91,10 +94,23 @@ for i=1:nsub
     
     ax(i)=tight_subplot(nr,nc,i,sp_params.gap,sp_params.marg_h,sp_params.marg_w);
     if doGroupedHistograms
+        
+        %reorder from fewest to most counts of this gene. Need to do
+        %different legend for each gene in that case...
+        thisGroup = group; thisNames=groupNames; thisCols=colors;
+%         meanExpr=zeros(1,nTypes);
+%         for j=1:nTypes
+%             meanExpr(j)=mean(X(i,thisGroup==thisNames(j) & nonzero(i,:)),2);
+%         end
+%         [~,ixs]=sort(meanExpr,'descend');
+%         thisGroup=reordercats(thisGroup,thisNames(ixs));
+%         thisNames=thisNames(ixs);
+%         thisCols=thisCols(ixs,:);
+        
         hold on
         for j=1:nTypes
-            hh(i,j)=histogram(X(i,group==groupNames(j) & nonzero(i,:)),edges);
-            hh(i,j).FaceColor=colors(j,:);
+            hh(i,j)=histogram(X(i,thisGroup==thisNames(j) & nonzero(i,:)),edges);
+            hh(i,j).FaceColor=thisCols(j,:);
         end
     else
         hh(i)=histogram(X(i,nonzero(i,:)),edges,'facecolor',[0.5,0.5,0.5]);
