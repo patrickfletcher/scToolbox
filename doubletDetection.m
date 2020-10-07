@@ -1,8 +1,7 @@
-function [doublets,rep_doublets,rep_counts,tSNE, group]=doubletDetection(rawcounts, normcounts, logcounts, params, method, genes)
+function result=doubletDetection(rawcounts, normcounts, logcounts, params, genes)
 % inspired by Shor's Doublet detection (python3):
 % https://github.com/JonathanShor/DoubletDetection
 
-rng('shuffle','simdTwister') %for speedup?
 
 %my mod: use KNN neighborhoods instead of graph-clustering.
 % two main pars: K and Boostrate.
@@ -12,25 +11,35 @@ rng('shuffle','simdTwister') %for speedup?
 % slow part: resampling parents
 
 %TODO:
-% - is FDR really needed?  Also, the cutoff should be fixed given nKnn, nSynth, nCells.
+% - is FDR really needed?  Also, the cutoff should be fixed given n_neighbors, nSynth, nCells.
 % - options for newLibSize mode (max now, also possible: mean)
 % - replace parents true/false (true now)
 % - Project synthetic cells onto existing PCs of parent's gene space?
 
-
+rng('shuffle','simdTwister') %for speedup?
 % if ~isempty(params.rngSeed) && isscalar(params.rngSeed)
 %     s=RandStream('dsfmt19937','Seed',params.rngSeed);
 % else
 %     s=RandStream('dsfmt19937');
 % end
 
+if params.n_neighbors=="sqrtN"
+    params.n_neighbors=floor(sqrt(size(rawcounts,2)));
+end
+
+%initialize results
+result.params = params;
+
 use_true_cell_HVG=true; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
 % use_parents_npc=true; %alternative would be to determine new nPC using perm test- very slow.
 % resample_HVG_only=false; %if not, use all genes - pre-feb 15 set this true [probably incorrect]
 doMultCompareCorrect=true;
 
-if ~exist('method','var')
-    method='knn';
+if ~isfield(params,'method')
+    params.method='knn';
+end
+if ~isfield(params,'libsize_method')
+    params.libsize_method='max';
 end
 
 %use true cell HVGs 
@@ -40,8 +49,8 @@ if use_true_cell_HVG
 %     if isfield(params.hvg,'ix') 
 %         hvgix=params.hvg.ix; %this can use wrong genes -> genes with zero counts?? pca barfs
 %     else
-        result=findVariableGenes(normcounts, genes, params.hvg);
-        hvgix=result.ix;
+        hvg=findVariableGenes(normcounts, genes, params.hvg);
+        hvgix=hvg.ix;
 %     end
   
     %logcounts and normcounts can be subset now: they are constant.
@@ -53,16 +62,6 @@ end
 
 [nGenes,nCells]=size(logcounts);
 
-if params.nReps==0
-    doublets=false(1,nCells);
-    rep_counts=0;
-    return
-end
-
-tSNE=[];
-group=[];
-rep_doublets=false(params.nReps,nCells);
-
 % augment the population with synthetic doublets
 % each doublet created from two randomly selected parents => correct
 % proportions sum counts - downsample to new lib size.
@@ -73,12 +72,11 @@ tenth=round(params.nReps/10);
 
 logcounts_aug=logcounts;
 logcounts_aug(nGenes,nCells+nSynth)=0; %expand logcounts for synth cells
+rep_doublet=false(params.nReps,nCells);
 for it=1:params.nReps
-%     tic
-    rawcounts_synth=createSyntheticDoublets(rawcounts,nSynth);
-%     t_gensynth=toc  %~equal to PCA; biggest time
+    
+    rawcounts_synth=createSyntheticDoublets(rawcounts,nSynth,params);
 
-%     tic
     %normalize synthetic doublets across all genes (not just hvgs)
     normcounts_synth=normalizeCounts(rawcounts_synth);
     
@@ -89,23 +87,15 @@ for it=1:params.nReps
 %         hvgix=result.ix;
 %         logcounts_aug=[logcounts(hvgix,:),log10(normcounts_synth(hvgix,:)+1)];
 %     end
-%     t_normloghvg=toc
 
     %If always using true_cell_HVG: compute the scale factors for true data
     % (mean, std across cells, per gene). Use those to simply scale the
     % synth data (no recompute).  Then use PCA done on only true data:
     % project scaled_synth onto true data PCs. ==> eliminate redoing PCA
-  
-%     tic
-    [~,score]=fast_pca(logcounts_aug',params.pca.npc,params.pca.maxScaled);
-%     pca_result=doPCA(logcounts_aug,genes(hvgix,:),params.pca);
-%     pca_result=doPCA(logcounts_aug,genes(hvgix,:),params.pca,[],11);
-%     score=pca_result.coords;  %~equal to gen_synth; biggest time
-%     t_pca=toc  
+    [~,pca_score]=fast_pca(logcounts_aug', params.pca.npc, params.pca.maxScaled);
     
-%     tic
     this_rep_doublets=false(1,nCells);
-    switch method
+    switch params.method
         
         case 'graph_clust'
             
@@ -113,7 +103,7 @@ for it=1:params.nReps
 %             %fraction of each cluster that is synthetic.
 %             
 %             % cluster the augmented dataset, Louvain method (granularity set by K-num k-nearest neighbors)
-%             D=knnGraph(score,params.nKnn,'jaccard');
+%             D=knnGraph(score,params.n_neighbors,'jaccard');
 %             COMTY = cluster_jl_cpp(D,1,1,0,0);
 %             commID=COMTY.COM{end};
 %             commCount=COMTY.SIZE{end};
@@ -158,12 +148,9 @@ for it=1:params.nReps
             %synthCount=number of true cell's neighbors that are synth
             %synthFrac=fraction of true cell's neighbors that are synth
             
-            %reps - keep track of mean synthCount per cell across nReps?
-%             tic
-            nnix=knnsearch(score,score,'K',params.nKnn+1); nnix(:,1)=[];
+            nnix=knnsearch(pca_score,pca_score,'K',params.n_neighbors+1); nnix(:,1)=[];
             synthCount=sum(nnix(1:nCells,:)>nCells,2); %all synthetic cells have index >nCells
-            %             synthFrac=synthCount/params.nKnn;
-            p=hygecdf(synthCount(:),nCells+nSynth,nSynth,params.nKnn,'upper');
+            p=hygecdf(synthCount(:),nCells+nSynth,nSynth,params.n_neighbors,'upper');
             
             if doMultCompareCorrect
                 [h,crit_p, adj_ci_cvrg, adj_p]=fdr_bh(p,params.FDR);
@@ -172,34 +159,14 @@ for it=1:params.nReps
             else
                 this_rep_doublets=p<params.pThr;    
             end
-%             t_knn=toc
             
+            %             synthFrac=synthCount/params.n_neighbors;
             %             cutoff=min(synthFrac(h));
             %             this_rep_doublets(synthFrac>=cutoff)=true;
     end
     
 %     disp("repdoubs: "+num2str(nnz(this_rep_doublets)))
-    rep_doublets(it,:)=this_rep_doublets;
-    
-    
-    group=zeros(1,size(score,1));
-    group(1:nCells)=this_rep_doublets; %trudoubs called
-    group(nCells+1:end)=2; %synth
-    group=categorical(group,0:2,{'tc','td','sd'});
-
-    if isfield(params,'doplot')&&params.doplot
-        
-%         initY=score(:,params.tsne.initY);
-
-        initY=params.tsne.initY;
-        initY=[initY;min(initY)+(max(initY)-min(initY)).*rand(nSynth,2)];
-        
-%         tSNE=tsne(score);
-        tSNE=tsne(score,'perplexity',params.tsne.perplexity,'learnRate',params.tsne.learnrate,'exaggeration',params.tsne.exagg,...
-            'initialY',initY, 'verbose',2,'NumPrint',100,'options',statset('maxIter',params.tsne.maxiter));
-        plotScatter(tSNE,'group',group,[],it+41);
-        drawnow
-    end
+    rep_doublet(it,:)=this_rep_doublets;
     
     if tenth>0 && mod(it,tenth)==0
         fprintf('.')
@@ -209,33 +176,58 @@ for it=1:params.nReps
 end
 fprintf('\n')
 
-rep_counts=sum(rep_doublets,2);
+%do a umap for the final rep for demo purposes
+umap=[];
+group=[];
+groupcols=[1,1,1; 0,0.8,0; 0,0,0];
+if isfield(params,'doplot')&&params.doplot
+    group=zeros(1,size(pca_score,1));
+    group(1:nCells)=this_rep_doublets; %trudoubs called
+    group(nCells+1:end)=2; %synth
+    group=categorical(group,[0,2,1],{'tc','sd','td'});
+
+    umap=doUMAP(pca_score, params.umap, []);
+    fh=figure();
+    plotScatter(umap.coords, 'group', group, groupcols, fh);
+end
+
+rep_counts=sum(rep_doublet,2);
 
 %voting methods for calling doublets accounting for all rep results
 switch params.votemethod
     case 'any'
         % returns all doublets encountered in any rep
-        doublets=any(rep_doublets,1);
+        doublet=any(rep_doublet,1);
     case 'all'
         % returns only consensus doublets that were called in all reps
-        doublets=all(rep_doublets,1);
+        doublet=all(rep_doublet,1);
     case 'majority'
         % returns doublets that were called in at least half of reps
-        doublets=sum(rep_doublets,1)>=0.5*params.nReps;
+        doublet=sum(rep_doublet,1)>=0.5*params.nReps;
     case 'p10'
         % returns doublets that were called in more than 10% of reps
-        doublets=sum(rep_doublets,1)>0.1*params.nReps;
+        doublet=sum(rep_doublet,1)>0.1*params.nReps;
     case 'p90'
         % returns doublets that were called in more than 90% of reps
-        doublets=sum(rep_doublets,1)>0.9*params.nReps;
+        doublet=sum(rep_doublet,1)>0.9*params.nReps;
     otherwise
         warning('invalid option for aggregating doublets found across repetitions')
-        doublets=all(rep_doublets,1);
+        doublet=all(rep_doublet,1);
 end
+
+
+result.doublet=doublet;
+result.rep_doublet=rep_doublet;
+result.rep_counts=rep_counts;
+result.nSynth=nSynth;
+result.hvg=hvg;
+result.umap=umap;
+result.group=group;
+result.groupcols=groupcols;
 
 end
 
-function rawcounts_synth=createSyntheticDoublets(rawcounts,nSynth)
+function rawcounts_synth=createSyntheticDoublets(rawcounts,nSynth,params)
 
 [nGenes,nCells]=size(rawcounts);
 rawcounts_synth=zeros(nGenes,nSynth);
@@ -243,8 +235,18 @@ for j=1:nSynth
     parents=rawcounts(:,randi(nCells,1,2)); %sample parents with replacement
     
     parentLibSize=sum(parents,1); %options: max/min/mean/etc? 
-    synth_libsize=round(mean(parentLibSize)); %assume doublets have more reads?
-%     synth_libsize=max(parentLibSize); %assume doublets have more reads? 
+    %options for new libsize: max/mean/other? assume doublets have more reads?
+    switch params.libsize_method
+        case 'mean'
+            synth_libsize=round(mean(parentLibSize));
+            
+        case 'max'
+            synth_libsize=max(parentLibSize);  
+            
+        case 'oversample'
+            %assume doublets have more reads?
+            synth_libsize=round(max(parentLibSize)*params.libsize_factor);
+    end
     
     newSynth=sum(parents,2);
     edges=[0;cumsum(newSynth)];
