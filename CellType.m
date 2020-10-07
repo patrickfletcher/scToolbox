@@ -136,7 +136,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
         
         function [this_condition,markerScore] = evaluateMarkers(ct, tcounts, genes)
             [gix,ct.markers]=getGeneIndices(ct.markers,genes.name); %note this erases unfound markers!
-            markersAbove=tcounts(gix,:)>=genes.thr(gix); %shows which genes are above
+            markersAbove=tcounts(gix,:)>genes.thr(gix); %shows which genes are above
             markerScore=sum(markersAbove,1); %# per cell
 %             scorethr=geneThresholdOtsu(markerScore) %update scorethr?
             this_condition=markerScore>=ct.threshold;
