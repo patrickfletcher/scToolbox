@@ -1,14 +1,21 @@
 function result = doUMAP(X, params, knn, figID, valuenames, colors)
 
+% Cellranger defaults seem to be:
+% npc=10, distance=correlation, n_neighbors=30, min_dist=0.3, seed=0.
+% https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/using/reanalyze
+%
+% Differences: I use Matlab knnsearch, euclidean
+%
+% Umap defaults to n_epochs=500 if size(X,1)<10000, else 200
+
 disp('Computing UMAP...')
-result.params = params;
 
 rng(params.rngSeed)
 
 initY=params.initY;
 if isempty(initY)
     initY="spectral";
-
+    params.initY=initY;
 elseif isnumeric(initY)&&numel(initY)==2
     %initY=[pc1,pc2] indicates index of PCs to use as initial points
     pcix=initY;
@@ -18,14 +25,18 @@ elseif isnumeric(initY)&&numel(initY)==2
     initY(:,1)=signix(1)*initY(:,1);
     initY(:,2)=signix(2)*initY(:,2);
     initY=py.numpy.array(initY,'float32',pyargs('order','C'));
-
 elseif size(initY,1)==size(X,1)
     initY=py.numpy.array(initY,'float32',pyargs('order','C'));
-
 elseif initY~="spectral" && initY~="random"
     error('unknown initialization method for UMAP');
-    
 end
+
+if params.n_neighbors=="sqrtN"
+    params.n_neighbors=floor(sqrt(size(X,1)));
+end
+
+%initialize results
+result.params = params;
 
 doKNN=true;
 if exist('knn','var') && ~isempty(knn) && params.n_neighbors<=size(knn.indices,2)
@@ -38,6 +49,8 @@ end
 n_neighbors=int64(params.n_neighbors);
 verbose=true;
 metric='euclidean';
+% metric='correlation';
+% metric='cosine';
 metric_kwargs=py.dict();
 py_rand_state=py.numpy.random.RandomState(int64(params.rngSeed));
 
@@ -47,7 +60,7 @@ py_rand_state=py.numpy.random.RandomState(int64(params.rngSeed));
 %matlab knn
 if doKNN
     tic
-    [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors); %quite fast!
+    [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors,'Distance',metric); %quite fast!
     % knn_indices(:,1)=[]; %remove self distances
     % knn_dists(:,1)=[];
     disp("knnsearch time: " + num2str(toc) + "s")
