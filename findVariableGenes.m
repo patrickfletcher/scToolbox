@@ -1,6 +1,8 @@
 function result=findVariableGenes(ncounts,genes,params,figID,highlightGenes)
 %operates on normalized counts, which maintains mean-variance relations (negative binomial)
 
+%TODO: add per-batch capability
+
 result.params = params;
 
 %plotting

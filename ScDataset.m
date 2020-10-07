@@ -1,4 +1,4 @@
-classdef ScDataset < handle & matlab.mixin.Copyable
+classdef SCDataset < handle & matlab.mixin.Copyable
     % container class for scRNAseq data and its analysis
     
     % - recompute size factors for normalization every time genes/cells are subset?
@@ -48,26 +48,10 @@ classdef ScDataset < handle & matlab.mixin.Copyable
     methods
         
         %Constructor
-        function this=ScDataset(countsfile,counts,feature_id,feature_name,cells,countThreshold)
-            if exist('countsfile','var')||~isempty(countsfile)
-                this.countsfile=countsfile; %support H5, folder with MTX, mat file?
-            end
-            if exist('counts','var')||~isempty(counts)
-                this.counts=counts;
-            end
-            if exist('gene_id','var')||~isempty(feature_id)
-                this.features.id=feature_id;
-            end
-            if exist('gene_name','var')||~isempty(feature_name)
-                this.features.name=feature_name;
-            end
-            if exist('cells','var')||~isempty(cells)
-                this.cells=cells;
-            end
-            if exist('countThreshold','var')||~isempty(countThreshold)
-                this.countThreshold=countThreshold;
-            end
+        function this=SCDataset()
         end
+        
+        
         
         
         function this=saveobj(this)
@@ -78,9 +62,10 @@ classdef ScDataset < handle & matlab.mixin.Copyable
             this.tcounts=[];
         end
         
-        
-        function setCounts(this,counts)
-        end
+    end
+    
+    % 
+    methods 
         
         function computeCountSums(this)
             countMask=this.counts>0;
@@ -89,7 +74,6 @@ classdef ScDataset < handle & matlab.mixin.Copyable
             this.geneData.cellsPerGene=sum(countMask,2);
             this.geneData.molecPerGene=sum(this.counts,2);
         end
-        
         
         function normalizeCounts(this)
             %per cell - divide by each cell's total molec count, then

@@ -32,6 +32,9 @@ if ~exist('colors','var')||isempty(colors)
 end
 if ~exist('markers','var')
     markers=[];
+    if doPlot
+        markers=10;
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -90,11 +93,14 @@ pcatime=toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 3. Nearest Neighbors
+% if params.n_neighbors=="sqrtN"
+%     params.n_neighbors=floor(sqrt(size(X,1)));
+% end
 % [knn.indices,knn.dists]=knnsearch(X,X,'K',params.n_neighbors); %quite fast!
 knn=[];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 3. tSNE on first npc PCs
+% 3. tSNE on first npc PCs  %TODO - remove
 tic
 if isfield(params,'tsne')&&~isempty(params.tsne)
     if doPlot

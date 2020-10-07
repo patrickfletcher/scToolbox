@@ -22,6 +22,7 @@ geneData.thr=thresh(:);
 if ~iscategorical(group)
     group=categorical(group);
 end
+group=removecats(group);
 groupNames=categories(group);
 groupCounts=countcats(group);
 
