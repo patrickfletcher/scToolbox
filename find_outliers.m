@@ -111,14 +111,15 @@ for i=1:size(tf,1)
     
     switch params.tailoption
         case 'low'
-            thisout=thisqc<=lowthr(i);
-            hithr(i)=nan; %remove from plots
+%             thisout=thisqc<=lowthr(i);
+            hithr(i)=params.hithr_clipval; %remove from plots
         case 'high'
-            thisout=thisqc>=hithr(i);
-            lowthr(i)=nan;
-        case 'both'
-            thisout=thisqc<=lowthr(i)|thisqc>=hithr(i);
+%             thisout=thisqc>=hithr(i);
+            lowthr(i)=params.lowthr_clipval;
+%         case 'both'
+%             thisout=thisqc<=lowthr(i)|thisqc>=hithr(i);
     end
+    thisout=thisqc<=lowthr(i)|thisqc>=hithr(i);
     
     outsub(i,thissub)=thisout;
     outliers(thissub)=outliers(thissub)|thisout;
