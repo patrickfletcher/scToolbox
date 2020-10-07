@@ -1,14 +1,10 @@
-function [counts,genes,barcodes,geneIDs]=load10Xh5matrix(filename,doSparse, oldversion)
+function [counts,genes,barcodes,geneIDs]=load10Xh5matrix(filename,doSparse, isPreV3)
 %load h5 compressed sparse column format into matlab full or sparse matrix
 
 hi = h5info(filename); h5path = hi.Groups(:).Name; h5path(end+1)='/';
 
-if ~exist('doSparse','var')
-    doSparse=true;
-end
-if ~exist('oldversion','var')
-    oldversion=false;
-end
+if ~exist('doSparse','var'), doSparse=true; end
+if ~exist('preVersion3','var'), isPreV3=false; end
 
 vals=double(h5read(filename,[h5path 'data']));
 r=double(h5read(filename,[h5path 'indices']));
@@ -35,7 +31,7 @@ else
 end
 
 barcodes=h5read(filename,[h5path 'barcodes'])'; 
-if oldversion
+if isPreV3
     geneIDs=h5read(filename,[h5path 'genes']);
     genes=h5read(filename,[h5path 'gene_names']);
 else
