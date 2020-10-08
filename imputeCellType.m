@@ -1,4 +1,4 @@
-function result=imputeCellType(input_class,subset,params,coords)
+function [output_class, class_imputed, to_impute]=imputeCellType(input_class,subset,params,coords)
 % impute unclassified cells' type by looking at its kNNs' types. 
 % classID should be categorical
 
@@ -10,7 +10,7 @@ if ~iscategorical(input_class)
     input_class=categorical(input_class);
 end
 
-if params.n_neighbors=="sqrtN"
+if ~isnumeric(params.n_neighbors) && params.n_neighbors=="sqrtN"
     params.n_neighbors=floor(sqrt(length(input_class)));
 end
 
@@ -85,6 +85,6 @@ end
 output_class=input_class;
 output_class(to_impute)=class_imputed;
 
-result.output_class=output_class;
-result.class_imputed=class_imputed;
-result.to_impute=to_impute;
+% result.output_class=output_class;
+% result.class_imputed=class_imputed;
+% result.to_impute=to_impute;
