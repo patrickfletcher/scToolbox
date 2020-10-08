@@ -23,7 +23,7 @@ rng('shuffle','simdTwister') %for speedup?
 %     s=RandStream('dsfmt19937');
 % end
 
-if params.n_neighbors=="sqrtN"
+if ~isnumeric(params.n_neighbors) && params.n_neighbors=="sqrtN"
     params.n_neighbors=floor(sqrt(size(rawcounts,2)));
 end
 

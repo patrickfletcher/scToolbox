@@ -31,7 +31,7 @@ elseif initY~="spectral" && initY~="random"
     error('unknown initialization method for UMAP');
 end
 
-if params.n_neighbors=="sqrtN"
+if ~isnumeric(params.n_neighbors) && params.n_neighbors=="sqrtN"
     params.n_neighbors=floor(sqrt(size(X,1)));
 end
 
