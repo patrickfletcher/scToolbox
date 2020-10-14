@@ -11,28 +11,35 @@ function result=doubletDetection(rawcounts, normcounts, logcounts, params, genes
 % slow part: resampling parents
 
 %TODO:
-% - is FDR really needed?  Also, the cutoff should be fixed given n_neighbors, nSynth, nCells.
+% - is FDR really needed?  Also, the value of synthCount for cutoff should be fixed given n_neighbors, nSynth, nCells.
 % - options for newLibSize mode (max now, also possible: mean)
 % - replace parents true/false (true now)
 % - Project synthetic cells onto existing PCs of parent's gene space?
 
-rng('shuffle','simdTwister') %for speedup?
+rng(params.rngSeed,'simdTwister') %for speedup?
 % if ~isempty(params.rngSeed) && isscalar(params.rngSeed)
 %     s=RandStream('dsfmt19937','Seed',params.rngSeed);
 % else
 %     s=RandStream('dsfmt19937');
 % end
 
+nCells=size(rawcounts,2);
+
 if ~isnumeric(params.n_neighbors) && params.n_neighbors=="sqrtN"
-    params.n_neighbors=floor(sqrt(size(rawcounts,2)));
+    params.n_neighbors=floor(sqrt(nCells));
 end
 
 %initialize results
 result.params = params;
 
+%early exit option: nReps=0 means nothign to do.
+if params.nReps==0
+    result.doublets=false(1,nCells);
+    result.rep_counts=0;
+    return
+end
+
 use_true_cell_HVG=true; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
-% use_parents_npc=true; %alternative would be to determine new nPC using perm test- very slow.
-% resample_HVG_only=false; %if not, use all genes - pre-feb 15 set this true [probably incorrect]
 doMultCompareCorrect=true;
 
 if ~isfield(params,'method')
@@ -42,36 +49,27 @@ if ~isfield(params,'libsize_method')
     params.libsize_method='max';
 end
 
-%use true cell HVGs 
-if use_true_cell_HVG
-    %get the HVGs from raw data only.  Don't pass these in: we need to
-    %check whatever subset of cells is present.
-%     if isfield(params.hvg,'ix') 
-%         hvgix=params.hvg.ix; %this can use wrong genes -> genes with zero counts?? pca barfs
-%     else
-        hvg=findVariableGenes(normcounts, genes, params.hvg);
-        hvgix=hvg.ix;
-%     end
-  
-    %logcounts and normcounts can be subset now: they are constant.
-    normcounts=normcounts(hvgix,:);
-    logcounts=logcounts(hvgix,:); 
-else
-    %will find new set of hvgs each iteration
-end
-
-[nGenes,nCells]=size(logcounts);
-
 % augment the population with synthetic doublets
 % each doublet created from two randomly selected parents => correct
 % proportions sum counts - downsample to new lib size.
 nSynth=floor(params.boostrate*nCells);
 
-% random #s involved: could repeat several times, and find concensus doublets.
-tenth=round(params.nReps/10);
+%use true cell HVGs 
+if use_true_cell_HVG
+    %get the HVGs from raw data only
+    hvg=findVariableGenes(normcounts, genes, params.hvg);
+    hvgix=hvg.ix;
+  
+    %logcounts can be subset now: constant
+    logcounts=logcounts(hvgix,:); 
+    logcounts_aug=logcounts;
+    nGenes=length(hvgix);
+    logcounts_aug(nGenes,nCells+nSynth)=0; %expand logcounts for synth cells
+else
+    %will find new set of hvgs each iteration
+end
 
-logcounts_aug=logcounts;
-logcounts_aug(nGenes,nCells+nSynth)=0; %expand logcounts for synth cells
+tenth=round(params.nReps/10); %progress meter
 rep_doublet=false(params.nReps,nCells);
 for it=1:params.nReps
     
@@ -80,13 +78,13 @@ for it=1:params.nReps
     %normalize synthetic doublets across all genes (not just hvgs)
     normcounts_synth=normalizeCounts(rawcounts_synth);
     
-%     if use_true_cell_HVG
-    logcounts_aug(:,nCells+1:end)=log10(normcounts_synth(hvgix,:)+1);
-%     else
-%         result=findVariableGenes([normcounts,normcounts_synth], genes,params.hvg);
-%         hvgix=result.ix;
-%         logcounts_aug=[logcounts(hvgix,:),log10(normcounts_synth(hvgix,:)+1)];
-%     end
+    if use_true_cell_HVG
+        logcounts_aug(:,nCells+1:end)=log10(normcounts_synth(hvgix,:)+1);
+    else
+        result=findVariableGenes([normcounts,normcounts_synth], genes, params.hvg);
+        hvgix=result.ix;
+        logcounts_aug=[logcounts(hvgix,:), log10(normcounts_synth(hvgix,:)+1)];
+    end
 
     %If always using true_cell_HVG: compute the scale factors for true data
     % (mean, std across cells, per gene). Use those to simply scale the
@@ -137,32 +135,24 @@ for it=1:params.nReps
 %             cutoff=min(synthFrac(h));
 %             this_rep_doublets(cellscores>=cutoff)=true;
 %             % doubletClusters=synthFrac>=cutoff;
-%             
 %             % isequal(doubletClusters(:),h(:))
             
         case 'knn'
             
             %get the kNN of each cell, compute fraction of synth doublets in
             %this neighborhood.
-            
             %synthCount=number of true cell's neighbors that are synth
-            %synthFrac=fraction of true cell's neighbors that are synth
             
             nnix=knnsearch(pca_score,pca_score,'K',params.n_neighbors+1); nnix(:,1)=[];
             synthCount=sum(nnix(1:nCells,:)>nCells,2); %all synthetic cells have index >nCells
             p=hygecdf(synthCount(:),nCells+nSynth,nSynth,params.n_neighbors,'upper');
             
             if doMultCompareCorrect
-                [h,crit_p, adj_ci_cvrg, adj_p]=fdr_bh(p,params.FDR);
-%                 this_rep_doublets=h;
+                [~,~, ~, adj_p]=fdr_bh(p,params.FDR);
                 this_rep_doublets=adj_p<params.FDR;
             else
                 this_rep_doublets=p<params.pThr;    
             end
-            
-            %             synthFrac=synthCount/params.n_neighbors;
-            %             cutoff=min(synthFrac(h));
-            %             this_rep_doublets(synthFrac>=cutoff)=true;
     end
     
 %     disp("repdoubs: "+num2str(nnz(this_rep_doublets)))
@@ -175,21 +165,6 @@ for it=1:params.nReps
     end
 end
 fprintf('\n')
-
-%do a umap for the final rep for demo purposes
-umap=[];
-group=[];
-groupcols=[1,1,1; 0,0.8,0; 0,0,0];
-if isfield(params,'doplot')&&params.doplot
-    group=zeros(1,size(pca_score,1));
-    group(1:nCells)=this_rep_doublets; %trudoubs called
-    group(nCells+1:end)=2; %synth
-    group=categorical(group,[0,2,1],{'tc','sd','td'});
-
-    umap=doUMAP(pca_score, params.umap, []);
-    fh=figure();
-    plotScatter(umap.coords, 'group', group, groupcols, fh);
-end
 
 rep_counts=sum(rep_doublet,2);
 
@@ -215,6 +190,22 @@ switch params.votemethod
         doublet=all(rep_doublet,1);
 end
 
+%do a umap for the final rep for demo purposes
+umap=[];
+group=[];
+groupcols=[1,1,1; 0,0.8,0; 0,0,0];
+if isfield(params,'doplot')&&params.doplot
+    group=zeros(1,size(pca_score,1));
+    group(1:nCells)=doublet;
+%     group(1:nCells)=this_rep_doublets; 
+    group(nCells+1:end)=2; %synth
+    group=categorical(group,[0,2,1],{'tc','sd','td'});
+
+    umap=doUMAP(pca_score, params.umap);
+    fh=figure();
+    plotScatter(umap.coords, 'group', group, groupcols, fh);
+    drawnow
+end
 
 result.doublet=doublet;
 result.rep_doublet=rep_doublet;
@@ -239,10 +230,10 @@ for j=1:nSynth
     switch params.libsize_method
         case 'mean'
             synth_libsize=round(mean(parentLibSize));
-            
+        case 'min'
+            synth_libsize=min(parentLibSize); 
         case 'max'
             synth_libsize=max(parentLibSize);  
-            
         case 'oversample'
             %assume doublets have more reads?
             synth_libsize=round(max(parentLibSize)*params.libsize_factor);
