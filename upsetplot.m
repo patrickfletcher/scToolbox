@@ -12,7 +12,7 @@ classdef upsetplot < handle %graphics object??
         order_method='size'
 %         order_method='comb'
 %         n_member_thr=Inf %max num members in a combo
-        
+        combs
         %bar chart look shortcuts
         
         %combination plot look shortcuts
@@ -20,6 +20,7 @@ classdef upsetplot < handle %graphics object??
     
     %internal handles and data (Access=private) 
     properties 
+        tiles
         ax_intersect %bar showing size of intersections
         h_bar %the bar chart object
         ht_counts %text labels for counts above bars
@@ -35,9 +36,9 @@ classdef upsetplot < handle %graphics object??
         function hup=upsetplot(sets, setnames, ordermethod)
             
             %prepare axis layout
-            t=tiledlayout(2,1);
-            t.TileSpacing='compact';
-            t.Padding='compact';
+            hup.tiles=tiledlayout(2,1);
+            hup.tiles.TileSpacing='compact';
+            hup.tiles.Padding='compact';
             ax_intersect=nexttile();
             ax_combs=nexttile();
             
@@ -122,6 +123,8 @@ classdef upsetplot < handle %graphics object??
             ax_combs.YDir='reverse';
             
             linkaxes([ax_intersect,ax_combs],'x')
+            
+            hup.combs=s_setix;
             
             hup.ax_combs=ax_combs;
             hup.ax_intersect=ax_intersect;

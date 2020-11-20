@@ -1,6 +1,8 @@
 function [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,sp_params,do_var_norm)
 %dot plot: area = %>0, color = mean expression value, for a list of genes and
 %groups of cells.
+%
+% [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,sp_params,do_var_norm)
 
 %TODO> BUG:  ax(2) prct legend sizes are different than main fig (different data axes?)
 
@@ -39,7 +41,8 @@ maxArea=sp_params.maxArea;
 if minArea==0, minArea=eps; end
 prct_leg_areas=minArea+(maxArea-minArea)*sp_params.prct_leg/100;
 prct_leg_areas=prct_leg_areas.^2;
-prct_leg_labels=strcat(num2str(sp_params.prct_leg(:)),{'%'});
+prct_leg_nums=round(sp_params.prct_leg/100*max(sizeData(:)));
+prct_leg_labels=strcat(num2str(prct_leg_nums(:)),{'%'});
 
 % cmap=cbrewer('qual','Set1',9);
 % cmap=cbrewer('seq','Greens',15);

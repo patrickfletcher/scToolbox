@@ -1,4 +1,6 @@
-function [textpos,textlab] = set_embedding_textpos(COORDS, ident, cols)
+function [textpos,textlab] = set_embedding_textpos(COORDS, ident, cols, dopause)
+
+if ~exist('dopause','var'), dopause=true; end
 
 catnames=categories(ident);
 ctcounts=countcats(ident);
@@ -15,7 +17,8 @@ textpos=[textpos,ones(length(catnames),2)];
 textlab=catnames;
 % end
 
-fh=figure();clf
+fh=gcf;
+
 ax=plotScatter(COORDS, 'group', ident, cols, fh);
 
 ht1=text(ax,textpos(:,1),textpos(:,2),ones(size(textpos,1),1),textlab,...
@@ -23,7 +26,9 @@ ht1=text(ax,textpos(:,1),textpos(:,2),ones(size(textpos,1),1),textlab,...
 drawnow
 
 %pause to adjust label positions
-pause
+if dopause
+    pause
+end
 
 %extract the new positions after the pause
 textpos=cat(1,ht1(:).Position);

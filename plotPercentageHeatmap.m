@@ -12,15 +12,16 @@ if ~exist('sp_params','var')||isempty(sp_params)
     
     sp_params.c_ticks=0:25:100;
     sp_params.c_binsize=5;
-    sp_params.cbLabel='% expressing';
+    sp_params.cblabel='% expressing';
 end
 
 %TODO: granularity of colormap?
 max_prct=max(PRCT(:));
 min_prct=min(PRCT(:));
-nbins=ceil(ceil(max_prct-min_prct)/5);
-cmap=cbrewer('seq','Greens',nbins+4);
-cmap=[1,1,1;cmap(4:end,:)];
+nbins=floor(floor(max_prct-min_prct)/5);
+nskip=3;
+cmap=cbrewer('seq','Greens',nbins+nskip);
+cmap=[1,1,1;cmap(nskip+2:end,:)]; %+2 because nskip+1+white
 
 
 [nGenes,nTypes]=size(PRCT);
@@ -101,13 +102,12 @@ ax.YTickLabel=geneLabels;
 ax.TickLength=[0,0]; %remove ticks, rely on grid
 
 colormap(ax,cmap)
-ax.CLim=[floor(min_prct/10),ceil(max_prct/10)]*10;
+ax.CLim=[floor(min_prct/5),floor(max_prct/5)]*5;
 
 axPos=ax.Position;
 
 c=colorbar('orientation','horizontal'); 
-ylabel(c,sp_params.cbLabel)
-c.Ticks=0:25:100;
+ylabel(c,sp_params.cblabel)
 c.TickLength=0.025;
 c.Ticks=sp_params.c_ticks;
 

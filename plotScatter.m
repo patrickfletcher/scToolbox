@@ -17,7 +17,7 @@ function [AX, HS, HC, HT]=plotScatter(coords,colorby,groups,colors,figID,subplot
 nObs=size(coords,1);
 marker='o';
 % markerSize=5;
-markerSize=11-log(nObs);
+markerSize=13-log(nObs);
 
 %common setup
 if ~exist('sp_params','var')||isempty(sp_params)
@@ -143,7 +143,7 @@ switch lower(colorby)
                 
                 switch draworder
                     case 'index'
-                        hs(j).ZData=j*ones(size(hs(j).XData));  %randomize the "depth" of points
+                        hs(j).ZData=j*ones(size(hs(j).XData));  %order by category index
                     otherwise
                         hs(j).ZData=rand(size(hs(j).XData));  %randomize the "depth" of points
                 end
@@ -152,8 +152,8 @@ switch lower(colorby)
             end
             hold off
 
-            axis(AX(i),'equal');
-            axis(AX(i),'tight');
+%             axis(AX(i),'equal');
+%             axis(AX(i),'tight');
             axis(AX(i),'off');
             AX(i).SortMethod='depth';
 
@@ -208,8 +208,8 @@ switch lower(colorby)
                     hs(i).ZData=rand(size(hs(i).XData));  %randomize the "depth" of points
             end
             
-            axis(AX(i),'equal');
-            axis(AX(i),'tight');
+%             axis(AX(i),'equal');
+%             axis(AX(i),'tight');
             axis(AX(i),'off');
             AX(i).SortMethod='depth';
             colormap(cmap);

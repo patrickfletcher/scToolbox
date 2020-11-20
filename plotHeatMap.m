@@ -1,4 +1,4 @@
-function [ax,hc,lCG,htypelabs,subsamp, cellPerm, varPerm]=plotHeatMap(X,varNames,groups,colors,figID,varGroup,nsubsample,doTypeLabels,subclusterOpt,sp_params,PCscores,varClusterOpt)
+function [ax,hc,lCG,htypelabs,subsamp, cellPerm, varPerm]=plotHeatMap(X,varNames,groups,group_colors,figID,varGroup,nsubsample,doTypeLabels,subclusterOpt,sp_params,PCscores,varClusterOpt)
 
 % heatmap: cells vs genes. genes labeled. cells(genes) optionally grouped by categories, specified in categorical arrays
 
@@ -23,7 +23,7 @@ varLabels=strcat(repmat({'\it '},size(varNames)),varNames);
 % cellGroupAxLabel='cell type';
 %could pass cell array of names in groupBy - use first for grouping, plot remaining as secondary marker(s)
 
-cmap=flipud(cbrewer('div','RdBu',15));
+cmap_HM=flipud(cbrewer('div','RdBu',15));
 if ~exist('sp_params','var')||isempty(sp_params)
     sp_params.gap=0.1;
     sp_params.marg_h=0.1;
@@ -70,9 +70,9 @@ groupNames=categories(groups);
 groupCounts=countcats(groups);
 
 autoColors=true;
-if ~isempty(colors)
-    if size(colors,1)==length(groupNames)
-        colors=colors(groupCounts>0,:);
+if ~isempty(group_colors)
+    if size(group_colors,1)==length(groupNames)
+        group_colors=group_colors(groupCounts>0,:);
         autoColors=false;
     end
 end
@@ -82,13 +82,14 @@ groupNames=categories(groups);
 groupCounts=countcats(groups);
 
 if autoColors
-    colors=cbrewer('qual','Set1',max(length(groupNames),3));
+    group_colors=cbrewer('qual','Set1',max(length(groupNames),3));
 end
 
 if ~exist('varGroup','var') || isempty(varGroup)
     varGroup=ones(size(varNames));
 end
 if ~iscategorical(varGroup); varGroup=categorical(varGroup); end
+varGroupCats=categories(varGroup);
 nPerGroup=countcats(varGroup);
 
 
@@ -134,10 +135,23 @@ cellMarkWidth=6; %units: points - axCG position should use points too.
 axHM=tight_subplot(1,1,1,0,sp_params.marg_h,sp_params.marg_w);
 
 %sorting on variables too?
-varPerm=1:length(varNames);
-[Y,varPerm]=groupCountMatrix(X',varGroup,varClusterOpt);
-X=Y';
-varLabels=varLabels(varPerm);
+if varClusterOpt=="alpha"
+    for i=1:length(varGroupCats)
+        thisgroup=varGroup==varGroupCats{i};
+        thisNames=varNames(thisgroup);
+        thisLabels=varLabels(thisgroup);
+        thisX=X(thisgroup,:);
+        [~,ixs]=sort(varNames(thisgroup));
+        varNames(thisgroup)=thisNames(ixs);
+        varLabels(thisgroup)=thisLabels(ixs);
+        X(thisgroup,:)=thisX(ixs,:);
+    end
+else
+    varPerm=1:length(varNames);
+    [Y,varPerm]=groupCountMatrix(X',varGroup,varClusterOpt);
+    X=Y';
+    varLabels=varLabels(varPerm);
+end
 
 %%%% build the grouped count data matrix
 if exist('PCscores','var')&&~isempty(PCscores)
@@ -163,7 +177,7 @@ keepticks=keepticks(groupCounts>0);
 %%%% main axis for heatmap %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 him=imagesc(axHM,X);
-colormap(axHM,cmap);
+colormap(axHM,cmap_HM);
 
 %boost nG separations
 yGridValues=cumsum(nPerGroup)+0.5;
@@ -187,8 +201,8 @@ axPos=axHM.Position;
 cbPos=axPos;
 cbPos(1)=axPos(1)+axPos(3)+cb_gap;
 cbPos(3)=cb_width;
-cbPos(2)=axPos(2)+axPos(4)/6;
-cbPos(4)=2*axPos(4)/3;
+cbPos(2)=axPos(2)+axPos(4)/2;
+cbPos(4)=axPos(4)/2;
 
 hc=colorbar(axHM,'Position',cbPos);
 
@@ -226,7 +240,7 @@ if doCellTypeBars
     barline_y=zeros(size(cvals));
     lCG=line(axBL,barline_x,barline_y);
     for i=1:length(groupNames(groupCounts>0))
-        lCG(i).Color=colors(i,:);
+        lCG(i).Color=group_colors(i,:);
         lCG(i).LineWidth=bar_linewidth;
     end
     barTextOffset=0.2;
