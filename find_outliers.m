@@ -23,6 +23,9 @@ for i=1:size(tf,1)
     thissub=tf(i,:);
     thisctname=ctnames{i};
     thisqc=qcvals(thissub);
+    if params.logval
+        thisqc=log10(thisqc);
+    end
     
     %stats (for export too)
     means(i)=mean(thisqc);
@@ -36,6 +39,15 @@ for i=1:size(tf,1)
     geostds(i)=exp(std(log(thisqc)));
     warning(lozwarning);
             
+    %make manual settings apply to the threshold parameter, not fixed val?
+    params=result.params;
+    if ismember(thisctname,params.manual_low.names)
+        params.ndev_lo=params.manual_low.vals(params.manual_low.names==thisctname);
+    end
+    if ismember(thisctname,params.manual_high.names)
+        params.ndev_hi=params.manual_high.vals(params.manual_high.names==thisctname);
+    end
+    
     switch params.method
         case 'fixed'
             lowthr(i)=params.lowthr;
@@ -67,16 +79,25 @@ for i=1:size(tf,1)
             
     end
     
-    lowthr(i)=max(lowthr(i),params.lowthr_clipval); %clamp thresholds
+    %don't impose thresholds (except clipvals) on low-pop cts
+    if isempty(thisqc) || length(thisqc)<params.min_cells
+        lowthr(i)=params.lowthr_clipval;
+        hithr(i)=params.hithr_clipval;
+        continue
+    end
+    
+    lowthr(i)=max(lowthr(i),min(thisqc)); %clamp thresholds - don't go beyond data max
+    hithr(i)=min(hithr(i),max(thisqc)); 
+    
+    lowthr(i)=max(lowthr(i),params.lowthr_clipval); %clamp to manual clip-vals thresholds
     hithr(i)=min(hithr(i),params.hithr_clipval); 
     
-    
-    if ismember(thisctname,params.manual_low.names)
-        lowthr(i)=params.manual_low.vals(params.manual_low.names==thisctname);
-    end
-    if ismember(thisctname,params.manual_high.names)
-        hithr(i)=params.manual_high.vals(params.manual_high.names==thisctname);
-    end
+%     if ismember(thisctname,params.manual_low.names)
+%         lowthr(i)=params.manual_low.vals(params.manual_low.names==thisctname);
+%     end
+%     if ismember(thisctname,params.manual_high.names)
+%         hithr(i)=params.manual_high.vals(params.manual_high.names==thisctname);
+%     end
     
     %special value for "Unc": lowthr=min(others), hithr=max(others)
     % Assumes Unc is last. 
@@ -84,28 +105,34 @@ for i=1:size(tf,1)
     % - cell count weigthed thr
     % - min/max of kept values observed in any other type
     if ctnames(i)=="Unc"
-        otherlow=lowthr(1:i-1);
-        cts=ctcounts(1:i-1);
-        cts(isnan(otherlow))=[];
-        cts(otherlow==params.lowthr_clipval)=[];
-%         otherlow(ctnames(1:i-1)=="T")=[];
-        otherlow(isnan(otherlow))=[];
-        otherlow(otherlow==params.lowthr_clipval)=[];
-        if ~isempty(otherlow)
-%             lowthr(i)=min(otherlow); 
-            lowthr(i)=sum(cts/sum(cts).*otherlow(:));  
+        if isempty(params.unctypes)
+            otherix=ctnames~="Unc"; %use all others for weighted thresh
+        else
+            otherix=ismember(ctnames,params.unctypes);
         end
         
-        otherhi=hithr(1:i-1);
-        cts=ctcounts(1:i-1);
-        cts(isnan(hithr))=[];
-        cts(otherhi==params.hithr_clipval)=[];
-%         otherhi(ctnames(1:i-1)=="T")=[];
-        otherhi(isnan(otherhi))=[];
-        otherhi(otherhi==params.hithr_clipval)=[];
+        %low threshold
+        cts=ctcounts(otherix);
+        otherlow=lowthr(otherix);
+        discard=isinf(otherlow)|isnan(otherlow)|otherlow==params.lowthr_clipval|cts'==0;
+        cts(discard)=[];
+        otherlow(discard)=[];
+        if ~isempty(otherlow)
+%             lowthr(i)=min(otherlow);  %most permissive
+%             lowthr(i)=max(otherlow);  %most strict
+            lowthr(i)=sum(cts/sum(cts).*otherlow(:)); %ct_count weigthed
+        end
+        
+        %high threshold
+        cts=ctcounts(otherix);
+        otherhi=hithr(otherix);
+        discard=isinf(otherhi)|isnan(otherhi)|otherhi==params.hithr_clipval|cts'==0;
+        cts(discard)=[];
+        otherhi(discard)=[];
         if ~isempty(otherhi)
-%             hithr(i)=max(otherhi); 
-            hithr(i)=sum(cts/sum(cts).*otherhi(:)); 
+%             hithr(i)=max(otherhi); %most permissive
+%             hithr(i)=min(otherhi); %most strict
+            hithr(i)=sum(cts/sum(cts).*otherhi(:)); %ct_count weigthed
         end
     end
     
@@ -125,6 +152,7 @@ for i=1:size(tf,1)
     outliers(thissub)=outliers(thissub)|thisout;
 end
 
+result.params=params; 
 result.vals=qcvals;
 result.subix=tf;
 result.outsub=outsub;
