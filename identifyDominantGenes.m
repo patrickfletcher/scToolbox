@@ -15,8 +15,14 @@ function [dominant,specific,allgenes,dominantCondition, specificCondition]...
 nGenes=height(genes);
 
 % whole group quantities, tests: P.anova, P.chi2
-test_pAnova = P.anova < self.pthr;
-test_pChi2 = P.chi2 < self.pprothr;
+test_pAnova=true(nGenes,1);
+test_pChi2=true(nGenes,1);
+if isfield(P,'anova')
+    test_pAnova = P.anova < self.pthr;
+end
+if isfield(P,'chi2')
+    test_pChi2 = P.chi2 < self.pprothr;
+end
 
 % group-wise quantities, tests: prct, expr
 exprselfnames=strcat("expr_",self.names(:));

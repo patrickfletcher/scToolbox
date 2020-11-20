@@ -1,22 +1,9 @@
-function [adj_pANOVA, adj_pMC, combs]=DEtestPairwise(X, group, method)
-%this tests if all groups have same or different distributions (like 1-way anova with K-S two sample test)
-% if not, multcompare is used to find out which are different
+function [p, adj_p, combs]=DEtestPairwise(X, group, method)
+% just pairwise tests
 
-%NOTE: if 2 groups, pANOVA is same as 2-sample test (eg. kruskalwallis
-%pANOVA = p from ranksum).
-
-% method='kruskalwallis'; % could use anova, etc.
-
-displayopt='off';
-% ctype='tukey-kramer'; %has a floor of 10^-8
-% ctype='dunn-sidak'; %has a floor, but also gives hard zeros
-ctype='bonferroni'; %smooth values all the way to zero
-% ctype='scheffe'; %smooth values all the way to zero
 correctionmethod='fdr';
 
-% if ~exist('minFrac','var')||isempty(minFrac)
-    minFrac=0;
-% end
+minFrac=0;
 
 nGenes=size(X,1);
 
@@ -31,10 +18,12 @@ end
 
 nPairs=nchoosek(nGroups,2);
 
+groupNames=groupNames(:)';
+combs=combnk(groupNames,2);
+
 %filter genes if desired, else all genes tested
 % keep=true(nGenes,1); %all
 groupFrac=zeros(nGenes,nGroups);  %pass this in if available?
-
 for i=1:nGroups
     groupFrac(:,i)=sum(X(:,group==groupNames{i})>0,2)/groupCounts(i);
 end
@@ -44,81 +33,49 @@ keepix=find(keep);
 nGenes2Test=nnz(keep);
 
 % FDR is computed assuming all genes are present, to be conservative (?)
-% should these be initialized to 1 or nan?
-pANOVA=nan(nGenes,1); 
-pMC=nan(nGenes,nPairs); 
-% C=nan(nGenes,6); %full comparisons matrix, includes estimate (difference between means?), CIs, p
+p=nan(nGenes,nPairs);
 
-tic
+% tic
 fprintf('\n')
 tenth=round(nGenes2Test/10);
 for i=1:nGenes2Test
     
     gix=keepix(i);
-    
-    switch method
-        case 'anova1'
-            [p,~,stats]=anova1(X(gix,:),group,displayopt);
-        case 'kruskalwallis'
-            [p,~,stats]=kruskalwallis(X(gix,:),group,displayopt);
+    for j=1:nPairs
+        cells1=group==combs{j,1};
+        cells2=group==combs{j,2};
+        switch method
+            case 'ttest'
+                [~,this_p,this_ci,this_stats]=ttest2(X(gix,cells1),X(gix,cells2));
+            case 'ranksum'
+                [this_p,~,this_stats]=ranksum(X(gix,cells1),X(gix,cells2));
+        end
+
+        p(gix,j)=this_p;
     end
-    pANOVA(gix,1)=p;
-
-    %correction for nchoosek(nGroups,2) tests. 
-    % 'alpha'??
-    % 'Ctype': 'tukey-kramer' (default) | 'hsd' | 'lsd' | 'bonferroni' | 'dunn-sidak' | 'scheffe'
-    c=multcompare(stats,'display',displayopt,'Ctype',ctype);
-
-    pMC(gix,:)=c(:,end)';
-    
     if mod(i,tenth)==0
         fprintf('.')
     end
     
 end
-toc
-
-groupNames=groupNames(:)'; %force row vector to get simple pair compare right:
-combs=groupNames(c(:,1:2));
+% toc
 
 %give the smallest representable value to zero p-values so multiple comparisons has something to work with.
-pANOVA(pANOVA==0)=eps(0);
-pMC(pMC==0)=eps(0);
-
-%correction for nGenes tests
-%first, the ANOVA p values
-switch lower(correctionmethod)
-    case 'bonferroni'
-        %sequential bonferroni-holm
-        adj_pANOVA=bonf_holm(pANOVA);
-    case {'fdr','bh'}
-        %Benjamini-Hochberg FDR
-        [~, ~, ~, adj_pANOVA]=fdr_bh(pANOVA); %method?
-    otherwise
-        adj_pANOVA=pANOVA;
-end
-
-adj_pANOVA(adj_pANOVA>1)=1;
+p(p==0)=eps(0);
 
 %next the multiple comparisons per gene values
-adj_pMC=ones(size(pMC));
+adj_p=ones(size(p));
 for i=1:nPairs
     switch lower(correctionmethod)
         case 'bonferroni'
             %sequential bonferroni-holm
-            adj_pMC(:,i)=bonf_holm(pMC(:,i));
+            adj_p(:,i)=bonf_holm(p(:,i));
         case {'fdr','bh'}
             %Benjamini-Hochberg FDR
-            [~, ~, ~, adj_pMC(:,i)]=fdr_bh(pMC(:,i)); %method?
+            [~, ~, ~, adj_p(:,i)]=fdr_bh(p(:,i)); %method?
         otherwise
-            adj_pMC=pMC;
+            adj_p=p;
     end
 end
 
-adj_pMC(adj_pMC>1)=1;
-
-%for simple two-sample test, kruskal-wallace p = ranksum p. The
-%multiple-comparison by multcompare doesn't make sense?
-if nGroups==2
-    adj_pMC=adj_pANOVA;
-end
+adj_p(adj_p>1)=1;
