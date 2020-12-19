@@ -8,7 +8,7 @@ classdef upsetplot < handle %graphics object??
     properties
         
         %data selection and display order options
-        count_thr=1
+        mincount=1
         order_method='size'
 %         order_method='comb'
 %         n_member_thr=Inf %max num members in a combo
@@ -33,7 +33,7 @@ classdef upsetplot < handle %graphics object??
     end
     
     methods 
-        function hup=upsetplot(sets, setnames, ordermethod)
+        function hup=upsetplot(sets, setnames, ordermethod, mincount)
             
             %prepare axis layout
             hup.tiles=tiledlayout(2,1);
@@ -47,6 +47,9 @@ classdef upsetplot < handle %graphics object??
             end
             if exist('ordermethod','var')
                 hup.order_method = ordermethod;
+            end
+            if exist('mincount','var')
+                hup.mincount = mincount;
             end
             
             %prepare data
@@ -64,7 +67,7 @@ classdef upsetplot < handle %graphics object??
             end
             s_setix=setix(ixs);
             
-            discard=s_inter_counts<hup.count_thr;
+            discard=s_inter_counts<hup.mincount;
             ixs(discard)=[];
             s_setix(discard)=[];
             s_inter_counts(discard)=[];

@@ -14,22 +14,23 @@ if ~isempty(QCdata)
     X=Xstruct.vals;
     xlo=Xstruct.lowthr; %xlo
     xhi=Xstruct.hithr; %xhi
-    xout=Xstruct.outsub; %x-grayed
+%     xout=Xstruct.outsub; %x-grayed
+    xout=Xstruct.outliers; %x-grayed
 
     Ystruct=QCdata.(yname);
     Y=Ystruct.vals;
     ylo=Ystruct.lowthr; %ylo
     yhi=Ystruct.hithr; %yhi
-    yout=Ystruct.outsub; %y-grayed
+%     yout=Ystruct.outsub; %y-grayed
+    yout=Ystruct.outliers; %y-grayed
 end
 
+isout=xout|yout;
 
-XLIM=[min(X),max(X)]; 
-XLIM=XLIM+.05*[-1,1].*XLIM; 
-YLIM=[min(Y),max(Y)]; 
-YLIM=YLIM+.05*[-1,1].*YLIM; 
-%YLIM(YLIM<0)=0;
-%YLIM(YLIM>1)=1;
+Xrange=[min(X),max(X)]; 
+XLIM=Xrange+.05*[-1,1].*Xrange; 
+Yrange=[min(Y),max(Y)]; 
+YLIM=Yrange+.05*[-1,1].*Yrange; 
 XLIM(XLIM<0)=0;
 YLIM(YLIM<0)=0;
 if contains(xname,'frac')
@@ -39,6 +40,15 @@ if contains(yname,'frac')
     YLIM(YLIM>1)=1;
 end
 
+if Xstruct.params.logval
+    xlo=10.^(xlo);
+    xhi=10.^(xhi);
+end
+if Ystruct.params.logval
+    ylo=10.^(ylo);
+    yhi=10.^(yhi);
+end
+
 nr=panels(1);
 nc=panels(2);
 for i=1:size(tf,1)
@@ -46,10 +56,10 @@ for i=1:size(tf,1)
     thissub=tf(i,:);
     x=X(thissub);
     y=Y(thissub);
-    thisxout=xout(i,thissub);
-    thisyout=yout(i,thissub);
     
     thisamb=amb(thissub);
+    thisout=isout(thissub);
+    
     xamb=x(thisamb);
     yamb=y(thisamb);
 %     if ~plotAmb
@@ -70,8 +80,7 @@ for i=1:size(tf,1)
         if highlightOut
 %             line(x(thisxout), y(thisxout),'color','g','linestyle','none','marker','x','markersize',msz)
 %             line(x(thisyout), y(thisyout),'color','b','linestyle','none','marker','+','markersize',msz)
-            line(x(thisxout), y(thisxout),'color',0.5*[1,1,1],'linestyle','none','marker','.','markersize',msz)
-            line(x(thisyout), y(thisyout),'color',0.5*[1,1,1],'linestyle','none','marker','.','markersize',msz)
+            line(x(thisout), y(thisout),'color',0.5*[1,1,1],'linestyle','none','marker','.','markersize',msz)
         end
         axis tight
         
@@ -85,16 +94,16 @@ for i=1:size(tf,1)
 %         XLIM=xlim();
 %         YLIM=ylim();
         if highlightOut
-            if xlo(i)>min(XLIM)
+            if xlo(i)>min(Xrange)
                 line(xlo(i)*[1,1], YLIM, 'color',[0,0,0.7]);
             end
-            if xhi(i)<max(XLIM)
+            if xhi(i)<max(Xrange)
                 line(xhi(i)*[1,1], YLIM, 'color',[0,0,0.7]);
             end
-            if ylo(i)>min(YLIM)
+            if ylo(i)>min(Yrange)
                 line(XLIM, ylo(i)*[1,1],'color',[0.7,0,0]); 
             end
-            if yhi(i)<max(YLIM)
+            if yhi(i)<max(Yrange)
                 line(XLIM, yhi(i)*[1,1],'color',[0.7,0,0]); 
             end
         end

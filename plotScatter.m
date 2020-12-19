@@ -169,8 +169,8 @@ switch lower(colorby)
     case 'value'
         
 %         cmap=flipud(cbrewer('div','RdBu',11)); %test binning?
-        cmap=cbrewer('seq','OrRd',17); %test binning?
-        cmap=[[.7,.85,0.9];cmap(4:end,:)]; %add a teal color for zero; skip lower couple colors
+        cmap=cbrewer('seq','OrRd',50); %test binning?
+        cmap=[[.7,.85,0.9];cmap(10:end,:)]; %add a teal color for zero; skip lower couple colors
 
         if isempty(groups)
             groups=repmat("",n,1);
