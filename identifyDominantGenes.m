@@ -1,5 +1,5 @@
 function [dominant,specific,allgenes,dominantCondition, specificCondition]...
-    =identifyDominantGenes(genes, selfin, otherin, P, params)
+    =identifyDominantGenes(genes, selfin, otherin, P, paramsin)
 
 %self/other names must be same categories used to generate pairwise P values..
 
@@ -10,18 +10,20 @@ function [dominant,specific,allgenes,dominantCondition, specificCondition]...
 %prct expressing here. Also, compute P if not passed in...
 
 %parameters
-[self,other]=parse_input_pars(selfin,otherin);
+[self, other, params]=parse_input_pars(selfin,otherin, paramsin);
 
 nGenes=height(genes);
 
+%TODO: switch to use just one test or other
+
 % whole group quantities, tests: P.anova, P.chi2
 test_pAnova=true(nGenes,1);
-test_pChi2=true(nGenes,1);
 if isfield(P,'anova')
-    test_pAnova = P.anova < self.pthr;
+    test_pAnova = P.anova < params.pthr;
 end
+test_pChi2=true(nGenes,1);
 if isfield(P,'chi2')
-    test_pChi2 = P.chi2 < self.pprothr;
+    test_pChi2 = P.chi2 < params.pprothr;
 end
 
 % group-wise quantities, tests: prct, expr
@@ -35,19 +37,22 @@ expr_other=genes{:,"expr_"+other.names(:)};
 prct_self=genes{:,"prct_"+self.names(:)};
 prct_other=genes{:,"prct_"+other.names(:)};
 
-test_selfMinPrct=prct_self>self.minprct;
-test_otherMaxPrct=all(prct_other<other.maxprct,2);
-
-% group reductions
-minSelfExpr=min(expr_self,[],2);
-maxSelfExpr=max(expr_self,[],2);
-minSelfPrct=min(prct_self,[],2);
-maxSelfPrct=max(prct_self,[],2);
-minOtherPrct=min(prct_other,[],2);
-maxOtherPrct=max(prct_other,[],2);
-minOtherExpr=min(expr_other,[],2);
-maxOtherExpr=max(expr_other,[],2);
-
+test_selfMinPrct=prct_self>self.minprct; %for up
+test_otherMaxPrct=prct_other<other.maxprct;  %for up SPEC: all vs pairwise?
+test_selfMaxPrct=prct_self<self.maxprct; %for down
+test_otherMinPrct=prct_other>other.minprct;
+switch params.direction
+    case 'up'
+        test_minPrct=all(test_selfMinPrct,2);
+        test_specific=all(test_otherMaxPrct,2);
+    case 'down'
+        test_minPrct=all(test_otherMinPrct,2);
+        test_specific=all(test_selfMaxPrct,2);
+    case 'both'
+        test_minPrct=all(test_selfMinPrct,2)|all(test_otherMinPrct,2);
+        test_specific=all(test_otherMaxPrct,2)|all(test_selfMaxPrct,2);
+end
+    
 %make the following parameters:
 exprESname='fc_expr';
 prctESname='d_prct';
@@ -60,9 +65,9 @@ pairwise_d_prct=[];
 % pairwise_d_prct_rel=[];
 pairwise_exprES=[]; 
 pairwise_prctES=[]; 
-pairwise_Pmc=[]; %store pairwise quantities in matrices for export
+pairwise_Pmc=[]; 
 pairwise_Pz=[];
-self_dominant=zeros(nGenes,length(self.names));
+dominant_otherpooled=zeros(nGenes,length(self.names));
 self_test_prctES=zeros(nGenes,length(self.names));
 self_test_exprES=zeros(nGenes,length(self.names));
 
@@ -80,6 +85,7 @@ for i=1:length(self.names)
 %     pairwise_d_prct_rel=[pairwise_d_prct_rel,this_d_prct_rel];
 
     %effect sizes (TODO: add options to select different metrics)
+    % really should explore different % effect size metrics
 %     switch params.prctMetric
 %         case 'diff'
 %         case 'reldiff'
@@ -110,84 +116,113 @@ for i=1:length(self.names)
     pairwise_Pmc=[pairwise_Pmc, this_pmc];
     pairwise_Pz=[pairwise_Pz, this_pz];
 
-    test_thisExpr_P=test_pAnova & this_pmc<self.pthrpw;
-    test_thisPrct_P=test_pChi2 & this_pz<self.pprothrpw;
+    test_thisExpr_P=test_pAnova & this_pmc<params.pthrpw;
+    test_thisPrct_P=test_pChi2 & this_pz<params.pprothrpw;
     
-%     switch params.Expr_ES_direction
-%         case 'up'
-            test_thisExpr_ES=this_exprES>self.fcExprThr;
-            test_thisPrct_ES=this_prctES>self.prctESThr;
-            test_pairwise_ESexpr_limit=this_exprES>self.minFcExpr; %lower bound for ES
-            test_pairwise_ESprct_limit=this_prctES>self.minPrctEffect;
-%         case 'down'
-%             test_thisExpr_ES=this_exprES<self.fcExprThr;
-%             test_thisPrct_ES=this_prctES<self.prctESThr;
-%             test_pairwise_ESexpr_limit=this_exprES<self.maxFcExpr;
-%             test_pairwise_ESprct_limit=this_prctES<self.maxPrctEffect;
-%         case 'both'
-%             test_thisExpr_ES=this_exprES>self.fcExprThr | this_exprES<self.fcExprThr;
-%             test_thisPrct_ES=this_prctES>self.prctESThr | this_prctES<self.prctESThr;
-%             test_pairwise_ESexpr_limit=this_exprES>self.minFcExpr | this_exprES<self.maxFcExpr;
-%             test_pairwise_ESprct_limit=this_prctES>self.minPrctEffect | this_prctES<self.maxPrctEffect;
-%     end
-    
+    switch params.direction
+        case 'up'
+            test_thisExpr_ES=this_exprES>params.fcExprThr;
+            test_thisPrct_ES=this_prctES>params.prctESThr;
+            test_pairwise_ESexpr_limit=this_exprES>params.minFcExpr; %lower bound for ES
+            test_pairwise_ESprct_limit=this_prctES>params.minPrctEffect;
+        case 'down'
+            test_thisExpr_ES=this_exprES<1/params.fcExprThr;
+            test_thisPrct_ES=this_prctES<-params.prctESThr;
+            test_pairwise_ESexpr_limit=this_exprES<1/params.minFcExpr;
+            test_pairwise_ESprct_limit=this_prctES<-params.minPrctEffect;
+        case 'both'
+            test_thisExpr_ES=this_exprES>params.fcExprThr | this_exprES<1/params.fcExprThr;
+            test_thisPrct_ES=this_prctES>params.prctESThr | this_prctES<-params.prctESThr;
+            test_pairwise_ESexpr_limit=this_exprES>params.minFcExpr | this_exprES<1/params.minFcExpr;
+            test_pairwise_ESprct_limit=this_prctES>params.minPrctEffect | this_prctES<-params.minPrctEffect;
+    end
+
     
     % combine pairwise P value tests and effect-size tests: significant pairwise ES tests 
-    test_thisExpr= test_thisExpr_P & test_thisExpr_ES;
-    test_thisPrct= test_thisPrct_P & test_thisPrct_ES;
+    pairwise_Expr= test_thisExpr_P & test_thisExpr_ES;
+    pairwise_Prct= test_thisPrct_P & test_thisPrct_ES;
+         
+%     % self% and other% filters
+%     pairwise_Expr=pairwise_Expr & test_thisSelfPrct;
+%     pairwise_Prct=pairwise_Prct & test_thisSelfPrct;
     
-        
-    %combine everything: apply minself, pairwise ES limits, and actual ES tests
-    %for each test separately (report in case of interest):
-    pairwise_Expr=test_selfMinPrct(:,i) & test_pairwise_ESprct_limit & test_pairwise_ESexpr_limit & test_thisExpr;
-    pairwise_Prct=test_selfMinPrct(:,i) & test_pairwise_ESprct_limit & test_pairwise_ESexpr_limit & test_thisPrct;
-    
-    % how do we combine the two ES tests between this_self and each other?
-%     switch params.pool_singlepairEStest_method
-    switch self.combine_prct_expr
-        case 'or'
-            pairwise_combinedES=pairwise_Expr|pairwise_Prct; %permits either test
-        case 'and'
-            pairwise_combinedES=pairwise_Expr&pairwise_Prct; %strict
+    %limiters are to force constraint on the other ES test
+    if params.limitMode=="pairwise"
+        pairwise_Expr=pairwise_Expr & test_pairwise_ESprct_limit;
+        pairwise_Prct=pairwise_Prct & test_pairwise_ESexpr_limit;
     end
     
-    %NOW: combine all the pairwise tests. ALL by default. option for any?
-    self_dominant(:,i)=all(pairwise_combinedES,2);
-    self_test_exprES(:,i)=all(pairwise_Expr,2);
-    self_test_prctES(:,i)=all(pairwise_Prct,2);
+%     pairwise_Expr_spec=pairwise_Expr;
+%     pairwise_Prct_spec=pairwise_Prct;
+%     if params.specificMode=="pairwise"
+%         pairwise_Expr_spec=pairwise_Expr_spec & test_thisSpecific;
+%         pairwise_Prct_spec=pairwise_Prct_spec & test_thisSpecific;
+%     end
+    
+    % combine the two ES tests
+    switch params.combine_prct_expr
+        case 'or'
+            pairwise_combinedES=pairwise_Expr|pairwise_Prct; %permits either test
+%             pairwise_combinedES_spec=pairwise_Expr_spec|pairwise_Prct_spec;
+        case 'and'
+            pairwise_combinedES=pairwise_Expr&pairwise_Prct; %strict
+%             pairwise_combinedES_spec=pairwise_Expr_spec&pairwise_Prct_spec; 
+    end
+    
+    %NOW: combine all the pairwise tests. ALL by default.
+    switch other.poolmethod
+        case "all"
+            dominant_otherpooled(:,i)=all(pairwise_combinedES,2);
+%             specific_otherpooled(:,i)=all(pairwise_combinedES_spec,2);
+            self_test_exprES(:,i)=all(pairwise_Expr,2);
+            self_test_prctES(:,i)=all(pairwise_Prct,2);
+        case "any"
+            dominant_otherpooled(:,i)=any(pairwise_combinedES,2);
+%             specific_otherpooled(:,i)=any(pairwise_combinedES_spec,2);
+            self_test_exprES(:,i)=any(pairwise_Expr,2);
+            self_test_prctES(:,i)=any(pairwise_Prct,2);
+        case "some"
+            dominant_otherpooled(:,i)=sum(pairwise_combinedES,2)>other.some_N;
+%             specific_otherpooled(:,i)=sum(pairwise_combinedES_spec,2)>other.some_N;
+            self_test_exprES(:,i)=sum(pairwise_Expr,2)>other.some_N;
+            self_test_prctES(:,i)=sum(pairwise_Prct,2)>other.some_N;
+    end
 end
 
-% gather extra info to report: to help understand what happened
-% pariwise p-value reductions
-max_Pmc=max(pairwise_Pmc,[],2);
-max_Pz=max(pairwise_Pz,[],2);
+%apply uniform limiters and specific test (to remove stuff from "any" cases)
+% if params.limitMode=="uniform"
+%     dominant_otherpooled=dominant_otherpooled & test_pairwise_ESexpr_limit;
+% end
+% if params.specificMode=="uniform"
+%     specific_otherpooled=dominant_otherpooled & all(test_thisOtherPrct,2);
+% end
 
-% pariwise effect size reductions
-min_fc_expr=min(pairwise_fc_expr,[],2);
-max_fc_expr=max(pairwise_fc_expr,[],2);
-min_log2fc_expr=min(pairwise_log2fc_expr,[],2);
-max_log2fc_expr=max(pairwise_log2fc_expr,[],2);
-min_d_prct=min(pairwise_d_prct,[],2);
-max_d_prct=max(pairwise_d_prct,[],2);
-max_abs_d_prct=max(abs(pairwise_d_prct),[],2);
-% min_d_prct_rel=min(pairwise_d_prct_rel,[],2);
-% max_d_prct_rel=max(pairwise_d_prct_rel,[],2);
+% test_prct and test_specific
+dominant_otherpooled = dominant_otherpooled & test_minPrct;
+specific_otherpooled = dominant_otherpooled;
+specific_otherpooled = specific_otherpooled & test_specific;
 
+    
 %pairwise self pooling
-% switch params.pool_selftest_method
-if self.poolmethod=="all"
-    pairwiseTestPooled=all(self_dominant,2);
-    exprTestPooled=all(self_test_exprES,2);
-    prctTestPooled=all(self_test_prctES,2);
-else
-    pairwiseTestPooled=any(self_dominant,2);
-    exprTestPooled=any(self_test_exprES,2);
-    prctTestPooled=any(self_test_prctES,2);
+switch self.poolmethod
+    case "all"
+        dominant_selfpooled=all(dominant_otherpooled,2);
+        specific_selfpooled=all(specific_otherpooled,2);
+        exprTestPooled=all(self_test_exprES,2);
+        prctTestPooled=all(self_test_prctES,2);
+    case "any"
+        dominant_selfpooled=any(dominant_otherpooled,2);
+        specific_selfpooled=any(specific_otherpooled,2);
+        exprTestPooled=any(self_test_exprES,2);
+        prctTestPooled=any(self_test_prctES,2);
+%     case "some" 
+%       something like "findMarkers" in scran?
 end
+
 
 %assemble the final selections
-dominantCondition = pairwiseTestPooled;
-specificCondition = dominantCondition & test_otherMaxPrct;
+dominantCondition = dominant_selfpooled;
+specificCondition = specific_selfpooled;
 
 %tables for output
 allgenes=table();
@@ -199,39 +234,33 @@ allgenes.all_prct_test=prctTestPooled;
 allgenes.specific=specificCondition;
 
 %effect sizes
-allgenes.min_fc_expr=min_fc_expr;
-allgenes.max_fc_expr=max_fc_expr;
-allgenes.min_log2fc_expr=min_log2fc_expr;
-allgenes.max_log2fc_expr=max_log2fc_expr;
-allgenes.min_d_prct=min_d_prct;
-allgenes.max_d_prct=max_d_prct;
-% allgenes.min_d_prct_rel=min_d_prct_rel;
-% allgenes.max_d_prct_rel=max_d_prct_rel;
+allgenes.min_fc_expr=min(pairwise_fc_expr,[],2);
+allgenes.max_fc_expr=max(pairwise_fc_expr,[],2);
+allgenes.min_log2fc_expr=min(pairwise_log2fc_expr,[],2);
+allgenes.max_log2fc_expr=max(pairwise_log2fc_expr,[],2);
+allgenes.min_d_prct=min(pairwise_d_prct,[],2);
+allgenes.max_d_prct=max(pairwise_d_prct,[],2);
+% allgenes.min_d_prct_rel=min(pairwise_d_prct_rel,[],2);
+% allgenes.max_d_prct_rel=max(pairwise_d_prct_rel,[],2);
 
-%fc test
+% anova, chi2, and worst pariwise p-values
 allgenes.p_anova=P.anova;
-allgenes.max_pwp=max_Pmc;
-
-%proportion test
+allgenes.min_pwp=min(pairwise_Pmc,[],2);
+allgenes.max_pwp=max(pairwise_Pmc,[],2);
 allgenes.p_chi2=P.chi2;
-allgenes.max_pwz=max_Pz;
+allgenes.min_pwz=min(pairwise_Pz,[],2);
+allgenes.max_pwz=max(pairwise_Pz,[],2);
 
-%always output same format: if self size is 1, repeats...
-% if length(self.names)>1
-allgenes.min_self_expr=minSelfExpr;
-allgenes.max_self_expr=maxSelfExpr;
-allgenes.min_self_prct=minSelfPrct;
-allgenes.max_self_prct=maxSelfPrct;
-% else
-%     allgenes.self_expr=minSelfExpr;
-%     allgenes.self_prct=minSelfPrct;
-% end
 
-%specific (max other test)
-allgenes.min_other_prct=minOtherPrct;
-allgenes.max_other_prct=maxOtherPrct;
-allgenes.min_other_expr=minOtherExpr;
-allgenes.max_other_expr=maxOtherExpr;
+allgenes.min_self_prct=min(prct_self,[],2);
+allgenes.max_self_prct=max(prct_self,[],2);
+allgenes.min_other_prct=min(prct_other,[],2);
+allgenes.max_other_prct=max(prct_other,[],2);
+
+allgenes.min_self_expr=min(expr_self,[],2);
+allgenes.max_self_expr=max(expr_self,[],2);
+allgenes.min_other_expr=min(expr_other,[],2);
+allgenes.max_other_expr=max(expr_other,[],2);
 
 allgenes.dominant=dominantCondition; %mainly for allgenes
 
@@ -260,31 +289,49 @@ allgenes=allgenes(~(allgenes.max_self_expr==0)&~(allgenes.max_other_expr==0),:);
 end
 
 
-function [selfpars,otherpars]=parse_input_pars(selfin,otherin)
+function [selfpars,otherpars,params]=parse_input_pars(selfin,otherin, paramsin)
 selfpars.names={'self'};
 selfpars.minprct=0;
-selfpars.prctMetric='diff';
-selfpars.prctESThr=30;
-selfpars.minPrctEffect=0;
-selfpars.fcExprThr=0;
-selfpars.minFcExpr=0;
-selfpars.combine_prct_expr='or';
-selfpars.pthr=0.1;
-selfpars.pthrpw=0.1;
-selfpars.pprothr=0.1;
-selfpars.pprothrpw=0.1;
-selfpars.poolmethod={'all'};
+selfpars.maxprct=Inf;
+selfpars.poolmethod='all';
+selfpars.some_N=1; %as in for "any"
 
 otherpars.names={'other'};
+otherpars.minprct=0;
 otherpars.maxprct=Inf;
-otherpars.poolmethod={'all'};
+otherpars.poolmethod='all';
+otherpars.some_N=1; %as in for "any"
+
+%these are all filtering parameters. Should be a different struct.
+params.direction='any';
+params.limitMode='pairwise';
+params.combine_prct_expr='or';
+params.specificMode='uniform'; %or pairwise
+params.prctMetric='diff';
+params.prctESThr=20;
+params.minPrctEffect=0;
+params.fcExprThr=1;
+params.minFcExpr=0;
+params.pthr=0.1;
+params.pthrpw=0.1;
+params.pprothr=0.1;
+params.pprothrpw=0.1;
 
 %overwrite field values with any that were passed in
+if nargin>0
 for f=intersect(fieldnames(selfpars),fieldnames(selfin))'
     selfpars.(f{1})=selfin.(f{1});
 end
+end
+if nargin>1
 for f=intersect(fieldnames(otherpars),fieldnames(otherin))'
     otherpars.(f{1})=otherin.(f{1});
+end
+end
+if nargin>2
+for f=intersect(fieldnames(params),fieldnames(paramsin))'
+    params.(f{1})=paramsin.(f{1});
+end
 end
 
 % if any(~ismember(fieldnames(selfin),fieldnames(self)))
