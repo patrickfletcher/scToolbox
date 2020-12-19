@@ -31,23 +31,20 @@ end
 n_to_impute=nnz(to_impute);
 
 [nnix,Dix]=knnsearch(coords,coords(to_impute,:),'K',params.n_neighbors+1,'Distance',params.metric);
-nnix(:,1)=[]; %remove self
-Dix(:,1)=[];
-
-for i=1:n_to_impute
-    NnClass(i,:)=input_class(nnix(i,:));
-end
+% nnix(:,1)=[]; %don't remove self in case we need "myID"
+% Dix(:,1)=[];
+NnClass=input_class(nnix);
 
 switch params.method
     case 'mode'
-        class_imputed=mode(NnClass,2); %assign by majority vote: mode
+        class_imputed=mode(NnClass(:,2:end),2); %assign by majority vote: mode
 
     case 'mode_notme'
         %nearest neighbor that is not also unc
         class_imputed=input_class(to_impute)';
         for i=1:n_to_impute
             myID=NnClass(i,1);
-            thisnns=NnClass(i,NnClass(i,:)~=myID & NnClass(i,:)~="Unc");
+            thisnns=NnClass(i,NnClass(i,2:end)~=myID & NnClass(i,2:end)~="Unc");
             if ~isempty(thisnns)
                 class_imputed(i,1)=mode(thisnns);
             end %otherwise, stays unc.
@@ -58,7 +55,7 @@ switch params.method
         class_imputed=input_class(to_impute)';
         for i=1:n_to_impute
             myID=NnClass(i,1);
-            thisnix=find(NnClass(i,:)~=myID&NnClass(i,:)~="Unc",1,'first'); %what if this fails? returns []
+            thisnix=find(NnClass(i,2:end)~=myID & NnClass(i,2:end)~="Unc",1,'first'); %what if this fails? returns []
             if ~isempty(thisnix)
                 class_imputed(i,1)=NnClass(i,thisnix);
 %                 nix(i,1)=thisnix;
