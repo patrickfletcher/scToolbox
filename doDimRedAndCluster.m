@@ -8,10 +8,12 @@ function result=doDimRedAndCluster(scdata,ncounts,tcounts,cells,genes,params, do
 
 if ~isempty(scdata) && isstruct(scdata)
     result=scdata; %appends results to existing struct
-    ncounts=ncounts(scdata.genesub,scdata.subset);
-    tcounts=tcounts(scdata.genesub,scdata.subset);
-    cells=cells(scdata.subset,:);
-    genes=genes(scdata.genesub,:);
+    if nnz(scdata.subset)<size(ncounts,2) || nnz(scdata.genesub)<size(ncounts,1)
+        ncounts=ncounts(scdata.genesub,scdata.subset);
+        tcounts=tcounts(scdata.genesub,scdata.subset);
+        cells=cells(scdata.subset,:);
+        genes=genes(scdata.genesub,:);
+    end
 end
 
 %store the parameters used in the same struct as results
@@ -58,7 +60,7 @@ result.hvg.nHVG
 hvgtime=toc
 
 % for the rest, restrict to HVGs:
-X = tcounts(result.hvg.ix,:);
+X = tcounts(result.hvg.ix,:); 
 G = genes(result.hvg.ix,:);
 
 % also pick out some top genes to show expression:
@@ -67,6 +69,7 @@ meanExpr=mean(ncounts(result.hvg.ix,:),2,'omitnan');
 valuenames = G.name(ixm(1:4));
 colors = X(ixm(1:4),:);
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 1b. regressout
 if isfield(params,'regress')&&~isempty(params.regress)
@@ -74,6 +77,8 @@ if isfield(params,'regress')&&~isempty(params.regress)
     P = cells{:,params.regress.vars};
     X = regressOut(P, X')';
 end
+
+clear tcounts ncounts genes cells
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 2. pca
