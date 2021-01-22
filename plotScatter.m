@@ -139,7 +139,7 @@ switch lower(colorby)
             for j=1:length(groupNames)
                 thisGroup=group==groupNames{j};
                 hs(j)=scatter(coords(thisGroup,1),coords(thisGroup,2),markerSize,color(j,:),marker,'filled');
-                hs(j).MarkerEdgeColor=color(j,:)*0.66; %darker edge of same color
+                hs(j).MarkerEdgeColor=color(j,:)*0.8; %darker edge of same color
                 
                 switch draworder
                     case 'index'

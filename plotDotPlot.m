@@ -53,28 +53,68 @@ if ~exist('varGroup','var') || isempty(varGroup)
     varGroup=ones(size(varNames));
 end
 if ~iscategorical(varGroup); varGroup=categorical(varGroup); end
+varCats=categories(varGroup);
 nPerGroup=countcats(varGroup);
 
 
 if exist('sortmethod','var') && ~isempty(sortmethod)
     switch sortmethod
         case 'alpha'
-            [varNames,ixs]=sort(varNames);
-            colorData=colorData(ixs,:);
-            sizeData=sizeData(ixs,:);
-%             varLabels=varLabels(ixs);
+            for i=1:length(varCats)
+                thiscat=varGroup==varCats{i};
+                varsub=varNames(thiscat);
+                sizesub=sizeData(thiscat,:);
+                colorsub=colorData(thiscat,:);
+                [~,ixs]=sort(varsub);
+                varsub=varsub(ixs);
+                sizesub=sizesub(ixs,:);
+                colorsub=colorsub(ixs,:);
+                varNames(thiscat)=varsub;
+                sizeData(thiscat,:)=sizesub; 
+                colorData(thiscat,:)=colorsub;                  
+            end
+
         case 'size'
             [sizeData,ixs]=groupCountMatrix(sizeData',varGroup,'optim');
             sizeData=sizeData';
             colorData=colorData(ixs,:);
             varNames=varNames(ixs);
-%             varLabels=varLabels(ixs);
+
+        case 'maxsize'
+            for i=1:length(varCats)
+                thiscat=varGroup==varCats{i};
+                varsub=varNames(thiscat);
+                sizesub=sizeData(thiscat,:);
+                colorsub=colorData(thiscat,:);
+                [~,ixs]=sort(max(sizesub,[],2),'descend');
+                varsub=varsub(ixs);
+                sizesub=sizesub(ixs,:);
+                colorsub=colorsub(ixs,:);
+                varNames(thiscat)=varsub;
+                sizeData(thiscat,:)=sizesub; 
+                colorData(thiscat,:)=colorsub;                  
+            end
+            
         case 'color'
             [colorData,ixs]=groupCountMatrix(colorData',varGroup,'optim');
             colorData=colorData';
             sizeData=sizeData(ixs,:);
             varNames=varNames(ixs);
-%             varLabels=varLabels(ixs);
+
+        case 'maxcolor'
+            for i=1:length(varCats)
+                thiscat=varGroup==varCats{i};
+                varsub=varNames(thiscat);
+                colorsub=colorData(thiscat,:);
+                sizesub=sizeData(thiscat,:);
+                [~,ixs]=sort(max(colorsub,[],2),'descend');
+                varsub=varsub(ixs);
+                colorsub=colorsub(ixs,:);
+                sizesub=sizesub(ixs,:);
+                varNames(thiscat)=varsub;
+                colorData(thiscat,:)=colorsub; 
+                sizeData(thiscat,:)=sizesub;                
+            end
     end
 
 end
