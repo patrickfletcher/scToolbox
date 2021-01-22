@@ -1,5 +1,5 @@
 function [textpos,textlab] = set_embedding_textpos(COORDS, ident, cols, dopause)
-
+fh=figure();
 if ~exist('dopause','var'), dopause=true; end
 
 catnames=categories(ident);
@@ -17,9 +17,10 @@ textpos=[textpos,ones(length(catnames),2)];
 textlab=catnames;
 % end
 
-fh=gcf;
-
 ax=plotScatter(COORDS, 'group', ident, cols, fh);
+
+axis tight
+axis equal
 
 ht1=text(ax,textpos(:,1),textpos(:,2),ones(size(textpos,1),1),textlab,...
     'HorizontalAlignment','center');
