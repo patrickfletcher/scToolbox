@@ -45,12 +45,18 @@ switch params.method
         result.K=max(clusterID); 
 end
 
+if ~isfield(params, 'doRelabel')
+    params.doRelabel=true;
+end
+
 %relabel to be in decreasing size
 nT=arrayfun(@(x)nnz(clusterID==x),1:result.K);
-[nT,ix]=sort(nT,'descend');
-IDold=clusterID;
-for i=1:result.K
-    clusterID(IDold==ix(i))=i;
+if params.doRelabel
+    [nT,ix]=sort(nT,'descend');
+    IDold=clusterID;
+    for i=1:result.K
+        clusterID(IDold==ix(i))=i;
+    end
 end
 result.clusterID=clusterID;
 result.clusterCounts = nT;
