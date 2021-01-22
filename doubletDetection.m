@@ -71,6 +71,8 @@ end
 
 tenth=round(params.nReps/10); %progress meter
 rep_doublet=false(params.nReps,nCells);
+rep_p=ones(params.nReps,nCells);
+rep_adj_p=ones(params.nReps,nCells);
 for it=1:params.nReps
     
     rawcounts_synth=createSyntheticDoublets(rawcounts,nSynth,params);
@@ -147,8 +149,9 @@ for it=1:params.nReps
             synthCount=sum(nnix(1:nCells,:)>nCells,2); %all synthetic cells have index >nCells
             p=hygecdf(synthCount(:),nCells+nSynth,nSynth,params.n_neighbors,'upper');
             
+            [~,~, ~, adj_p]=fdr_bh(p,params.FDR);
+            
             if doMultCompareCorrect
-                [~,~, ~, adj_p]=fdr_bh(p,params.FDR);
                 this_rep_doublets=adj_p<params.FDR;
             else
                 this_rep_doublets=p<params.pThr;    
@@ -156,7 +159,9 @@ for it=1:params.nReps
     end
     
 %     disp("repdoubs: "+num2str(nnz(this_rep_doublets)))
-    rep_doublet(it,:)=this_rep_doublets;
+    rep_doublet(it,:)=this_rep_doublets; 
+    rep_p(it,:)=p;
+    rep_adj_p(it,:)=adj_p;  %store p vals so re-thresholding can be done
     
     if tenth>0 && mod(it,tenth)==0
         fprintf('.')
@@ -208,6 +213,8 @@ if isfield(params,'doplot')&&params.doplot
 end
 
 result.doublet=doublet;
+result.rep_p=rep_p;
+result.rep_adj_p=rep_adj_p;
 result.rep_doublet=rep_doublet;
 result.rep_counts=rep_counts;
 result.nSynth=nSynth;
