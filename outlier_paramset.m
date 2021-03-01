@@ -30,6 +30,9 @@ end
 
 params.tailoption='both';
 
+params.min_cells=1;
+params.logval=false;
+
 params.manual_low.names=[]; 
 params.manual_low.vals=[];
 params.manual_high.names=[]; 
