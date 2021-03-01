@@ -224,16 +224,74 @@ classdef CellType %< handle & matlab.mixin.Copyable
         end
         
         
-        function [classID,cellClassID,IDs,tf]=classifyClusterByScore(ct,clusterID,tcounts,genes)
+        function [classID,IDs,tf,markerScore,cellClassID]=classifyClusterByScore(ct,clusterID,tcounts,genes)
             % assign all cells of a cluster to the cell type most common in
             % the cluster. (mode)
-            [cellClassID,IDs,tf]=ct.classifyByScore(tcounts,genes);
+            [cellClassID,IDs,tf,markerScore]=ct.classifyByScore(tcounts,genes);
             classID = cellClassID;
             ids = unique(clusterID);
             for id = ids
                 thisclass = mode(cellClassID(clusterID==id));
                 classID(clusterID==id) = thisclass;
             end
+        end
+        
+        function [classID,dom_markers]=classifyClusterByDOM(ct,clusterID,ncounts, tcounts,genes, threshgroup)
+            ctnames=ct.Names();
+            clusterID=categorical(clusterID);
+            clust_names=categories(clusterID);
+            
+            if nargin-1==2
+                %DOM analysis passed in as ncounts
+                DOM=ncounts;
+                for i=1:length(clust_names)
+                    domgenes=DOM.(clust_names{i}).name;
+                    for j=1:length(ctnames)
+                        dom_markers{i,j}=domgenes(ismember(domgenes,ct.Markers(ctnames{j})));
+                    end
+                end
+            else
+                % check dominant genes (no stats) for enrichment of ct.Markers 
+                params.direction='up';
+                params.prctMetric='diff';
+                params.prctESThr=20;
+                params.minPrctEffect=0;
+                params.fcExprThr=2;
+                params.minFcExpr=1.0;
+                params.combine_prct_expr='or';
+
+                self.names={'self'};
+                self.minprct=20;
+                % self.maxprct=15; %down
+                self.poolmethod='all';
+
+                other.names={'other'};
+                % other.minprct=20; %down
+                other.maxprct=5;
+                other.poolmethod='some';
+                other.some_N=2;
+
+                classID=strings(1,size(tcounts,2));
+                genesByClust=getExpression(genes,ncounts,tcounts,clusterID,[],threshgroup);
+                for i=1:length(clust_names)
+                    s=self; o=other;
+                    s.names=clust_names(i);
+                    o.names=setdiff(clust_names, s.names, 'stable');
+                    [dominant, ~, ~]=identifyDominantGenes(genesByClust, s, o, [], params);
+                    Dnames{i}=dominant;
+                    for j=1:length(ctnames)
+                        dom_markers{i,j}=dominant.name(ismember(dominant.name,ct.Markers(ctnames{j})));
+                    end
+                end
+            end
+            
+            numdom=cellfun(@length,dom_markers);
+            [nmax,maxix]=max(numdom,[],2);
+            for i=1:length(clust_names)
+                classID(clusterID==clust_names{i})=ctnames(maxix(i));
+            end
+            classID=categorical(classID,ctnames,ctnames);
+            
         end
         
         function ct=setNames(ct,oldNames,newNames)
