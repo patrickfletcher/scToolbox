@@ -20,6 +20,7 @@ if exclude_hiexp
     %redo the counts_per_cell
     high_frac=full(sum(counts>max_frac*counts_per_cell,2));
     counts_per_cell=full(sum(counts(~high_frac,:),1));
+    scale=median(counts_per_cell);
 end
 
 %size factors
