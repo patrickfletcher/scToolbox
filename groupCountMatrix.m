@@ -33,6 +33,7 @@ for i=1:length(groupNames)
         if groupCounts(i)>1
 
             switch orderCellsOption
+                
                 case 'none'
                     ixs=1:size(Ysub,2);
                     
@@ -43,6 +44,10 @@ for i=1:length(groupNames)
                 case 'mean'
                     MEAN=mean(Ysub,1);
                     [~,ixs]=sort(MEAN,'descend');
+                    
+                case 'sum'
+                    SUM=sum(Ysub,1);
+                    [~,ixs]=sort(SUM,'descend');
         
                 case 'optim'
 %                     K=min(groupCounts(i),minK);
