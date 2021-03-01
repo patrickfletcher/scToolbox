@@ -1,9 +1,15 @@
-function plot_top_expressed(counts,genes,N, figID)
+function plot_top_expressed(counts,genes,N, figID, no_house_keeping)
 msz=1;
 
 %another option:
 % N = find(cum_mpg>total_frac,1,'first'); %total_frac is parameter, eg .25
 
+if exist('no_house_keeping','var') && no_house_keeping
+    rm_genes=startsWith(genes.name,'Mt-')|startsWith(genes.name,'Rpl')|startsWith(genes.name,'Rps');
+    counts(rm_genes,:)=[];
+    genes(rm_genes,:)=[];
+end
+    
 if isnumeric(N) && isscalar(N)
     [mpgs,ixs]=sort(genes.n_umi,'descend');
     gix=ixs(1:N);

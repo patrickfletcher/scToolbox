@@ -44,8 +44,21 @@ nPerGroup=countcats(varGroup);
 if exist('sortmethod','var')
     switch sortmethod
         case 'alpha'
-            [geneNames,ixs]=sort(geneNames);
+%             [geneNames,ixs]=sort(geneNames);
+            [geneNames,ixs]=natsort(cellstr(geneNames));
             PRCT=PRCT(ixs,:);
+        case 'nnz'
+            [PRCT,ixs]=groupCountMatrix(PRCT',varGroup,'nnz');
+            PRCT=PRCT';
+            geneNames=geneNames(ixs);
+        case 'mean'
+            [PRCT,ixs]=groupCountMatrix(PRCT',varGroup,'mean');
+            PRCT=PRCT';
+            geneNames=geneNames(ixs);
+        case 'sum'
+            [PRCT,ixs]=groupCountMatrix(PRCT',varGroup,'sum');
+            PRCT=PRCT';
+            geneNames=geneNames(ixs);
         case 'optim'
             [PRCT,ixs]=groupCountMatrix(PRCT',varGroup,'optim');
             PRCT=PRCT';

@@ -96,6 +96,7 @@ if exist('subplotdims','var')&&~isempty(subplotdims)
     end
 end
 if mustMakeAxes
+    clf
     AX=tight_subplot(nr,nc,[],sp_params.gap,sp_params.marg_h,sp_params.marg_w);
 end
 

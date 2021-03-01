@@ -13,9 +13,13 @@ classdef upsetplot < handle %graphics object??
 %         order_method='comb'
 %         n_member_thr=Inf %max num members in a combo
         combs
-        %bar chart look shortcuts
         
-        %combination plot look shortcuts
+        %data
+        excl_inter
+        
+        %bar chart appearance shortcuts
+        
+        %combination plot appearance shortcuts
     end
     
     %internal handles and data (Access=private) 
@@ -54,9 +58,9 @@ classdef upsetplot < handle %graphics object??
             
             %prepare data
             n_sets=length(sets);
-            [excl_inter,setix]=get_exclusive_intersections(sets);
+            [hup.excl_inter,setix]=get_exclusive_intersections(sets, setnames);
             set_counts=cellfun(@length,sets);
-            inter_counts=cellfun(@length,excl_inter);
+            inter_counts=cellfun(@length,hup.excl_inter);
             
             switch hup.order_method
                 case 'size'
