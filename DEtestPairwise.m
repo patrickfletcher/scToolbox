@@ -1,4 +1,4 @@
-function [p, adj_p, combs]=DEtestPairwise(X, group, method)
+function [p, adj_p, combs]=DEtestPairwise(X, group, method, keepTypes)
 % just pairwise tests
 
 correctionmethod='fdr';
@@ -9,6 +9,7 @@ nGenes=size(X,1);
 
 group=categorical(group);
 groupNames=categories(group);
+groupNames=groupNames(:)';
 groupCounts=countcats(group);
 nGroups=length(groupNames);
 
@@ -16,10 +17,16 @@ if nGroups<2
     error('must have at least two groups to compare')
 end
 
-nPairs=nchoosek(nGroups,2);
-
-groupNames=groupNames(:)';
 combs=combnk(groupNames,2);
+
+if exist('keepTypes')
+    keepPair = any(ismember(combs,keepTypes),2);
+    combs=combs(keepPair,:);
+end
+
+nPairs=size(combs,1);
+% nPairs=nchoosek(nGroups,2);
+
 
 %filter genes if desired, else all genes tested
 % keep=true(nGenes,1); %all

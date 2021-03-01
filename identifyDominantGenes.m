@@ -3,6 +3,8 @@ function [dominant,specific,allgenes,dominantCondition, specificCondition]...
 
 %self/other names must be same categories used to generate pairwise P values..
 
+% if P not supplied, just check the effect sizes!
+
 %TODO: check for & exclude internal dominance when self is a group? 
 % - i.e. homogeneity constraint: strict co-dominance
 
@@ -16,15 +18,21 @@ nGenes=height(genes);
 
 %TODO: switch to use just one test or other
 
-% whole group quantities, tests: P.anova, P.chi2
-test_pAnova=true(nGenes,1);
-if isfield(P,'anova')
-    test_pAnova = P.anova < params.pthr;
+useP=false;
+Panova=zeros(nGenes,1);
+Pchi2=zeros(nGenes,1);
+if ~isempty(P)
+    useP=true;
+    % whole group quantities, tests: P.anova, P.chi2
+    if isfield(P,'anova')
+        Panova = P.anova;
+    end
+    if isfield(P,'chi2')
+        Pchi2 = P.chi2;
+    end
 end
-test_pChi2=true(nGenes,1);
-if isfield(P,'chi2')
-    test_pChi2 = P.chi2 < params.pprothr;
-end
+test_pAnova=Panova < params.pthr;
+test_pChi2=Pchi2 < params.pprothr;
 
 % group-wise quantities, tests: prct, expr
 exprselfnames=strcat("expr_",self.names(:));
@@ -41,6 +49,9 @@ test_selfMinPrct=prct_self>self.minprct; %for up
 test_otherMaxPrct=prct_other<other.maxprct;  %for up SPEC: all vs pairwise?
 test_selfMaxPrct=prct_self<self.maxprct; %for down
 test_otherMinPrct=prct_other>other.minprct;
+
+%bug with self.poolmethod='any': need to apply the minPrct & specific tests
+%per self.name in that case
 switch params.direction
     case 'up'
         test_minPrct=all(test_selfMinPrct,2);
@@ -52,7 +63,7 @@ switch params.direction
         test_minPrct=all(test_selfMinPrct,2)|all(test_otherMinPrct,2);
         test_specific=all(test_otherMaxPrct,2)|all(test_selfMaxPrct,2);
 end
-    
+
 %make the following parameters:
 exprESname='fc_expr';
 prctESname='d_prct';
@@ -107,12 +118,17 @@ for i=1:length(self.names)
     pairwise_exprES=[pairwise_exprES,this_exprES];
     pairwise_prctES=[pairwise_prctES,this_prctES];
     
-    %Pairwise p-values. loop only to get otherNameInCombo
-    selfNameInCombo=any(strcmp(P.combs,self.names{i}),2);
-    otherNameInCombo=any(ismember(P.combs,other.names),2);
-    this_pmc=P.mc(:,selfNameInCombo&otherNameInCombo);
-    this_pz=P.z(:,selfNameInCombo&otherNameInCombo);
-
+    if useP
+        %Pairwise p-values. loop only to get otherNameInCombo
+        selfNameInCombo=any(strcmp(P.combs,self.names{i}),2);
+        otherNameInCombo=any(ismember(P.combs,other.names),2);
+        this_pmc=P.mc(:,selfNameInCombo&otherNameInCombo);
+        this_pz=P.z(:,selfNameInCombo&otherNameInCombo);
+    else
+        this_pmc=zeros(size(this_exprES)); %makes P-val tests always true
+        this_pz=zeros(size(this_prctES));
+    end
+    
     pairwise_Pmc=[pairwise_Pmc, this_pmc];
     pairwise_Pz=[pairwise_Pz, this_pz];
 
@@ -162,6 +178,8 @@ for i=1:length(self.names)
     % combine the two ES tests
     switch params.combine_prct_expr
         case 'or'
+            %marks dominant if some tests pass only by expr, others only by
+            %prct such that neither all(expr tests) nor all(prct test).
             pairwise_combinedES=pairwise_Expr|pairwise_Prct; %permits either test
 %             pairwise_combinedES_spec=pairwise_Expr_spec|pairwise_Prct_spec;
         case 'and'
@@ -197,10 +215,10 @@ end
 %     specific_otherpooled=dominant_otherpooled & all(test_thisOtherPrct,2);
 % end
 
+    
 % test_prct and test_specific
 dominant_otherpooled = dominant_otherpooled & test_minPrct;
-specific_otherpooled = dominant_otherpooled;
-specific_otherpooled = specific_otherpooled & test_specific;
+specific_otherpooled = dominant_otherpooled & test_specific;
 
     
 %pairwise self pooling
@@ -229,25 +247,29 @@ allgenes=table();
 allgenes.id=genes.id;
 allgenes.name=genes.name;
 
-allgenes.all_expr_test=exprTestPooled;
-allgenes.all_prct_test=prctTestPooled;
+
+allgenes.dominant=dominantCondition; %mainly for allgenes
 allgenes.specific=specificCondition;
 
+allgenes.all_expr_test=exprTestPooled;
+allgenes.all_prct_test=prctTestPooled;
+
 %effect sizes
+allgenes.min_d_prct=min(pairwise_d_prct,[],2);
+allgenes.max_d_prct=max(pairwise_d_prct,[],2);
 allgenes.min_fc_expr=min(pairwise_fc_expr,[],2);
 allgenes.max_fc_expr=max(pairwise_fc_expr,[],2);
 allgenes.min_log2fc_expr=min(pairwise_log2fc_expr,[],2);
 allgenes.max_log2fc_expr=max(pairwise_log2fc_expr,[],2);
-allgenes.min_d_prct=min(pairwise_d_prct,[],2);
-allgenes.max_d_prct=max(pairwise_d_prct,[],2);
 % allgenes.min_d_prct_rel=min(pairwise_d_prct_rel,[],2);
 % allgenes.max_d_prct_rel=max(pairwise_d_prct_rel,[],2);
 
+
 % anova, chi2, and worst pariwise p-values
-allgenes.p_anova=P.anova;
+allgenes.p_anova=Panova;
 allgenes.min_pwp=min(pairwise_Pmc,[],2);
 allgenes.max_pwp=max(pairwise_Pmc,[],2);
-allgenes.p_chi2=P.chi2;
+allgenes.p_chi2=Pchi2;
 allgenes.min_pwz=min(pairwise_Pz,[],2);
 allgenes.max_pwz=max(pairwise_Pz,[],2);
 
@@ -262,7 +284,6 @@ allgenes.max_self_expr=max(expr_self,[],2);
 allgenes.min_other_expr=min(expr_other,[],2);
 allgenes.max_other_expr=max(expr_other,[],2);
 
-allgenes.dominant=dominantCondition; %mainly for allgenes
 
 %raw expression/prct values per type
 allgenes=[allgenes,genes(:,...
@@ -281,7 +302,7 @@ dominant=allgenes(dominantCondition,:);
 specific=allgenes(specificCondition,:);
 
 % if length(self.names)>1
-allgenes=allgenes(~(allgenes.max_self_expr==0)&~(allgenes.max_other_expr==0),:);
+% allgenes=allgenes(~(allgenes.max_self_expr==0)&~(allgenes.max_other_expr==0),:);
 % else
 % allgenes=allgenes(~(allgenes.self_expr==0)&~(allgenes.max_other_expr==0),:);
 % end
