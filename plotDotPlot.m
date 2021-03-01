@@ -1,10 +1,8 @@
-function [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,sp_params,do_var_norm)
+function [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,params,do_var_norm)
 %dot plot: area = %>0, color = mean expression value, for a list of genes and
 %groups of cells.
 %
 % [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,sp_params,do_var_norm)
-
-%TODO> BUG:  ax(2) prct legend sizes are different than main fig (different data axes?)
 
 %%%% input parsing
 % p=inputParser();
@@ -15,39 +13,32 @@ function [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis
 %TODO: varGroup contains label info, add as text centered on each block
 
 %TODO: pass all the following in via sp_params (or default constructor?)
-mrkr='s';
-%TODO: finer control of labels for % etc
 
-if ~exist('sp_params','var')||isempty(sp_params)
-    sp_params.gap=0.1;
-    sp_params.marg_h=0.1;
-    sp_params.marg_w=0.1;
-    sp_params.minArea=0;
-    sp_params.maxArea=200;
-    sp_params.prct_leg=25:25:100; %should these be generated from data?
-    sp_params.cb_prct_gap=0.01;
-    sp_params.cb_gap=0.02;
-    sp_params.cb_width=0.02;
-    sp_params.cblabel='mean log_{10} expression';
+mrkr='o'; %squares don't scale right
+
+def_params.gap=0.1;
+def_params.marg_h=[0.1,0.1];
+def_params.marg_w=[0.1,0.1];
+def_params.minArea=0;
+def_params.maxArea=16;
+def_params.min_prct = 0; 
+def_params.prct_leg=25:25:100; %should these be generated from data?
+def_params.prct_leg_height=0.05;
+def_params.cb_prct_gap=0.01;
+def_params.cb_gap=0.02;
+def_params.cb_width=0.02;
+def_params.cblabel='mean log_{10} expression';
+
+if ~exist('params','var')||isempty(params)
+    params=def_params;
+end
+parfields=fieldnames(def_params);
+for i=1:length(parfields)
+    if ~isfield(params,parfields{i})
+        params.(parfields{i})=def_params.(parfields{i});
+    end
 end
 
-if ~exist('do_var_norm','var')
-    do_var_norm=false;
-end
-
-minArea=sp_params.minArea; 
-maxArea=sp_params.maxArea;
-% maxArea=(ax(1).Position(3)/length(groupNames))^2;
-if minArea==0, minArea=eps; end
-prct_leg_areas=minArea+(maxArea-minArea)*sp_params.prct_leg/100;
-prct_leg_areas=prct_leg_areas.^2;
-prct_leg_nums=round(sp_params.prct_leg/100*max(sizeData(:)));
-prct_leg_labels=strcat(num2str(prct_leg_nums(:)),{'%'});
-
-% cmap=cbrewer('qual','Set1',9);
-% cmap=cbrewer('seq','Greens',15);
-cmap=cbrewer('seq','Reds',15);
-% cmap=cmap(5:end,:);
 
 if ~exist('varGroup','var') || isempty(varGroup)
     varGroup=ones(size(varNames));
@@ -65,7 +56,7 @@ if exist('sortmethod','var') && ~isempty(sortmethod)
                 varsub=varNames(thiscat);
                 sizesub=sizeData(thiscat,:);
                 colorsub=colorData(thiscat,:);
-                [~,ixs]=sort(varsub);
+                [~,ixs]=natsort(varsub);
                 varsub=varsub(ixs);
                 sizesub=sizesub(ixs,:);
                 colorsub=colorsub(ixs,:);
@@ -119,10 +110,65 @@ if exist('sortmethod','var') && ~isempty(sortmethod)
 
 end
 
+%meanExpr row-wise unitize?
+if ~exist('do_var_norm','var')
+    do_var_norm=false;
+end
 
-[X,Y]=meshgrid(1:length(groupNames),1:length(varNames));
+if do_var_norm
+    colorData=colorData./max(colorData,[],2);
+end
 
-%%%% set up the figure and axes
+
+
+%%%% rescale frac to [minArea,maxArea]
+minArea=params.minArea; if minArea==0, minArea=eps; end
+maxArea=params.maxArea;
+% maxArea=(ax(1).Position(3)/length(groupNames))^2;
+
+minSizeData=min(sizeData(:));
+maxSizeData=max(sizeData(:));
+sizeData(sizeData<params.min_prct)=nan;
+sizeData=rescale(sizeData,minArea,maxArea,'InputMin',minSizeData,'InputMax',maxSizeData);
+sizeData=sizeData.^2;
+
+%prct_leg = # sizes to show >=2 [min%, max% + even breaks between]
+if isscalar(params.prct_leg)
+    n_prct_leg = params.prct_leg;
+    leg_prct=linspace(params.min_prct,maxSizeData,n_prct_leg);
+else
+    leg_prct=params.prct_leg;
+    leg_prct(leg_prct>maxSizeData)=maxSizeData;
+    leg_prct=unique(leg_prct);
+end
+prct_leg_sizes=rescale(leg_prct,minArea,maxArea,'InputMin',minSizeData,'InputMax',maxSizeData);
+prct_leg_sizes=prct_leg_sizes.^2;
+
+prct_leg_nums=round(leg_prct);
+prct_leg_labels=strcat(num2str(prct_leg_nums(:)),{'%'});
+
+% prct_leg_areas=(maxArea-minArea)*sp_params.prct_leg/100;
+% prct_leg_nums=round(sp_params.prct_leg);
+% prct_leg_areas=minArea+(maxArea-minArea)*sp_params.prct_leg/100;
+% prct_leg_areas=prct_leg_areas.^2;
+% prct_leg_nums=round(leg_prct/100*max(sizeData(:)));
+% prct_leg_labels=strcat(num2str(prct_leg_nums(:)),{'%'});
+
+% min_size_frac = (min_prct-minSizeData)./(maxSizeData-minSizeData);
+% sizeData=(sizeData-minSizeData)./(maxSizeData-minSizeData); %force sizedata into [0,1]
+% sizeData=minArea+(maxArea-minArea)*sizeData; %area represents prct
+% sizeData(sizeData<=min_size_frac)=nan;
+% sizeData(sizeData==0)=nan;
+% sizeData(ixUnder5)=nan;
+% sizeData=sizeData.^2;
+
+%quantize the size data into bins of 5%
+% ds=(maxArea-minArea)/20;
+% sizeData=ds*floor(sizeData/ds);
+% sizeData(sizeData==0)=eps;
+
+
+%%%% set up the figure and axes %%%%%%%%%%%%%%%%
 mustMakeAxes=true;
 if exist('figOrAxis','var')
     if isa(figOrAxis,'matlab.ui.Figure')
@@ -136,31 +182,24 @@ else
     figH=figure();
 end
 
+pos=[params.marg_w(1),params.marg_h(1),1-params.marg_w(1)-params.marg_w(2),1-params.marg_h(1)-params.marg_h(2)];
 if mustMakeAxes
-    ax=tight_subplot(1,1,1,sp_params.gap,sp_params.marg_h,sp_params.marg_w);
+%     ax=tight_subplot(1,1,1,sp_params.gap,sp_params.marg_h,sp_params.marg_w);
+    ax=axes('OuterPosition',[0,0,1,1],'Position',pos);
 end
 
-colormap(cmap)
+ax.PositionConstraint='outerposition';
+% ax.Position
+% ax.PositionConstraint
+% ax.OuterPosition
 
-%rescale frac to [minArea,maxArea]
-
-%can't have markers of size zero
-sizeData=(sizeData-min(sizeData(:)))./(max(sizeData(:))-min(sizeData(:))); %force sizedata into [0,1]
-sizeData=minArea+(maxArea-minArea)*sizeData; %area represents prct: 
-sizeData=sizeData.^2;
-
-%quantize the size data into bins of 5%
-% ds=(maxArea-minArea)/20;
-% sizeData=ds*floor(sizeData/ds);
-% sizeData(sizeData==0)=eps;
-
-%meanExpr row-wise unitize?
-if do_var_norm
-    colorData=colorData./max(colorData,[],2);
-end
-
+%%%% plot %%%%%%%%%%%%%%%%
+[X,Y]=meshgrid(1:length(groupNames),1:length(varNames));
 hs=scatter(ax,X(:),Y(:),sizeData(:),colorData(:),mrkr,'filled');
 hs.MarkerEdgeColor=0.5*[1,1,1];
+
+cmap=cbrewer('seq','Reds',64);
+colormap(ax, cmap)
 
 xlim([0.5,length(groupNames)+0.5])
 ylim([0.5,length(varNames)+0.5])
@@ -176,33 +215,38 @@ end
 ax.YDir='reverse';
 set(ax,'XTick',1:length(groupNames),'XTickLabel',groupNames)
 set(ax,'YTick',1:length(varNames),'YTickLabel',varNames)
+
 axPos=ax.Position;
 axTop=axPos(2)+axPos(4);
 axRight=axPos(1)+axPos(3);
+cRight=axRight-axPos(3)/2;
 
 cb=colorbar('orientation','horizontal');
+cb.Position(1)=ax.Position(1);
+cb.Position(2)=axTop+params.cb_gap;
+cb.Position(3)=axPos(3)/2;
+cb.Position(4)=params.cb_width;
 rp=2;
 cb.Ticks=[ceil(10^rp*cb.Limits(1)),floor(10^rp*diff(cb.Limits)/2),floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
 cb.TickLength=0.025;
-ylabel(cb,sp_params.cblabel)
 
-cb.Position(1)=axPos(1);
-cb.Position(2)=axTop+sp_params.cb_gap;
-cb.Position(3)=axPos(3)/2;
-cb.Position(4)=sp_params.cb_width;
-cRight=axRight-0.2;
+
+cb.Label.String=params.cblabel;
+% cb.Label.HorizontalAlignment='right';
+cb.Label.Units='normalized';
+% cb.Label.Position(1)=0.25;
 
 %legend for %
 ax(2)=axes(gcf,'Position',...
-    [cRight+sp_params.cb_prct_gap, axTop+sp_params.cb_gap,...
-     axRight-cRight-sp_params.cb_prct_gap, 1-axTop-sp_params.cb_gap-sp_params.cb_width]);
+    [cRight+params.cb_prct_gap, axTop+params.cb_gap,...
+     axRight-cRight-params.cb_prct_gap, params.prct_leg_height]);
  
 xvals=ones(size(prct_leg_labels));
 yvals=1:length(prct_leg_labels);
-hs(2)=scatter(xvals,yvals,prct_leg_areas,'w',mrkr,'filled');
-hs(2).ZData=prct_leg_areas;
+hs(2)=scatter(xvals,yvals,prct_leg_sizes,'w',mrkr,'filled');
+hs(2).ZData=-prct_leg_sizes;
 hs(2).MarkerEdgeColor=0.5*[1,1,1];
-ht=text(ax(2),xvals+0.75,yvals,prct_leg_labels,'HorizontalAlignment','left','FontSize',cb.Label.FontSize);
+ht=text(ax(2),xvals+0.5,yvals,prct_leg_labels,'HorizontalAlignment','left','FontSize',cb.Label.FontSize);
 xlim([0.5,2.75])
 ylim([0.5,length(prct_leg_labels)+0.5])
 axis off
