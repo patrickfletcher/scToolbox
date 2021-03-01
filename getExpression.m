@@ -19,11 +19,19 @@ if exist('factor2','var')&&~isempty(factor2)
 end
 
 doThreshold=false;
-if exist('threshgroup','var')&&~isempty(threshgroup)
-    threshgroup=categorical(threshgroup);
-    threshgroups=categories(threshgroup);
-    doThreshold=true;
+if exist('threshgroup','var')
+    if isscalar(threshgroup)
+        if threshgroup==1 %will use genes.thr
+            threshgroups=1;
+            doThreshold=true;
+        end
+    elseif length(threshgroup)==size(tcounts,2)
+        threshgroup=categorical(threshgroup);
+        threshgroups=categories(threshgroup);
+        doThreshold=true;
+    end
 end
+
 if doThreshold
     if length(threshgroups)>1
         for i=1:length(threshgroups)

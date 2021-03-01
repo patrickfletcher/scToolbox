@@ -32,7 +32,7 @@ dispersion=(varExpr-meanExpr)./meanExpr.^2; %negative if mean>var
 
 clear ncounts
 
-quantiles=prctile(meanExpr,0:round(100/params.nBins):100);
+quantiles=prctile(meanExpr,0:100/(params.nBins):100);
 quantiles(end+1)=max(meanExpr);
 quantiles = unique(quantiles);
 params.nBins=length(quantiles);

@@ -130,8 +130,14 @@ disp("simplicial_set_embedding time: " + num2str(toc) + "s")
 
 if exist('figID','var')
     figure(figID);clf
-    plotScatter(result.coords,'value',valuenames,colors,figID);
-    axis tight
-    axis equal
+    if ~exist('valuenames','var')
+        valuenames='';
+        colors=ones(size(X,1),1);
+    end
+    ax=plotScatter(result.coords,'value',valuenames,colors,figID,[],[],'index');
+    for i=1:length(ax)
+        axis(ax(i),'tight')
+        axis(ax(i),'equal')
+    end
     drawnow
 end

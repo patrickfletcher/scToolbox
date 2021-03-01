@@ -144,7 +144,7 @@ if isfield(params,'clust')&&~isempty(params.clust)
     
     if doPlot && ~isempty(result.tsne)
         fh=figure(115);clf
-        [ax,hs]=plotScatter(result.tsne.coords,'group',result.clust.clusterID,colors,fh);
+        [ax,hs]=plotScatter(result.tsne.coords,'group',result.clust.clusterID,[],fh);
 %         for i=1:length(hs)
 %             hs(i).SizeData=5;
 %         end
@@ -156,7 +156,7 @@ if isfield(params,'clust')&&~isempty(params.clust)
     end
     if doPlot && ~isempty(result.umap)
         fh=figure(116);clf
-        [ax,hs]=plotScatter(result.umap.coords,'group',result.clust.clusterID,colors,fh);
+        [ax,hs]=plotScatter(result.umap.coords,'group',result.clust.clusterID,[],fh,[],[],'index');
 %         for i=1:length(hs)
 %             hs(i).SizeData=5;
 %         end

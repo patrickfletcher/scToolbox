@@ -2,7 +2,7 @@ function geneData=getPrctExpressionPerType(tcounts,gene_list,group,thresh)
 %threshold and tcounts must match
 
 geneData=table();
-geneData.gene=gene_list(:);
+geneData.name=gene_list(:);
 
 %thresh is zero by default (no arg passed). Could be a scalar, or list of genewise thresholds. Can also pass char
 %thresh method name (eg otsu)

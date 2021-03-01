@@ -1,4 +1,4 @@
-function [exclusive_intersections, intersection_ix]=get_exclusive_intersections(sets, setnames)
+function [exclusive_intersections, intersection_ix, int_combo_names]=get_exclusive_intersections(sets, setnames)
 % computes the "exclusive intserctions" of the input sets. That is, the
 % partitions of all elements into all possible combinations of
 % intersections.
@@ -40,7 +40,9 @@ for k=1:n_sets
     end
 end
 
-%
+for i=1:length(intersection_ix)
+    int_combo_names{i}=setnames(intersection_ix{i});
+end
 
 % % sets=varargin;
 % n_sets=length(sets);
