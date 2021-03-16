@@ -222,14 +222,13 @@ axRight=axPos(1)+axPos(3);
 cRight=axRight-axPos(3)/2;
 
 cb=colorbar('orientation','horizontal');
-cb.Position(1)=ax.Position(1);
 cb.Position(2)=axTop+params.cb_gap;
-cb.Position(3)=axPos(3)/2;
 cb.Position(4)=params.cb_width;
+cb.Position(3)=axPos(3)/2;
+cb.Position(1)=ax.Position(1); %doing this last makes it work...
 rp=2;
 cb.Ticks=[ceil(10^rp*cb.Limits(1)),floor(10^rp*diff(cb.Limits)/2),floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
 cb.TickLength=0.025;
-
 
 cb.Label.String=params.cblabel;
 % cb.Label.HorizontalAlignment='right';
