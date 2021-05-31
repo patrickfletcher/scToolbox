@@ -39,14 +39,15 @@ for i=1:size(tf,1)
     geostds(i)=exp(std(log(thisqc)));
     warning(lozwarning);
             
-    %make manual settings apply to the threshold parameter, not fixed val?
-    params=result.params;
-    if ismember(thisctname,params.manual_low.names)
-        params.ndev_lo=params.manual_low.vals(params.manual_low.names==thisctname);
-    end
-    if ismember(thisctname,params.manual_high.names)
-        params.ndev_hi=params.manual_high.vals(params.manual_high.names==thisctname);
-    end
+    %TODO: manual mode option - ndev vs val
+%     %make manual settings apply to the threshold parameter, not fixed val?
+%     params=result.params;
+%     if ismember(thisctname,params.manual_low.names)
+%         params.ndev_lo=params.manual_low.vals(params.manual_low.names==thisctname);
+%     end
+%     if ismember(thisctname,params.manual_high.names)
+%         params.ndev_hi=params.manual_high.vals(params.manual_high.names==thisctname);
+%     end
     
     switch params.method
         case 'fixed'
@@ -92,12 +93,13 @@ for i=1:size(tf,1)
     lowthr(i)=max(lowthr(i),params.lowthr_clipval); %clamp to manual clip-vals thresholds
     hithr(i)=min(hithr(i),params.hithr_clipval); 
     
-%     if ismember(thisctname,params.manual_low.names)
-%         lowthr(i)=params.manual_low.vals(params.manual_low.names==thisctname);
-%     end
-%     if ismember(thisctname,params.manual_high.names)
-%         hithr(i)=params.manual_high.vals(params.manual_high.names==thisctname);
-%     end
+    %manual settings of val directly - override everything else
+    if ismember(thisctname,params.manual_low.names)
+        lowthr(i)=params.manual_low.vals(params.manual_low.names==thisctname);
+    end
+    if ismember(thisctname,params.manual_high.names)
+        hithr(i)=params.manual_high.vals(params.manual_high.names==thisctname);
+    end
     
     %special value for "Unc": lowthr=min(others), hithr=max(others)
     % Assumes Unc is last. 
