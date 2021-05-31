@@ -1,4 +1,6 @@
 function geneTable=getExpression(genes,ncounts,tcounts,factor1,factor2,threshgroup)
+%geneTable=getExpression(genes,ncounts,tcounts,factor1,factor2,threshgroup)
+%
 %get gene expression for groups defined by two levels of factors
 %
 % assumes tcounts is already threshold-subtracted, unless a threshold-group
@@ -7,12 +9,18 @@ function geneTable=getExpression(genes,ncounts,tcounts,factor1,factor2,threshgro
 %TODO: use stratify_factors
 
 %remove cats first?
+if ~iscategorical(factor1)
+    factor1=categorical(factor1);
+end
 factor1=removecats(factor1);
 factor1Names=categories(factor1);
 
 do2factor=false;
 if exist('factor2','var')&&~isempty(factor2)
     %remove cats first?
+    if ~iscategorical(factor2)
+        factor2=categorical(factor2);
+    end
     factor2=removecats(factor2);
     factor2Names=categories(factor2);
     do2factor=true;

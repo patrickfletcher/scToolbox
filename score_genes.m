@@ -17,9 +17,9 @@ end
 
 rng(rng_state)
 
-cellsExpr=sum(expr>0,2);
-expr=expr(cellsExpr>=min_cells,:);
-gene_pool=gene_pool(cellsExpr>=min_cells);
+% cellsExpr=sum(expr>0,2);
+% expr=expr(cellsExpr>=min_cells,:);
+% gene_pool=gene_pool(cellsExpr>=min_cells);
 
 meanExpr=mean(expr,2);
 [sortedMean,ixs]=sort(meanExpr); %genebin_ids should index into sorted ixs
@@ -36,10 +36,11 @@ qbins=unique(genebin_id(qixs));
 bg_ix=[];
 for i=1:length(qbins)
     this_bin=find(genebin_id==qbins(i));
-    rand_ix=this_bin(randi([1,length(this_bin)],1,ctrl_size));
+    rand_ix=this_bin(randperm(length(this_bin),ctrl_size));
+%     rand_ix=this_bin(randi([1,length(this_bin)],1,ctrl_size));
     bg_ix=[bg_ix;ixs(rand_ix)]; %gene IDs from the this bin
 end
-bg_ix=setdiff(bg_ix,qix);
+bg_ix=setdiff(bg_ix,qix); %don't include query genes
 
 q_means=mean(expr(qix,:),1); %mean of expression across query genes, per cell
 bg_means=mean(expr(bg_ix,:),1);
