@@ -1,4 +1,4 @@
-function result=findVariableGenes(ncounts,genes,params,figID,highlightGenes)
+function [result, meanExpr, dispersion, rawnormdisp, ishvg]=findVariableGenes(ncounts,genes,params,figID,highlightGenes)
 %operates on normalized counts, which maintains mean-variance relations (negative binomial)
 
 %TODO: add per-batch capability
@@ -21,8 +21,9 @@ result.params = params;
 cellsExpr=sum(ncounts>0,2);
 % fracExpr=cellsExpr/size(ncounts,2);
 meanExpr=mean(ncounts,2,'omitnan');
-stdExpr=std(ncounts,[],2,'omitnan');
-varExpr=stdExpr.^2;
+% stdExpr=std(ncounts,[],2,'omitnan');
+% varExpr=stdExpr.^2;
+varExpr=var(ncounts,[],2,'omitnan');
 % dispersion=sqrt(stdExpr);
 % dispersion=stdExpr;
 % dispersion=varExpr;
@@ -137,6 +138,9 @@ result.nHVG=length(hvgix);
 result.ix=hvgix;
 % result.gene_name=genes.name(hvgix);
 % result.gene_id=genes.id(hvgix);
+
+ishvg=false(size(meanExpr));
+ishvg(hvgix)=true;
 
 if exist('figID','var')
     figure(figID);clf
