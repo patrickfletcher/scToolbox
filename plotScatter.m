@@ -39,7 +39,9 @@ cb_gap=sp_params.cb_gap;
 cb_width=sp_params.cb_width;
 
 if ~exist('figID','var')||isempty(figID)
-    figID=figure();
+    if ~exist('subplotdims','var')||isempty(subplotdims)||~(class(subplotdims)=="matlab.graphics.axis.Axes")
+        figID=figure();
+    end
 else
     figure(figID);
 end

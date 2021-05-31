@@ -122,9 +122,11 @@ end
 
 
 %%%% rescale frac to [minArea,maxArea]
-minArea=params.minArea; if minArea==0, minArea=eps; end
+minArea=params.minArea; 
 maxArea=params.maxArea;
 % maxArea=(ax(1).Position(3)/length(groupNames))^2;
+if minArea==0, minArea=eps; end
+if params.min_prct==0, params.min_prct=eps; end
 
 minSizeData=min(sizeData(:));
 maxSizeData=max(sizeData(:));
@@ -197,6 +199,7 @@ ax.PositionConstraint='outerposition';
 [X,Y]=meshgrid(1:length(groupNames),1:length(varNames));
 hs=scatter(ax,X(:),Y(:),sizeData(:),colorData(:),mrkr,'filled');
 hs.MarkerEdgeColor=0.5*[1,1,1];
+hs.LineWidth=0.1;
 
 cmap=cbrewer('seq','Reds',64);
 colormap(ax, cmap)
@@ -227,7 +230,7 @@ cb.Position(4)=params.cb_width;
 cb.Position(3)=axPos(3)/2;
 cb.Position(1)=ax.Position(1); %doing this last makes it work...
 rp=2;
-cb.Ticks=[ceil(10^rp*cb.Limits(1)),floor(10^rp*diff(cb.Limits)/2),floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
+% cb.Ticks=[ceil(10^rp*cb.Limits(1)),floor(10^rp*diff(cb.Limits)/2),floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
 cb.TickLength=0.025;
 
 cb.Label.String=params.cblabel;
@@ -245,6 +248,7 @@ yvals=1:length(prct_leg_labels);
 hs(2)=scatter(xvals,yvals,prct_leg_sizes,'w',mrkr,'filled');
 hs(2).ZData=-prct_leg_sizes;
 hs(2).MarkerEdgeColor=0.5*[1,1,1];
+hs(2).LineWidth=0.1;
 ht=text(ax(2),xvals+0.5,yvals,prct_leg_labels,'HorizontalAlignment','left','FontSize',cb.Label.FontSize);
 xlim([0.5,2.75])
 ylim([0.5,length(prct_leg_labels)+0.5])
