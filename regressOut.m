@@ -27,7 +27,7 @@ for i=1:size(Y,2) %loop over genes
         fprintf('.')
     end
 end
-any(result(:)>clipval)
+% any(result(:)>clipval)
 result(result>clipval)=clipval;
 result(result<-clipval)=-clipval;
 

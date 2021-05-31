@@ -74,8 +74,8 @@ colors = X(ixm(1:4),:);
 % 1b. regressout
 if isfield(params,'regress')&&~isempty(params.regress)
     %pass in names of "cells" table variables to regress out?
-    P = cells{:,params.regress.vars};
-    X = regressOut(P, X')';
+%     P = cells{:,params.regress.vars};
+    X = regressOut(cells, X', params.regress)';
 end
 
 clear tcounts ncounts genes cells
