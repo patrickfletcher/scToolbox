@@ -13,6 +13,7 @@ if exist('group','var')&&~isempty(group)
     if ~iscategorical(group)
         group=categorical(group);
     end
+    group=removecats(group);
     groupNames=categories(group);
     typeCounts=countcats(group);
 
@@ -46,9 +47,11 @@ else
     nonzero=X>0;
 end
 
-doThresh=false;
+doThresh=false; 
 if exist('thresh','var')&&~isempty(thresh)
     doThresh=true;
+else
+    thresh=0;
 end
 
 if isscalar(thresh) && ~isscalar(names)
