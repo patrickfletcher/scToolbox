@@ -11,10 +11,10 @@ function result=doubletDetection(rawcounts, normcounts, logcounts, params, genes
 % slow part: resampling parents
 
 %TODO:
+% - Project synthetic cells onto existing PCs of parent's gene space!!!!!
 % - is FDR really needed?  Also, the value of synthCount for cutoff should be fixed given n_neighbors, nSynth, nCells.
 % - options for newLibSize mode (max now, also possible: mean)
 % - replace parents true/false (true now)
-% - Project synthetic cells onto existing PCs of parent's gene space?
 
 rng(params.rngSeed,'simdTwister') %for speedup?
 % if ~isempty(params.rngSeed) && isscalar(params.rngSeed)
@@ -39,7 +39,8 @@ if params.nReps==0
     return
 end
 
-use_true_cell_HVG=true; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
+%was true, trying false 4/26/21
+use_true_cell_HVG=false; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
 doMultCompareCorrect=true;
 
 if ~isfield(params,'method')
@@ -55,6 +56,8 @@ end
 nSynth=floor(params.boostrate*nCells);
 
 %use true cell HVGs 
+
+hvg=[];
 if use_true_cell_HVG
     %get the HVGs from raw data only
     hvg=findVariableGenes(normcounts, genes, params.hvg);
@@ -65,11 +68,11 @@ if use_true_cell_HVG
     logcounts_aug=logcounts;
     nGenes=length(hvgix);
     logcounts_aug(nGenes,nCells+nSynth)=0; %expand logcounts for synth cells
-else
-    %will find new set of hvgs each iteration
+    
 end
 
-tenth=round(params.nReps/10); %progress meter
+tick=round(params.nReps/10); %progress meter
+t0=tic;
 rep_doublet=false(params.nReps,nCells);
 rep_p=ones(params.nReps,nCells);
 rep_adj_p=ones(params.nReps,nCells);
@@ -83,9 +86,8 @@ for it=1:params.nReps
     if use_true_cell_HVG
         logcounts_aug(:,nCells+1:end)=log10(normcounts_synth(hvgix,:)+1);
     else
-        result=findVariableGenes([normcounts,normcounts_synth], genes, params.hvg);
-        hvgix=result.ix;
-        logcounts_aug=[logcounts(hvgix,:), log10(normcounts_synth(hvgix,:)+1)];
+        hvg=findVariableGenes([normcounts,normcounts_synth], genes, params.hvg);
+        logcounts_aug=[logcounts(hvg.ix,:), log10(normcounts_synth(hvg.ix,:)+1)];
     end
 
     %If always using true_cell_HVG: compute the scale factors for true data
@@ -163,9 +165,9 @@ for it=1:params.nReps
     rep_p(it,:)=p;
     rep_adj_p(it,:)=adj_p;  %store p vals so re-thresholding can be done
     
-    if tenth>0 && mod(it,tenth)==0
-        fprintf('.')
-    elseif tenth==0
+    if tick>0 && mod(it,tick)==0
+        fprintf('.%d(%0.1fs)',it,toc)
+    elseif tick==0
         fprintf('.')
     end
 end
