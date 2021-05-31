@@ -17,16 +17,13 @@ if nGroups<2
     error('must have at least two groups to compare')
 end
 
-combs=combnk(groupNames,2);
+combs=nchoosek(groupNames,2);
+nPairs=size(combs,1);
 
 if exist('keepTypes')
     keepPair = any(ismember(combs,keepTypes),2);
     combs=combs(keepPair,:);
 end
-
-nPairs=size(combs,1);
-% nPairs=nchoosek(nGroups,2);
-
 
 %filter genes if desired, else all genes tested
 % keep=true(nGenes,1); %all

@@ -29,11 +29,9 @@ if nGroups<2
     error('must have at least two groups to compare')
 end
 
-nPairs=nchoosek(nGroups,2);
-
 groupNames=groupNames(:)';
-combs=combnk(groupNames,2);
-% combs=groupNames(c(:,1:2));
+combs=nchoosek(groupNames,2);
+nPairs=size(combs,1);
 
 %filter genes if desired, else all genes tested
 % keep=true(nGenes,1); %all
@@ -77,8 +75,14 @@ for i=1:nGenes2Test
     %correction for nchoosek(nGroups,2) tests. 
     % 'alpha'??
     % 'Ctype': 'tukey-kramer' (default) | 'hsd' | 'lsd' | 'bonferroni' | 'dunn-sidak' | 'scheffe'
+    %[c,m,~,g]=
     c=multcompare(stats,'display',displayopt,'Ctype',ctype);
     pMC(gix,:)=c(:,end)';
+    
+    %m contains mean (rank) and standard errors for each group
+    
+    %CIs for pairwise differences, groups m(c(:,1)) - m(c(:,2)) = c(:,4):
+    %c(:,3)<c(:,5);  if 1-alpha confidence interval contains zero, not sig.
     
     if mod(i,tenth)==0
         fprintf('.')

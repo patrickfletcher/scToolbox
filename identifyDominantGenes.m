@@ -298,6 +298,12 @@ allgenes=[allgenes,array2table(pairwise_exprES,'variablenames',strcat(exprESname
 allgenes=[allgenes,array2table(pairwise_Pmc,'variablenames',strcat('pmc_',fcCombs(:,1),'_',fcCombs(:,2)))];
 allgenes=[allgenes,array2table(pairwise_Pz,'variablenames',strcat('pz_',fcCombs(:,1),'_',fcCombs(:,2)))];
 
+if params.sortval~="none"
+    [allgenes,ixs]=sortrows(allgenes,params.sortval,params.sortdir);
+    dominantCondition=dominantCondition(ixs);
+    specificCondition=specificCondition(ixs);
+end
+
 dominant=allgenes(dominantCondition,:);
 specific=allgenes(specificCondition,:);
 
@@ -337,6 +343,8 @@ params.pthr=0.1;
 params.pthrpw=0.1;
 params.pprothr=0.1;
 params.pprothrpw=0.1;
+params.sortval='none';
+params.sortdir='descend';
 
 %overwrite field values with any that were passed in
 if nargin>0
