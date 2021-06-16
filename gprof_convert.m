@@ -14,5 +14,5 @@ gConvArgs=pyargs('organism',organism,'query',pyquery,'target_namespace',target_n
 res=gp.convert(gConvArgs); %returns list of dicts
 res=Core_py2matlab(res); 
 res=[res{:}];
-converted=struct2table(res); %all IDs map, some gene symbols change.
+converted=struct2table(res);
 toc
