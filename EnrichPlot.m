@@ -9,6 +9,7 @@ classdef EnrichPlot < matlab.graphics.chartcontainer.ChartContainer ...
     properties
         XData (1,:) double = NaN
         YData (1,:) double = NaN
+        ZData (1,:) double = NaN
         SizeData (1,:) double = NaN
         CData (1,:) double = NaN
         TitleText (:,:) char = ''
@@ -17,8 +18,7 @@ classdef EnrichPlot < matlab.graphics.chartcontainer.ChartContainer ...
     end
     
     properties (Access = private, Transient, NonCopyable)
-        BubbleObject (1,1) matlab.graphics.chart.primitive.Bar
-        ErrorBarObject (1,1) matlab.graphics.chart.primitive.ErrorBar
+        BubbleObject (1,1) matlab.graphics.chart.primitive.BubbleChart
     end
     
     properties (Dependent)
@@ -42,24 +42,14 @@ classdef EnrichPlot < matlab.graphics.chartcontainer.ChartContainer ...
     methods (Access = protected)
         function setup(obj)
             ax = getAxes(obj);
-            obj.BarObject = bar(ax,NaN,NaN);
-            hold(ax,'on')
-            obj.ErrorBarObject = errorbar(ax,NaN,NaN,NaN);
-            obj.ErrorBarObject.LineStyle = 'none';
-            obj.ErrorBarObject.LineWidth = 2;
-            obj.ErrorBarObject.Color = [0.6 0.7 1];
-            hold(ax,'off');
+            obj.BubbleObject = bubblechart(ax,NaN,NaN);
         end
         function update(obj)
             % Update Bar and ErrorBar XData and YData
-            obj.BarObject.XData = obj.XData;
-            obj.BarObject.YData = obj.YData;
-            obj.ErrorBarObject.XData = obj.XData;
-            obj.ErrorBarObject.YData = obj.YData;
-            
-            % Update ErrorBar delta values
-            obj.ErrorBarObject.YNegativeDelta = obj.EData;
-            obj.ErrorBarObject.YPositiveDelta = obj.EData;
+            obj.BubbleObject.XData = obj.XData;
+            obj.BubbleObject.YData = obj.YData;
+            obj.BubbleObject.XData = obj.XData;
+            obj.BubbleObject.YData = obj.YData;
             
             % Update axes title
             ax = getAxes(obj);
