@@ -18,7 +18,7 @@ switch method
     case 'medmad'
         params.ndev_lo=1; 
         params.ndev_hi=1; 
-        params.madflag=0;
+        params.madflag=1;
 
     case 'prctile'
         params.lowptile=1;
