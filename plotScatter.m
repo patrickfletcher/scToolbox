@@ -7,8 +7,8 @@ function [AX, HS, HC, HT]=plotScatter(coords,colorby,groups,colors,figID,subplot
 %        - if 'value', one color per point (column vector); if more than one column, one subplot per column
 
 
-%TODO: interface is horrendous. refactor. inputparser?
-%TODO: move away from "exist" method of input checking
+%TODO: interface is horrendous. refactor with arguments block
+
 %TODO: option - add callback function for lasso select points, return their coords/indices to a workspace var
 %TODO: mouse-over function: make it display the type name or expr value
 
@@ -52,6 +52,7 @@ if ~exist('draworder','var')||isempty(draworder)
 end
 
 %handle subplotting...
+doRGB=false;
 if colorby=="group"
     %group: categorical/logical/integer matrix, or cell array if >1 plots
     %colors: color matrix, one row per type. (or cell array of these)
@@ -78,7 +79,10 @@ elseif colorby=="value"
         colors=colors'; %force columns
         [~,n]=size(colors);
     end
-    nPlots=n;
+    nPlots=length(groups);
+    if n==3 && nPlots==1
+        doRGB=true;
+    end
 end
 
 mustMakeAxes=true; 
@@ -100,6 +104,16 @@ end
 if mustMakeAxes
     clf
     AX=tight_subplot(nr,nc,[],sp_params.gap,sp_params.marg_h,sp_params.marg_w);
+end
+
+do3D=false;
+if size(coords,2)==2
+    scatterfun=@(X,C)scatter(X(:,1),X(:,2),markerSize,C,marker,'filled');
+elseif size(coords,2)==3
+    scatterfun=@(X,C)scatter3(X(:,1),X(:,2),X(:,3),markerSize,C,marker,'filled');
+    do3D=true;
+else
+    error('coors are not 2 or 3 dimensional');
 end
 
 
@@ -141,14 +155,18 @@ switch lower(colorby)
             hold on
             for j=1:length(groupNames)
                 thisGroup=group==groupNames{j};
-                hs(j)=scatter(coords(thisGroup,1),coords(thisGroup,2),markerSize,color(j,:),marker,'filled');
+                hs(j)=scatterfun(coords(thisGroup,:),color(j,:));
                 hs(j).MarkerEdgeColor=color(j,:)*0.8; %darker edge of same color
                 
+                if ~do3D
                 switch draworder
                     case 'index'
                         hs(j).ZData=j*ones(size(hs(j).XData));  %order by category index
-                    otherwise
+                    case 'random'
                         hs(j).ZData=rand(size(hs(j).XData));  %randomize the "depth" of points
+                    case 'flat' %not ordered - keep as 2D (eg. for alpha)
+                    otherwise
+                end
                 end
                 
                 hs(j).DisplayName=groupNames{j};
@@ -182,14 +200,19 @@ switch lower(colorby)
         for i=1:nPlots
             axes(AX(i));
             
-            hs(i)=scatter(coords(:,1),coords(:,2),markerSize,colors(:,i),marker,'filled');
+            if doRGB
+                cols=colors;
+            else
+                cols=colors(:,i);
+            end
+            hs(i)=scatterfun(coords,cols);
             hs(i).MarkerEdgeColor=hs(i).MarkerFaceColor;
             
             %custom colobar, small & centered to the right. shows only max/min color
             if ~exist('docolorbar','var')||isempty(docolorbar)
                 docolorbar=true;
             end
-            if docolorbar
+            if docolorbar && ~doRGB
                 c=colorbar;
                 c.Position(1)=AX(i).Position(1)+AX(i).Position(3)+cb_gap;
                 c.Position(3)=cb_width;
@@ -204,11 +227,21 @@ switch lower(colorby)
                 hc=[];
             end
             
+            if ~do3D
             switch draworder
                 case 'value'
-                    hs(i).ZData=colors(:,i); %high expr on top
-                otherwise
+                    if doRGB
+%                         vals=sum(colors,2);
+                        vals=max(colors,[],2);
+                    else
+                        vals=colors(:,i);
+                    end
+                    hs(i).ZData=vals; %high expr on top
+                case 'random'
                     hs(i).ZData=rand(size(hs(i).XData));  %randomize the "depth" of points
+                case 'flat' %not ordered - keep as 2D (eg. for alpha)
+                otherwise
+            end
             end
             
 %             axis(AX(i),'equal');
@@ -227,6 +260,10 @@ switch lower(colorby)
             end
         end
         
+end
+
+if do3D
+    axis vis3d
 end
 
 if nargout==0

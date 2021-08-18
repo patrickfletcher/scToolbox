@@ -1,12 +1,6 @@
-function [fh,ax]=plot_violin_QC(scd, figpos)
+function [fh,ax]=plot_violin_QC(QCdata, TF, sampleID, ctnames, cols, figpos)
 
-%TODO: fix interface to make it more versatile
-
-QCdata=scd.QCdata;
-cells=scd.cells;
-samples=categories(cells.sample);
-raw=scd.raw;
-ct=scd.ct;
+samples=categories(sampleID);
 
 thrw=0.33;
 datasz=1;
@@ -15,19 +9,19 @@ gap=0.01;
 marg_w=[0.15,0.1];
 marg_h=[0.1,0.05];
 
-cols=raw.cols;
-cols(end-1,:)=[]; %remove Amb
-cols(1,:)=[]; %remove E
+% cols=raw.cols;
+% cols(end-1,:)=[]; %remove Amb
+% cols(1,:)=[]; %remove E
 
 % ylabs
 
-TF=raw.TF_imp;
-TF(end+1,:)=~any(TF,1);
-qcctnames=ct.Names();
-qcctnames(end+1)="Unc";  %Amb are hidden in the other types
+% TF=raw.TF_imp;
+% TF(end+1,:)=~any(TF,1);
 
-qcctnames(1)=[]; %remove E
-TF(1,:)=[];
+% qcctnames=ctnames;
+% qcctnames(end+1)={'Unc'};  %Amb are hidden in the other types
+% qcctnames(1)=[]; %remove E
+% TF(1,:)=[];
 
 
 QCdataFields=fieldnames(QCdata(1));
@@ -55,13 +49,13 @@ for pix=1:nplots
 %             thislow=log10(thislow);
 %             thishi=log10(thishi);
         end
-        thissamplecells=cells.sample==samples{pix};
+        thissamplecells=sampleID==samples{pix};
         for j=1:size(TF,1)
             thisTF=TF(j,thissamplecells);
             valsub=thisvals(thisTF);
             
             %don't plot thresholds for low num cts
-            if isempty(valsub)
+            if length(valsub)<30
                 continue
             end
             
@@ -86,13 +80,13 @@ for pix=1:nplots
         if i<nPanels
             ax(i).XTick=[];
         else
-            ax(i).XTick=1:length(qcctnames);
+            ax(i).XTick=1:length(ctnames);
         end
-        ax(i).XTickLabel=qcctnames;
-        ax(i).XLim=[0.5,length(qcctnames)+0.5];
-        if mod(i,2)==0
-            ax(i).YAxisLocation='right';
-        end
+        ax(i).XTickLabel=ctnames;
+        ax(i).XLim=[0.5,length(ctnames)+0.5];
+%         if mod(i,2)==0
+%             ax(i).YAxisLocation='right';
+%         end
         ylabel(ax(i),ylabs{i})
         
         if thisQC.params.logval

@@ -4,15 +4,16 @@ function [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis
 %
 % [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,sp_params,do_var_norm)
 
-%%%% input parsing
-% p=inputParser();
-
 %TODO: pass this in as varNames
 % varLabels=strcat(repmat({'\it '},size(varNames)),varNames);
 
 %TODO: varGroup contains label info, add as text centered on each block
 
-%TODO: pass all the following in via sp_params (or default constructor?)
+%TODO: pass all the following in via sp_params
+% - alt: args block
+
+%TODO: wrapper that operates on ncounts + genes? then could give just names
+%list, cellgroup, options. e.g. log=T/F, mean_only_expressed, ...
 
 mrkr='o'; %squares don't scale right
 
@@ -39,6 +40,10 @@ for i=1:length(parfields)
     end
 end
 
+%meanExpr row-wise unitize?
+if ~exist('do_var_norm','var')
+    do_var_norm=false;
+end
 
 if ~exist('varGroup','var') || isempty(varGroup)
     varGroup=ones(size(varNames));
@@ -110,10 +115,6 @@ if exist('sortmethod','var') && ~isempty(sortmethod)
 
 end
 
-%meanExpr row-wise unitize?
-if ~exist('do_var_norm','var')
-    do_var_norm=false;
-end
 
 if do_var_norm
     colorData=colorData./max(colorData,[],2);
@@ -149,43 +150,25 @@ prct_leg_sizes=prct_leg_sizes.^2;
 prct_leg_nums=round(leg_prct);
 prct_leg_labels=strcat(num2str(prct_leg_nums(:)),{'%'});
 
-% prct_leg_areas=(maxArea-minArea)*sp_params.prct_leg/100;
-% prct_leg_nums=round(sp_params.prct_leg);
-% prct_leg_areas=minArea+(maxArea-minArea)*sp_params.prct_leg/100;
-% prct_leg_areas=prct_leg_areas.^2;
-% prct_leg_nums=round(leg_prct/100*max(sizeData(:)));
-% prct_leg_labels=strcat(num2str(prct_leg_nums(:)),{'%'});
-
-% min_size_frac = (min_prct-minSizeData)./(maxSizeData-minSizeData);
-% sizeData=(sizeData-minSizeData)./(maxSizeData-minSizeData); %force sizedata into [0,1]
-% sizeData=minArea+(maxArea-minArea)*sizeData; %area represents prct
-% sizeData(sizeData<=min_size_frac)=nan;
-% sizeData(sizeData==0)=nan;
-% sizeData(ixUnder5)=nan;
-% sizeData=sizeData.^2;
-
-%quantize the size data into bins of 5%
-% ds=(maxArea-minArea)/20;
-% sizeData=ds*floor(sizeData/ds);
-% sizeData(sizeData==0)=eps;
 
 
 %%%% set up the figure and axes %%%%%%%%%%%%%%%%
-mustMakeAxes=true;
+% alt here: use graphics containers...
+makeAxes=true;
 if exist('figOrAxis','var')
     if isa(figOrAxis,'matlab.ui.Figure')
         figH=figure(figOrAxis);clf
     elseif isa(figOrAxis,'matlab.graphics.axis.Axes')
         ax=figOrAxis;
         axes(ax);
-        mustMakeAxes=false;
+        makeAxes=false;
     end
 else
     figH=figure();
 end
 
 pos=[params.marg_w(1),params.marg_h(1),1-params.marg_w(1)-params.marg_w(2),1-params.marg_h(1)-params.marg_h(2)];
-if mustMakeAxes
+if makeAxes
 %     ax=tight_subplot(1,1,1,sp_params.gap,sp_params.marg_h,sp_params.marg_w);
     ax=axes('OuterPosition',[0,0,1,1],'Position',pos);
 end
@@ -199,7 +182,7 @@ ax.PositionConstraint='outerposition';
 [X,Y]=meshgrid(1:length(groupNames),1:length(varNames));
 hs=scatter(ax,X(:),Y(:),sizeData(:),colorData(:),mrkr,'filled');
 hs.MarkerEdgeColor=0.5*[1,1,1];
-hs.LineWidth=0.1;
+hs.LineWidth=0.5;
 
 cmap=cbrewer('seq','Reds',64);
 colormap(ax, cmap)
@@ -229,8 +212,8 @@ cb.Position(2)=axTop+params.cb_gap;
 cb.Position(4)=params.cb_width;
 cb.Position(3)=axPos(3)/2;
 cb.Position(1)=ax.Position(1); %doing this last makes it work...
-rp=2;
-% cb.Ticks=[ceil(10^rp*cb.Limits(1)),floor(10^rp*diff(cb.Limits)/2),floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
+rp=1;
+cb.Ticks=[ceil(10^rp*cb.Limits(1)),floor(10^rp*diff(cb.Limits)/2),floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
 cb.TickLength=0.025;
 
 cb.Label.String=params.cblabel;
@@ -248,7 +231,7 @@ yvals=1:length(prct_leg_labels);
 hs(2)=scatter(xvals,yvals,prct_leg_sizes,'w',mrkr,'filled');
 hs(2).ZData=-prct_leg_sizes;
 hs(2).MarkerEdgeColor=0.5*[1,1,1];
-hs(2).LineWidth=0.1;
+hs(2).LineWidth=0.5;
 ht=text(ax(2),xvals+0.5,yvals,prct_leg_labels,'HorizontalAlignment','left','FontSize',cb.Label.FontSize);
 xlim([0.5,2.75])
 ylim([0.5,length(prct_leg_labels)+0.5])
