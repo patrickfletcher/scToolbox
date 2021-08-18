@@ -1,10 +1,14 @@
-function [coeff,score]=fast_pca(X,npc,maxscaled)
+function [coeff,score, mu, sig]=fast_pca(X,npc,maxscaled)
 % X is NxD matrix of data
 
 %TODO: increase tolerance to increase speed?
 
+mu=zeros(size(X,1),1);
+sig=zeros(size(X,1),1);
 if exist('maxscaled','var')
-    X=(X-mean(X,1))./std(X,[],1);
+    mu=mean(X,1);
+    sig=std(X,[],1);
+    X=(X-mu)./sig;
     X(X>maxscaled)=maxscaled;
     X(X<-maxscaled)=-maxscaled;
 end
