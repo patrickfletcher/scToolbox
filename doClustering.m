@@ -4,13 +4,19 @@ result = params;
 switch params.method
     case 'kmeans'
         disp('Performing K-means clustering...')
-        clusterID=kmeans(scores,params.K);
+        clusterID=kmeans(scores,params.K,'Distance',params.metric,...
+            'MaxIter',params.maxiter,'OnlinePhase','on','Replicates',5);
         result.K=params.K;
         
     case 'linkage'
         disp('Performing hierarchical clustering...')
         Z = linkage(scores,params.linkage,params.metric);
-        clusterID = cluster(Z,'Maxclust',params.K);
+        switch lower(params.cutby)
+            case 'maxclust'
+                clusterID = cluster(Z,'Maxclust',params.K);
+            case 'cutoff'
+                clusterID = cluster(Z,'Cutoff',params.cut);
+        end
         result.Z=Z; %the tree
         result.K=params.K; 
         
