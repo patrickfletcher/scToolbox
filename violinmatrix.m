@@ -1,4 +1,12 @@
-function [v,ax,ylh]=violinmatrix(data,group,groupColors,varNames,bandwidth,widths)
+function [v,ax,ylh]=violinmatrix(data,group,varNames,groupColors,options)
+arguments
+    data
+    group
+    varNames
+    groupColors
+    options.bandwidths=[]
+    options.widths=0.3
+end
 
 %thr=scalar: one line across all (gene thresh)
 %thr=matrix 2x size nGroups: per violin hi/lo?
@@ -19,26 +27,16 @@ else
     groupColors(groupcounts==0,:)=[];
 end
 
-if ~exist('bandwidth','var')
-    bandwidth=0.1;
+widths=[];
+if length(options.widths)==1
+    widths=repmat(options.widths,1,nGroups);
+elseif length(options.widths)==nGroups
+    widths=options.widths;
 end
-if length(bandwidth)==1
-    bandwidth=repmat(bandwidth,1,nVars);
-end
-% 
-% if ~exist('sppars','var')
-%     sppars.gap=0.05;
-%     sppars.marg_h=0.05;
-%     sppars.marg_w=0.05;
-% end
-
-if ~exist('widths','var')
-    widths=0.3*ones(nGroups,1);
-end
-
+    
 t=tiledlayout(nVars,1);
 t.Padding='compact';
-t.TileSpacing='none';
+t.TileSpacing='tight';
 for i=1:nVars
     ax(i)=nexttile(t);
 %     ax(i)=tight_subplot(nVars,1,i,sppars.gap,sppars.marg_h,sppars.marg_w);
@@ -46,8 +44,28 @@ for i=1:nVars
 %     if i<nVars
 %         ax(i).XAxis.Visible='off';
 %     end
+
+    bw=[];
+    if length(options.bandwidths)==1
+        bw=options.bandwidths;
+    elseif length(options.bandwidths)>1
+        bw=options.bandwidths(i);
+    end
     
-    v(i,:)=violinplot(data(:,i),group(:),'BandWidth',bandwidth(i),'Widths',widths);
+    if isempty(bw)
+        if isempty(widths)
+            v(i,:)=violinplot(data(:,i),group(:));
+        else
+            v(i,:)=violinplot(data(:,i),group(:),'Widths',widths);
+        end
+    else
+        if isempty(widths)
+            v(i,:)=violinplot(data(:,i),group(:),'BandWidth',bw);
+        else
+            v(i,:)=violinplot(data(:,i),group(:),'BandWidth',bw,'Widths',widths);
+        end
+    end
+            
     for j=1:nGroups
         v(i,j).ViolinColor=groupColors(j,:);
         v(i,j).ViolinAlpha=1;
