@@ -73,7 +73,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
             disp(['No CellType with name ' name ' found.'])
         end
         
-        function [classID,IDs,tf,markerScore]=classifyByScore(ct,tcounts,genes)
+        function [classID,IDs,tf,markerScore]=classifyByScore(ct,tcounts,genes,method)
             % classify cells into leaf-types of the CellType tree
             %
             % classIDs are in {unclassified, ambiguous, ct.Names()}
@@ -88,7 +88,11 @@ classdef CellType %< handle & matlab.mixin.Copyable
             
             %check this node
             if ~(ct.markers=="")
-                [this_condition, markerScore]=ct.evaluateMarkers(tcounts, genes);
+                if method=="thr"
+                    [this_condition, markerScore]=ct.evaluateMarkers(tcounts, genes);
+                elseif method=="mean"
+                    [this_condition, markerScore]=ct.evaluateMarkers2(tcounts, genes);
+                end
             end
             
             if isempty(ct.subtypes)
@@ -104,7 +108,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
             
             %classify subtypes. leaf nodes inherit parent node's markers
             for i=1:ct.nSubtypes
-                [~,classID_sub,tf_sub,mscore_sub]=ct.subtypes(i).classifyByScore(tcounts,genes);
+                [~,classID_sub,tf_sub,mscore_sub]=ct.subtypes(i).classifyByScore(tcounts,genes,method);
                 tf_sub=repmat(tf_parent,size(tf_sub,1),1) & tf_sub; %parent AND subtype conditions pass
                 tf=[tf ; tf_sub];
                 markerScore=[markerScore; mscore_sub];
@@ -133,6 +137,12 @@ classdef CellType %< handle & matlab.mixin.Copyable
             classID=categorical(classID,catnames,catnames);
         end
         
+        
+        function [this_condition,markerScore] = evaluateMarkers2(ct, tcounts, genes)
+            markerScore=score_genes(ct.markers,tcounts,genes.name,25); %# per cell
+            ct.threshold=geneThresholdOtsu(markerScore);
+            this_condition=markerScore>ct.threshold;
+        end
         
         function [this_condition,markerScore] = evaluateMarkers(ct, tcounts, genes)
             [gix,ct.markers]=getGeneIndices(ct.markers,genes.name); %note this erases unfound markers!
@@ -236,7 +246,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
             end
         end
         
-        function [classID,dom_markers]=classifyClusterByDOM(ct,clusterID,ncounts, tcounts,genes, threshgroup)
+        function [classID,dom_markers]=classifyClusterByDOM(ct,clusterID,ncounts,tcounts,genes)
             ctnames=ct.Names();
             clusterID=categorical(clusterID);
             clust_names=categories(clusterID);
@@ -272,7 +282,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
                 other.some_N=2;
 
                 classID=strings(1,size(tcounts,2));
-                genesByClust=getExpression(genes,ncounts,tcounts,clusterID,[],threshgroup);
+                genesByClust=getExpression(genes,ncounts,tcounts,clusterID);
                 for i=1:length(clust_names)
                     s=self; o=other;
                     s.names=clust_names(i);
@@ -292,6 +302,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
             end
             classID=categorical(classID,ctnames,ctnames);
             
+            dom_markers=array2table(dom_markers,'RowNames',clust_names,'VariableNames',ctnames);
         end
         
         function ct=setNames(ct,oldNames,newNames)
@@ -305,7 +316,12 @@ classdef CellType %< handle & matlab.mixin.Copyable
             nameArray=ct.preorderQuery('name',option);
         end
         
-        function ct=setMarkers(ct,names,newMarkers,newThreshold,append)
+        function ct=setMarkers(ct,name,newMarkers,append)
+            if append
+                markerList=ct.preorderQuery('markers',name);
+                newMarkers=unique([markerList(:);newMarkers(:)]);
+            end
+            ct.preorderSet(name,'markers',newMarkers);
         end
         
         function markerList=Markers(ct,option)
@@ -363,6 +379,16 @@ classdef CellType %< handle & matlab.mixin.Copyable
             
             for i=1:ct.nSubtypes
                 result=[result;ct.subtypes(i).preorderQuery(query,option)];
+            end
+        end
+        
+        function ct=preorderSet(ct, name, prop, val)
+            if ct.name==name
+                ct.(prop)=val;
+            else
+                for i=1:ct.nSubtypes
+                    ct.subtypes(i)=ct.subtypes(i).preorderSet(name, prop, val);
+                end
             end
         end
     end
