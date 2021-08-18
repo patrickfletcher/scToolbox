@@ -16,6 +16,9 @@ function result=doubletDetection(rawcounts, normcounts, logcounts, params, genes
 % - options for newLibSize mode (max now, also possible: mean)
 % - replace parents true/false (true now)
 
+%TODO: -use clustering to select parents from different clusters (homotypic
+%doublets don't help). While loop: discard homotypic, continue until nSynth
+
 rng(params.rngSeed,'simdTwister') %for speedup?
 % if ~isempty(params.rngSeed) && isscalar(params.rngSeed)
 %     s=RandStream('dsfmt19937','Seed',params.rngSeed);
@@ -41,6 +44,7 @@ end
 
 %was true, trying false 4/26/21
 use_true_cell_HVG=false; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
+% use_true_cell_HVG=true;
 doMultCompareCorrect=true;
 
 if ~isfield(params,'method')
@@ -69,7 +73,12 @@ if use_true_cell_HVG
     nGenes=length(hvgix);
     logcounts_aug(nGenes,nCells+nSynth)=0; %expand logcounts for synth cells
     
+    %get the true data PCA space (coeffs for projection of new data). Only
+    %possible if use_true_cell_HVG=true
+    [coeff,pca_score, mu, sig]=fast_pca(logcounts', params.pca.npc, params.pca.maxScaled);
+    pca_score(nCells+nSynth,params.pca.npc)=0; 
 end
+
 
 tick=round(params.nReps/10); %progress meter
 t0=tic;
@@ -84,17 +93,24 @@ for it=1:params.nReps
     normcounts_synth=normalizeCounts(rawcounts_synth);
     
     if use_true_cell_HVG
-        logcounts_aug(:,nCells+1:end)=log10(normcounts_synth(hvgix,:)+1);
+        synth_lcounts=log10(normcounts_synth(hvgix,:)+1);
+        logcounts_aug(:,nCells+1:end)=synth_lcounts;
+        
+        X=synth_lcounts';
+        X=(X-mu)./sig;
+        X(X>params.pca.maxScaled)=params.pca.maxScaled;
+        X(X<-params.pca.maxScaled)=-params.pca.maxScaled;
+        pca_score(nCells+1:end,:)=X*coeff;
     else
         hvg=findVariableGenes([normcounts,normcounts_synth], genes, params.hvg);
         logcounts_aug=[logcounts(hvg.ix,:), log10(normcounts_synth(hvg.ix,:)+1)];
-    end
 
-    %If always using true_cell_HVG: compute the scale factors for true data
-    % (mean, std across cells, per gene). Use those to simply scale the
-    % synth data (no recompute).  Then use PCA done on only true data:
-    % project scaled_synth onto true data PCs. ==> eliminate redoing PCA
-    [~,pca_score]=fast_pca(logcounts_aug', params.pca.npc, params.pca.maxScaled);
+        %If always using true_cell_HVG: compute the scale factors for true data
+        % (mean, std across cells, per gene). Use those to simply scale the
+        % synth data (no recompute).  Then use PCA done on only true data:
+        % project scaled_synth onto true data PCs. ==> eliminate redoing PCA
+        [~,pca_score]=fast_pca(logcounts_aug', params.pca.npc, params.pca.maxScaled);
+    end
     
     this_rep_doublets=false(1,nCells);
     switch params.method
