@@ -1,6 +1,10 @@
 function [outliers, result] = find_outliers(qcvals, tf, ctnames, params)
-% arguments
-% end
+arguments
+    qcvals
+    tf
+    ctnames
+    params
+end
 
 % general function to find outliers for cell-wise metric (qcvals), per cell
 % type. Cell types are defined by tf - true/false table with
@@ -12,6 +16,8 @@ function [outliers, result] = find_outliers(qcvals, tf, ctnames, params)
 % ambiguous
 % - cellID categorical (no ctnames needed, extract). mutually exclusive
 % groups
+
+%eg. pass in "cells" and give column names to use.
 
 result.params=params; %store params and results together idiom
 
