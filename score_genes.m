@@ -36,7 +36,7 @@ qbins=unique(genebin_id(qixs));
 bg_ix=[];
 for i=1:length(qbins)
     this_bin=find(genebin_id==qbins(i));
-    rand_ix=this_bin(randperm(length(this_bin),ctrl_size));
+    rand_ix=this_bin(randperm(length(this_bin),ctrl_size));          %could use randomsample instead.
 %     rand_ix=this_bin(randi([1,length(this_bin)],1,ctrl_size));
     bg_ix=[bg_ix;ixs(rand_ix)]; %gene IDs from the this bin
 end
