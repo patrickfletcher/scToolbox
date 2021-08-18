@@ -44,20 +44,32 @@ classdef upsetplot < handle %graphics object??
     end
     
     methods 
-        function hup=upsetplot(sets, setnames, ordermethod, mincount)
-            
-            %need an API to send in precomputed stuff: inters, setix
+        function hup=upsetplot(sets, setnames, excl_inter, setix, options)
+            arguments
+                sets
+                setnames
+                excl_inter=[]
+                setix=[]
+                options.ordermethod='size'
+                options.mincount=1
+                options.maxcomb=Inf %really need to add "other combos" bucket
+            end
+
+            hup.order_method = options.ordermethod;
+            hup.mincount = options.mincount;
             
             %prepare data
             n_sets=length(sets);
             set_sizes=cellfun(@length,sets);
-            [excl_inter,setix]=get_exclusive_intersections(sets, setnames);
+            if isempty(excl_inter)
+                [excl_inter,setix]=get_exclusive_intersections(sets, setnames, 'max_k', options.maxcomb);
+            end
             inter_counts=cellfun(@length,excl_inter);
                         
             %prepare axis layout
             hup.tiles=tiledlayout(2,1);
 %             hup.tiles=tiledlayout(3,1);
-            hup.tiles.TileSpacing='none';
+            hup.tiles.TileSpacing='tight';
             hup.tiles.Padding='compact';
             ax_intersect=nexttile(hup.tiles);
             ax_combs=nexttile(hup.tiles);   
@@ -69,16 +81,6 @@ classdef upsetplot < handle %graphics object??
 %             else
 %                 ax_combs=nexttile(hup.tiles);   
 %             end
-            
-            if nargin==0 
-                return
-            end
-            if exist('ordermethod','var')
-                hup.order_method = ordermethod;
-            end
-            if exist('mincount','var')
-                hup.mincount = mincount;
-            end
             
             N=sum(inter_counts);
             expected_frac=zeros(size(inter_counts));
