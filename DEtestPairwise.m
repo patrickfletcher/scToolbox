@@ -1,11 +1,18 @@
-function [p, adj_p, combs]=DEtestPairwise(X, group, method, keepTypes)
+function [p, adj_p, combs]=DEtestPairwise(X, group, options)
+arguments
+    X
+    group
+    options.Method='ranksum'
+    options.MinFrac=0
+    options.MinCells=0
+    options.Groups=[]
+%     options.Genes=[]
+end
 % just pairwise tests
 
 correctionmethod='fdr';
 
-minFrac=0;
-
-nGenes=size(X,1);
+[nGenes,nCells]=size(X);
 
 group=categorical(group);
 groupNames=categories(group);
@@ -20,18 +27,25 @@ end
 combs=nchoosek(groupNames,2);
 nPairs=size(combs,1);
 
-if exist('keepTypes')
-    keepPair = any(ismember(combs,keepTypes),2);
-    combs=combs(keepPair,:);
+if ~isempty(options.Groups)
+    keepPairs = any(ismember(combs,options.groups),2);
+    combs=combs(keepPairs,:);
 end
 
-%filter genes if desired, else all genes tested
-% keep=true(nGenes,1); %all
-groupFrac=zeros(nGenes,nGroups);  %pass this in if available?
-for i=1:nGroups
-    groupFrac(:,i)=sum(X(:,group==groupNames{i})>0,2)/groupCounts(i);
+cells1=false(nPairs,nCells);
+cells2=false(nPairs,nCells);
+for j=1:length(nPairs)
+    cells1(j,:)=group==combs{j,1};
+    cells2(j,:)=group==combs{j,2};
 end
-keep=any(groupFrac > minFrac, 2); %any group expresses gene in at least some minimum fraction of cells (equiv to "either" in DEtest2)
+
+%filter genes
+groupCells=zeros(nGenes,nGroups);
+for i=1:nGroups
+    groupCells(:,i)=sum(X(:,group==groupNames{i})>0,2);
+end
+groupFrac=groupCells./groupCounts';
+keep=any(groupCells > options.MinCells & groupFrac > options.MinFrac, 2); %any group expresses gene in at least some minimum fraction of cells (equiv to "either" in DEtest2)
 
 keepix=find(keep);
 nGenes2Test=nnz(keep);
@@ -40,27 +54,22 @@ nGenes2Test=nnz(keep);
 p=nan(nGenes,nPairs);
 
 % tic
-fprintf('\n')
-tenth=round(nGenes2Test/10);
+fprintf('testing %d genes', nGenes2Test)
+tenth=floor(nGenes2Test/10);
 for i=1:nGenes2Test
-    
     gix=keepix(i);
     for j=1:nPairs
-        cells1=group==combs{j,1};
-        cells2=group==combs{j,2};
-        switch method
+        switch options.Method
             case 'ttest'
-                [~,this_p,this_ci,this_stats]=ttest2(X(gix,cells1),X(gix,cells2));
+                [~,this_p]=ttest2(X(gix,cells1(j,:)), X(gix,cells2(j,:)));
             case 'ranksum'
-                [this_p,~,this_stats]=ranksum(X(gix,cells1),X(gix,cells2));
+                [this_p]=ranksum(X(gix,cells1(j,:)), X(gix,cells2(j,:)));
         end
-
         p(gix,j)=this_p;
     end
     if mod(i,tenth)==0
         fprintf('.')
     end
-    
 end
 % toc
 

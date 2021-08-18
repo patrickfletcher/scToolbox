@@ -1,22 +1,24 @@
-function [adj_pANOVA, adj_pMC, combs]=DEtestPairwiseAnova(X, group, method)
+function [adj_pANOVA, adj_pMC, combs]=DEtestPairwiseAnova(X, group, options)
+arguments
+    X
+    group
+    options.Method='kruskalwallis'
+    options.anova_correction='bonferroni'
+    options.P_correction='fdr'
+    options.MinFrac=0
+    options.MinCells=0
+end
 %this tests if all groups have same or different distributions (like 1-way anova with K-S two sample test)
 % if not, multcompare is used to find out which are different
 
+% options.anova_correction
+%  'tukey-kramer'; %has a floor of 10^-8
+%  'dunn-sidak'; %has a floor, but also gives hard zeros
+%  'bonferroni'; %smooth values all the way to zero
+%  'scheffe'; %smooth values all the way to zero
+
 %NOTE: if 2 groups, pANOVA is same as 2-sample test (eg. kruskalwallis
-%pANOVA = p from ranksum).
-
-% method='kruskalwallis'; % could use anova, etc.
-
-displayopt='off';
-% ctype='tukey-kramer'; %has a floor of 10^-8
-% ctype='dunn-sidak'; %has a floor, but also gives hard zeros
-ctype='bonferroni'; %smooth values all the way to zero
-% ctype='scheffe'; %smooth values all the way to zero
-correctionmethod='fdr';
-
-% if ~exist('minFrac','var')||isempty(minFrac)
-    minFrac=0;
-% end
+%pANOVA = p from ranksum). Should fall back to simply doing the latter.
 
 nGenes=size(X,1);
 
@@ -33,14 +35,13 @@ groupNames=groupNames(:)';
 combs=nchoosek(groupNames,2);
 nPairs=size(combs,1);
 
-%filter genes if desired, else all genes tested
-% keep=true(nGenes,1); %all
-groupFrac=zeros(nGenes,nGroups);  %pass this in if available?
-
+%filter genes if desired
+groupCells=zeros(nGenes,nGroups);
 for i=1:nGroups
-    groupFrac(:,i)=sum(X(:,group==groupNames{i})>0,2)/groupCounts(i);
+    groupCells(:,i)=sum(X(:,group==groupNames{i})>0,2);
 end
-keep=any(groupFrac > minFrac, 2); %any group expresses gene in at least some minimum fraction of cells (equiv to "either" in DEtest2)
+groupFrac=groupCells./groupCounts';
+keep=any(groupCells > options.MinCells & groupFrac > options.MinFrac, 2); %any group expresses gene in at least some minimum fraction of cells (equiv to "either" in DEtest2)
 
 keepix=find(keep);
 nGenes2Test=nnz(keep);
@@ -49,40 +50,34 @@ nGenes2Test=nnz(keep);
 % should these be initialized to 1 or nan?
 pANOVA=nan(nGenes,1); 
 pMC=nan(nGenes,nPairs); 
+% mean_ranks=zeros(nGenes,nPairs);
 % C=nan(nGenes,6); %full comparisons matrix, includes estimate (difference between means?), CIs, p
 
 % tic
-fprintf('\n')
-tenth=round(nGenes2Test/10);
+fprintf('testing %d genes', nGenes2Test)
+tenth=floor(nGenes2Test/10);
 for i=1:nGenes2Test
-    
     gix=keepix(i);
-    
-    switch method
+    switch options.Method
         case 'anova1'
-            [p,~,stats]=anova1(X(gix,:),group,displayopt);
+            [p,~,stats]=anova1(X(gix,:),group,'off');
 %         case 'wanova'
 %             [p,F,df1,df2]=wanova(X(gix,:),group);
 %             stats.
             %Games-Howell post hoc test ?
         case 'kruskalwallis'
-            [p,~,stats]=kruskalwallis(X(gix,:),group,displayopt);
+            [p,~,stats]=kruskalwallis(X(gix,:),group,'off');
         otherwise
             error('unsupported test method')
     end
     pANOVA(gix,1)=p;
 
     %correction for nchoosek(nGroups,2) tests. 
-    % 'alpha'??
     % 'Ctype': 'tukey-kramer' (default) | 'hsd' | 'lsd' | 'bonferroni' | 'dunn-sidak' | 'scheffe'
-    %[c,m,~,g]=
-    c=multcompare(stats,'display',displayopt,'Ctype',ctype);
-    pMC(gix,:)=c(:,end)';
-    
-    %m contains mean (rank) and standard errors for each group
-    
-    %CIs for pairwise differences, groups m(c(:,1)) - m(c(:,2)) = c(:,4):
-    %c(:,3)<c(:,5);  if 1-alpha confidence interval contains zero, not sig.
+    if nGroups>2
+        c=multcompare(stats,'Ctype',options.anova_correction,'Display','off');
+        pMC(gix,:)=c(:,end)';
+    end
     
     if mod(i,tenth)==0
         fprintf('.')
@@ -90,8 +85,9 @@ for i=1:nGenes2Test
     
 end
 % toc
-% groupNames=groupNames(:)'; %force row vector to get simple pair compare right:
-% combs=groupNames(c(:,1:2));
+if nGroups==2
+    pMC=pANOVA;
+end
 
 %give the smallest representable value to zero p-values so multiple comparisons has something to work with.
 pANOVA(pANOVA==0)=eps(0);
@@ -99,7 +95,7 @@ pMC(pMC==0)=eps(0);
 
 %correction for nGenes tests
 %first, the ANOVA p values
-switch lower(correctionmethod)
+switch lower(options.P_correction)
     case 'bonferroni'
         %sequential bonferroni-holm
         adj_pANOVA=bonf_holm(pANOVA);
@@ -110,23 +106,25 @@ switch lower(correctionmethod)
         adj_pANOVA=pANOVA;
 end
 
-adj_pANOVA(adj_pANOVA>1)=1;
 
 %next the multiple comparisons per gene values
 adj_pMC=ones(size(pMC));
-for i=1:nPairs
-    switch lower(correctionmethod)
-        case 'bonferroni'
-            %sequential bonferroni-holm
-            adj_pMC(:,i)=bonf_holm(pMC(:,i));
-        case {'fdr','bh'}
-            %Benjamini-Hochberg FDR
-            [~, ~, ~, adj_pMC(:,i)]=fdr_bh(pMC(:,i)); %method?
-        otherwise
-            adj_pMC=pMC;
+if nGroups>2
+    for i=1:nPairs
+        switch lower(options.P_correction)
+            case 'bonferroni'
+                %sequential bonferroni-holm
+                adj_pMC(:,i)=bonf_holm(pMC(:,i));
+            case {'fdr','bh'}
+                %Benjamini-Hochberg FDR
+                [~, ~, ~, adj_pMC(:,i)]=fdr_bh(pMC(:,i)); %method?
+            otherwise
+                adj_pMC=pMC;
+        end
     end
 end
 
+adj_pANOVA(adj_pANOVA>1)=1;
 adj_pMC(adj_pMC>1)=1;
 
 %for simple two-sample test, kruskal-wallace p = ranksum p. The
