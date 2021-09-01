@@ -6,6 +6,10 @@ arguments
     groupColors
     options.bandwidths=[]
     options.widths=0.3
+    options.ymode='left'
+    options.Padding='compact'
+    options.TileSpacing='none'
+    options.ylabmode='vertical'
 end
 
 %thr=scalar: one line across all (gene thresh)
@@ -35,8 +39,8 @@ elseif length(options.widths)==nGroups
 end
     
 t=tiledlayout(nVars,1);
-t.Padding='compact';
-t.TileSpacing='tight';
+t.Padding=options.Padding;
+t.TileSpacing=options.TileSpacing;
 for i=1:nVars
     ax(i)=nexttile(t);
 %     ax(i)=tight_subplot(nVars,1,i,sppars.gap,sppars.marg_h,sppars.marg_w);
@@ -75,10 +79,17 @@ for i=1:nVars
         v(i,j).WhiskerPlot.Visible='off';
     end
     
-%     if mod(i,2)==0
-%         ax(i).YAxisLocation='right';
-%     end
     ylh(i)=ylabel(varNames{i});
+    if options.ylabmode=="horizontal"
+        ylh(i).Rotation=0;
+        ylh(i).HorizontalAlignment='right';
+        ylh(i).VerticalAlignment='middle';
+    end
+    
+    if (options.ymode=="lr" && mod(i,2)==0) || options.ymode=="right"
+        ax(i).YAxisLocation='right';
+        ylh(i).HorizontalAlignment='left';
+    end
     axis tight
     ax(i).XTickLabel=[];
     xlim(ax(i),[0.5,nGroups+0.5]);
