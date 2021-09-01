@@ -10,7 +10,9 @@ arguments
     options.trim_prct = 0
     options.doPrct = true
     options.doPooled = false %true: Cat1, nonCat1, Cat2, ... 
+    options.only_expressing = false;
 end
+%[geneTable, E, P, factorNames]=getExpression(genes,ncounts,tcounts,factor,options)
 %get gene expression for groups defined by two levels of factors
 %
 % assumes tcounts is already threshold-subtracted, unless a threshold-group
@@ -70,7 +72,7 @@ switch options.method
     case 'trimmean'
         expr_fun=@(x) trimmean(x, options.trim_prct, 2);
     otherwise
-        expr_fun=eval("@(x)"+options.method+"(x,2)");
+        expr_fun=eval("@(x)"+options.method+"(x,2,'omitnan')");
 end
 
 numCells=size(ncounts,2);
@@ -84,6 +86,10 @@ for i=1:length(factorNames)
     thisGroup=factor==factorNames(i);
     
     N1=ncounts(:,thisGroup);
+    if options.only_expressing
+        N1(N1==0)=nan;
+    end
+
     E(:,i) = expr_fun(N1);
     
     if options.doPooled
