@@ -20,10 +20,10 @@ mrkr='o'; %squares don't scale right
 def_params.gap=0.1;
 def_params.marg_h=[0.1,0.1];
 def_params.marg_w=[0.1,0.1];
-def_params.minArea=0;
-def_params.maxArea=16;
-def_params.min_prct = 0; 
-def_params.prct_leg=25:25:100; %should these be generated from data?
+def_params.minArea=1;
+def_params.maxArea=144;
+def_params.min_prct = 5; 
+def_params.prct_leg=3; 
 def_params.prct_leg_height=0.05;
 def_params.cb_prct_gap=0.01;
 def_params.cb_gap=0.02;
@@ -133,7 +133,7 @@ minSizeData=min(sizeData(:));
 maxSizeData=max(sizeData(:));
 sizeData(sizeData<params.min_prct)=nan;
 sizeData=rescale(sizeData,minArea,maxArea,'InputMin',minSizeData,'InputMax',maxSizeData);
-sizeData=sizeData.^2;
+% sizeData=sizeData.^2;
 
 %prct_leg = # sizes to show >=2 [min%, max% + even breaks between]
 if isscalar(params.prct_leg)
@@ -145,7 +145,7 @@ else
     leg_prct=unique(leg_prct);
 end
 prct_leg_sizes=rescale(leg_prct,minArea,maxArea,'InputMin',minSizeData,'InputMax',maxSizeData);
-prct_leg_sizes=prct_leg_sizes.^2;
+% prct_leg_sizes=prct_leg_sizes.^2;
 
 prct_leg_nums=round(leg_prct);
 prct_leg_labels=strcat(num2str(prct_leg_nums(:)),{'%'});
@@ -213,7 +213,10 @@ cb.Position(4)=params.cb_width;
 cb.Position(3)=axPos(3)/2;
 cb.Position(1)=ax.Position(1); %doing this last makes it work...
 rp=1;
-cb.Ticks=[ceil(10^rp*cb.Limits(1)),floor(10^rp*diff(cb.Limits)/2),floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
+cb.Ticks=[ceil(10^rp*cb.Limits(1)),...
+          floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
+%           round(10^rp*(cb.Limits(1)+diff(cb.Limits)/2)),...
+% cb.Limits=cb.Ticks([1,3]);
 cb.TickLength=0.025;
 
 cb.Label.String=params.cblabel;
