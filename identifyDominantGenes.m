@@ -194,8 +194,8 @@ for i=1:length(self.names)
         case "some"
 %             dominant_otherpooled(:,i)=sum(pairwise_combinedES,2)>other.some_N;
 %             specific_otherpooled(:,i)=sum(pairwise_combinedES_spec,2)>other.some_N;
-            self_test_exprES(:,i)=sum(pairwise_Expr,2)>other.some_N;
-            self_test_prctES(:,i)=sum(pairwise_Prct,2)>other.some_N;
+            self_test_exprES(:,i)=sum(pairwise_Expr,2)>=other.some_N;
+            self_test_prctES(:,i)=sum(pairwise_Prct,2)>=other.some_N;
     end
     
     % combine the two ES tests. After pooling others (e.g. all exprtest OR
@@ -241,10 +241,10 @@ switch self.poolmethod
         exprTestPooled=any(self_test_exprES,2);
         prctTestPooled=any(self_test_prctES,2);
     case "some" 
-        dominant_selfpooled=sum(dominant_otherpooled,2)>self.some_N;
-        specific_selfpooled=sum(specific_otherpooled,2)>self.some_N;
-        exprTestPooled=any(self_test_exprES,2);
-        prctTestPooled=any(self_test_prctES,2);
+        dominant_selfpooled=sum(dominant_otherpooled,2)>=self.some_N;
+        specific_selfpooled=sum(specific_otherpooled,2)>=self.some_N;
+        exprTestPooled=sum(self_test_exprES,2)>=self.some_N;
+        prctTestPooled=sum(self_test_prctES,2)>=self.some_N;
 end
 
 
