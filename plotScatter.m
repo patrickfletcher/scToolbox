@@ -1,4 +1,5 @@
 function [AX, HS, HC, HT]=plotScatter(coords,colorby,groups,colors,figID,subplotdims,sp_params,draworder,docolorbar)
+
 %scatter plot of points in X, colored by either category or values
 % X - data, rows are points, colums dimension (2 or 3 only)
 % colorby - {'group','value'}.
