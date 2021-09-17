@@ -1,4 +1,10 @@
-function [index, queryGenes, dupeix, notfoundix]=getGeneIndices(queryGenes,geneList,removeDupes)
+function [index, queryGenes, dupeix, notfoundix]=getGeneIndices(queryGenes,geneList,options)
+arguments
+    queryGenes
+    geneList
+    options.removeDupes=false
+    options.verbose=true
+end
 %attempt to get querygenes indices from genelist.
 % If querygene not present, removes.
 % If present more than once, add repeats to foundGenes
@@ -13,9 +19,6 @@ nQuery=length(queryGenes);
 
 dupeix=[];
 notfoundix=[];
-if ~exist('removeDupes','var')||isempty(removeDupes)
-    removeDupes=false;
-end
 
 [foundGenes,ixa,ixb]=intersect(queryGenes,geneList,'stable'); %intersect removes duplicates
 
@@ -33,13 +36,15 @@ if length(ixb)~=nQuery
     if any(~isdupe)
         notfoundix=notpresent(~isdupe);
         notfound=strcat(queryGenes(notpresent(~isdupe)), " ");
-        disp(['not found: ', notfound{:} ]);
+        if options.verbose
+            disp(['not found: ', notfound{:} ]);
+        end
     end
 end
 
 index(setxor(1:nQuery,[dupeix;notfoundix],'stable'))=ixb;
 
-if removeDupes
+if options.removeDupes
     index(dupeix)=[];
     queryGenes(dupeix)=[];
 else
