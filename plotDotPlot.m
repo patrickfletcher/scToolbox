@@ -61,7 +61,7 @@ if exist('sortmethod','var') && ~isempty(sortmethod)
                 varsub=varNames(thiscat);
                 sizesub=sizeData(thiscat,:);
                 colorsub=colorData(thiscat,:);
-                [~,ixs]=natsort(varsub);
+                [~,ixs]=natsort(cellstr(varsub));
                 varsub=varsub(ixs);
                 sizesub=sizesub(ixs,:);
                 colorsub=colorsub(ixs,:);
