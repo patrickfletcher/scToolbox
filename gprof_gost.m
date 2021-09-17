@@ -2,7 +2,7 @@ function res = gprof_gost(id_list, organism, options)
 arguments
     id_list
     organism
-    options.Ordered = true
+    options.Ordered = false
     options.Sources = {'GO'}
     options.no_evidences = false
     options.user_threshold = 0.05
