@@ -258,41 +258,42 @@ allgenes.id=genes.id;
 allgenes.name=genes.name;
 
 
-allgenes.dominant=dominantCondition; %mainly for allgenes
+% allgenes.dominant=dominantCondition; %mainly for allgenes
 allgenes.specific=specificCondition;
 
-allgenes.all_expr_test=exprTestPooled;
-allgenes.all_prct_test=prctTestPooled;
+allgenes.min_self_prct=min(prct_self,[],2);
+allgenes.max_other_prct=max(prct_other,[],2);
+allgenes.min_self_expr=min(expr_self,[],2);
+allgenes.max_other_expr=max(expr_other,[],2);
 
 %effect sizes
 allgenes.min_d_prct=min(pairwise_d_prct,[],2);
-allgenes.max_d_prct=max(pairwise_d_prct,[],2);
 allgenes.min_fc_expr=min(pairwise_fc_expr,[],2);
-allgenes.max_fc_expr=max(pairwise_fc_expr,[],2);
-allgenes.min_log2fc_expr=min(pairwise_log2fc_expr,[],2);
-allgenes.max_log2fc_expr=max(pairwise_log2fc_expr,[],2);
+% allgenes.min_log2fc_expr=min(pairwise_log2fc_expr,[],2);
+% allgenes.max_log2fc_expr=max(pairwise_log2fc_expr,[],2);
 % allgenes.min_d_prct_rel=min(pairwise_d_prct_rel,[],2);
 % allgenes.max_d_prct_rel=max(pairwise_d_prct_rel,[],2);
 
+allgenes.max_pwp=max(pairwise_Pmc,[],2);
+allgenes.max_pwz=max(pairwise_Pz,[],2);
 
 % anova, chi2, and worst pariwise p-values
 allgenes.p_anova=Panova;
 allgenes.min_pwp=min(pairwise_Pmc,[],2);
-allgenes.max_pwp=max(pairwise_Pmc,[],2);
 allgenes.p_chi2=Pchi2;
 allgenes.min_pwz=min(pairwise_Pz,[],2);
-allgenes.max_pwz=max(pairwise_Pz,[],2);
 
+allgenes.all_expr_test=exprTestPooled;
+allgenes.all_prct_test=prctTestPooled;
 
-allgenes.min_self_prct=min(prct_self,[],2);
+allgenes.max_d_prct=max(pairwise_d_prct,[],2);
+allgenes.max_fc_expr=max(pairwise_fc_expr,[],2);
+
 allgenes.max_self_prct=max(prct_self,[],2);
 allgenes.min_other_prct=min(prct_other,[],2);
-allgenes.max_other_prct=max(prct_other,[],2);
 
-allgenes.min_self_expr=min(expr_self,[],2);
 allgenes.max_self_expr=max(expr_self,[],2);
 allgenes.min_other_expr=min(expr_other,[],2);
-allgenes.max_other_expr=max(expr_other,[],2);
 
 
 %raw expression/prct values per type
@@ -301,12 +302,12 @@ allgenes=[allgenes,genes(:,...
    |ismember(genes.Properties.VariableNames,[exprselfnames;exprothernames]))];
 
 %effect sizes
-allgenes=[allgenes,array2table(pairwise_prctES,'variablenames',strcat(prctESname,'_',fcCombs(:,1),'_',fcCombs(:,2)))];
-allgenes=[allgenes,array2table(pairwise_exprES,'variablenames',strcat(exprESname,'_',fcCombs(:,1),'_',fcCombs(:,2)))];
+% allgenes=[allgenes,array2table(pairwise_prctES,'variablenames',strcat(prctESname,'_',fcCombs(:,1),'_',fcCombs(:,2)))];
+% allgenes=[allgenes,array2table(pairwise_exprES,'variablenames',strcat(exprESname,'_',fcCombs(:,1),'_',fcCombs(:,2)))];
 
 %pvals
-allgenes=[allgenes,array2table(pairwise_Pmc,'variablenames',strcat('pmc_',fcCombs(:,1),'_',fcCombs(:,2)))];
-allgenes=[allgenes,array2table(pairwise_Pz,'variablenames',strcat('pz_',fcCombs(:,1),'_',fcCombs(:,2)))];
+% allgenes=[allgenes,array2table(pairwise_Pmc,'variablenames',strcat('pmc_',fcCombs(:,1),'_',fcCombs(:,2)))];
+% allgenes=[allgenes,array2table(pairwise_Pz,'variablenames',strcat('pz_',fcCombs(:,1),'_',fcCombs(:,2)))];
 
 if params.sortval~="none"
     [allgenes,ixs]=sortrows(allgenes,params.sortval,params.sortdir);
