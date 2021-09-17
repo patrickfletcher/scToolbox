@@ -102,7 +102,8 @@ if nsubsample>0
     for i=1:length(groupNames)
         ix=find(groups==groupNames(i));
         if length(ix)>nsubsample
-            thissub=ix(randi(length(ix),nsubsample,1));
+%             thissub=ix(randi(length(ix),nsubsample,1));
+            thissub=randsample(ix,nsubsample);
         else
             thissub=ix;
         end
