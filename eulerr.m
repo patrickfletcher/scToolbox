@@ -10,6 +10,7 @@ arguments
     options.fsz_labels = 8
     options.width = 0
     options.height = 0
+    options.rng_seed = 42
     options.verbose=false
 end
 %set fsz to 0 to not display the counts or labels
@@ -17,7 +18,7 @@ end
 setnames=string(setnames);
 [excl_int,~,int_names]=get_exclusive_intersections(sets, setnames);
 int_names=string(int_names);
-int_names=strrep(int_names,'_','&');
+int_names=strrep(int_names,'_','&')
 counts=cellfun(@length,excl_int);
 
 T=table();
@@ -40,7 +41,7 @@ scriptfile = "C:\Users\fletcherpa\Documents\GitHub\scToolbox\eulerr.R";
 
 pdf_file=fullfile(pwd,pdf_file);
 [status, cmdout]=system(Rpath + strjoin([scriptfile,setsfile,options.shape,options.alpha,...
-    options.width,options.height,options.fsz_counts,options.fsz_labels,pdf_file]," "));
+    options.width,options.height,options.fsz_counts,options.fsz_labels,options.rng_seed,pdf_file]," "));
 if status~=0
     error(cmdout)
 end

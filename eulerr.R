@@ -14,18 +14,22 @@ args <- commandArgs(TRUE)
 
 setsfile <- args[1] 
 shape <- args[2] 
-alpha <- args[3] 
-width <- args[4] 
-height <- args[5] 
-fsz_counts <- args[6]
-fsz_labels <- args[7]
-pdf_file <- args[8]
+alpha <- as.numeric(args[3]) 
+width <- as.numeric(args[4])
+height <- as.numeric(args[5]) 
+fsz_counts <- as.numeric(args[6])
+fsz_labels <- as.numeric(args[7])
+rng_seed <- as.numeric(args[8])
+pdf_file <- args[9]
 
 sets_df <-read.csv(setsfile, header = T)
 
 combos <- setNames(unlist(sets_df$counts), unlist(sets_df$names))
 
+extraopt <- list(extraopt_control = list(seed = rng_seed))
+
 fit1<-eulerr::euler(combos, shape=shape)
+print(fit1)
 
 fills <- list()
 if ("cols" %in% colnames(sets_df) ) {
@@ -51,7 +55,6 @@ pdf_height <- NULL
 if (height>0) {
   pdf_height <- height
 }
-
 
 
 pdf(pdf_file, width = pdf_width, height = pdf_height)
