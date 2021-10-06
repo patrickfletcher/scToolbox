@@ -40,7 +40,7 @@ classdef upsetplot < handle %graphics object??
         hl_bg_dot %gray background line plots with wider marker/lines
         hl_combs %the set of line plots indicating combinations
         
-%         ax_setcount %bar showing size of each set
+        ax_setcount %bar showing size of each set - alt just text on right y-axis
     end
     
     methods 
@@ -52,37 +52,72 @@ classdef upsetplot < handle %graphics object??
                 setix=[]
                 options.ordermethod='size'
                 options.mincount=1
-                options.maxcomb=Inf %really need to add "other combos" bucket
+                options.pooled_color=0.4*[1,1,1]
+                options.pooled_marker='d'
+                options.set_sortorder='none'
+                options.Padding='compact'
+                options.TileSpacing='tight';
+                options.mincomb=0 %restrict to at least k-combs
+                options.maxcomb=Inf %restrict to up to k-combs
+                options.showremaining=true
+                options.showdev=false
             end
 
             hup.order_method = options.ordermethod;
             hup.mincount = options.mincount;
             
             %prepare data
+            for i=1:length(sets), sets{i}=sets{i}(:); end
+            N=length(unique(cat(1,sets{:})));
             n_sets=length(sets);
             set_sizes=cellfun(@length,sets);
-            if isempty(excl_inter)
-                [excl_inter,setix]=get_exclusive_intersections(sets, setnames, 'max_k', options.maxcomb);
+            switch options.set_sortorder
+                case 'ascend'
+                    [~,ixs]=sort(set_sizes,'ascend');
+                case 'descend'
+                    [~,ixs]=sort(set_sizes,'descend');
+                case 'alpha'
+                    [~,ixs]=natsort(cellstr(setnames));
+                otherwise
+                    ixs=1:n_sets;
             end
-            inter_counts=cellfun(@length,excl_inter);
-                        
-            %prepare axis layout
-            hup.tiles=tiledlayout(2,1);
-%             hup.tiles=tiledlayout(3,1);
-            hup.tiles.TileSpacing='tight';
-            hup.tiles.Padding='compact';
-            ax_intersect=nexttile(hup.tiles);
-            ax_combs=nexttile(hup.tiles);   
-            
-%             if ismember(hup.order_method,{'dev','absdev','expected'})
-%                 subtiles=tiledlayout(hup.tiles,2,1);
-%                 ax_combs=nexttile(subtiles);
-%                 ax_dev=nexttile(subtiles);
+            sets=sets(ixs);
+            set_sizes=set_sizes(ixs);
+            setnames=setnames(ixs);
+            if isempty(excl_inter)
+                [excl_inter,setix]=get_exclusive_intersections(sets, setnames,'max_k',options.maxcomb);
 %             else
-%                 ax_combs=nexttile(hup.tiles);   
-%             end
+%                 excl_inter=excl_inter(ixs);
+%                 setix=setix(ixs);
+            end
+            inter_set_counts=cellfun(@length,setix);
             
-            N=sum(inter_counts);
+            discard=inter_set_counts<options.mincomb;
+            excl_inter(discard)=[];
+            setix(discard)=[];
+            
+            inter_counts=cellfun(@length,excl_inter);
+            
+            Ninter=sum(inter_counts);
+            %use N-Ninter to set discard_counts initially. N above is total
+            
+            discard=inter_counts<hup.mincount;
+            discard_counts=sum(inter_counts(discard))+(N-Ninter);
+            
+            setix(discard)=[];
+            inter_counts(discard)=[];
+            
+            %prepare axis layout
+            if options.showdev
+                hup.tiles=tiledlayout(3,1);
+            else
+                hup.tiles=tiledlayout(2,1);
+            end
+            hup.tiles.Padding=options.Padding;
+            hup.tiles.TileSpacing=options.TileSpacing;
+            ax_intersect=nexttile(hup.tiles);
+            ax_combs=nexttile(hup.tiles); 
+            
             expected_frac=zeros(size(inter_counts));
             for i=1:length(inter_counts)
                 expected_frac(i) = prod(set_sizes(setix{i})/N) * prod(1-set_sizes(setdiff(1:n_sets,setix{i}))/N);
@@ -96,6 +131,8 @@ classdef upsetplot < handle %graphics object??
                     [~, ixs]=sort(inter_counts,'descend');
                 case 'comb'
                     ixs=1:length(inter_counts);
+                case 'combrev'
+                    ixs=length(inter_counts):-1:1;
                 case 'dev'
                     [~, ixs]=sort(dev,'descend');
                 case 'absdev'
@@ -108,19 +145,17 @@ classdef upsetplot < handle %graphics object??
             s_expected_frac=expected_frac(ixs);
             s_dev=dev(ixs);
             s_setix=setix(ixs);
-                
-            discard=s_inter_counts<hup.mincount;
-            ixs(discard)=[];
-            s_setix(discard)=[];
-            s_inter_counts(discard)=[];
-            s_observed_frac(discard)=[];
-            s_expected_frac(discard)=[];
-            s_dev(discard)=[];
             
-            n_combs=length(ixs);
+            if discard_counts>0 && options.showremaining
+                s_inter_counts(end+1)=discard_counts;
+                s_setix{end+1}=1:n_sets;
+            end
+            
+            n_combs=length(s_inter_counts);
             XLIM=[0.25,n_combs+0.75];
             [~,max_ix]=max(s_inter_counts);
             
+            %%%plotting
             %bar chart for intersection counts
             comb_ix=1:n_combs;
             set_ix=1:n_sets;
@@ -142,7 +177,9 @@ classdef upsetplot < handle %graphics object??
             YLIM(2)=ht_counts(max_ix).Extent(2)+ht_counts(max_ix).Extent(4)+t_gap;
             ax_intersect.YLim=YLIM;
             
+            %%%
             %line plot for combinations
+            yyaxis(ax_combs,'left')
             yback=repmat(set_ix(:), 1, n_combs);
             xback=repmat(comb_ix, n_sets, 1);
             hl_bg_dot=line(ax_combs,xback,yback,'color',[0.8,0.8,0.8],...
@@ -155,16 +192,41 @@ classdef upsetplot < handle %graphics object??
                 hl_combs(i)=line(ax_combs,xfore,yfore,'color','k',...
                     'linewidth',1,'marker','.','markersize',20);
             end
+            if discard_counts>0 && options.showremaining
+                hl_combs(end).Marker=options.pooled_marker;
+                hl_combs(end).MarkerSize=4;
+                hl_combs(end).MarkerFaceColor=options.pooled_color;
+                hl_combs(end).Color=options.pooled_color;
+            end
+            
+            YLIMcombs=[0.5,n_sets+0.5];
+            
             ax_combs.XLim=XLIM;
-            ax_combs.YLim=[0.5,n_sets+0.5];
+            ax_combs.YLim=YLIMcombs;
+            ax_combs.XTick=[];
             ax_combs.XAxis.Visible='off';
-%             ax_combs.XTick=comb_ix;
 %             ax_combs.XTickLabel=[];
             ax_combs.YTick=set_ix;
             ax_combs.YTickLabels=setnames;
             ax_combs.YDir='reverse';
             
-            linkaxes([ax_intersect,ax_combs],'x')
+            %a dummy axis to put set numbers on the right
+            yyaxis(ax_combs,'right')
+            ax_combs.YLim=YLIMcombs;
+            ax_combs.YTick=set_ix;
+            ax_combs.YTickLabels=string(set_sizes);
+            ax_combs.YDir='reverse';
+            ax_combs.YAxis(1).Color='k';
+            ax_combs.YAxis(2).Color='k';
+            
+            all_ax=[ax_intersect,ax_combs];
+            
+            %%%
+            %dev values
+            if options.showdev
+            end
+            
+            linkaxes(all_ax,'x')
             
             hup.N=N;
             hup.observed_frac=s_observed_frac;
