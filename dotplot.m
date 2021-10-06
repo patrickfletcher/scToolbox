@@ -22,6 +22,7 @@ arguments
     options.cb_width=0.02
     options.cblabel='mean log_{10} expression'
     options.only_expressing=false
+    options.verbose=false
 end
 
 options.marg_h=options.margins(1:2);
@@ -39,17 +40,35 @@ if ~isempty(options.figpos)
     fh.Position=options.figpos;
 end
 
+Ggrp=ones(size(glist));
+if ~isempty(options.Ggroup) && length(options.Ggroup)==length(glist)
+    Ggrp=options.Ggroup;
+end
+
 ident=removecats(ident);
 identnames=categories(ident);
 
 [gix, G]=getGeneIndices(glist,genes.name);
 [~,EXPR,PRCT]=getExpression(genes(gix,:),ncounts(gix,:),tcounts(gix,:),ident,'only_expressing',options.only_expressing);
 
-EXPR=EXPR(:,ismember(identnames,ctnames));
-PRCT=PRCT(:,ismember(identnames,ctnames));
+[~,ctix]=ismember(ctnames,identnames);
+EXPR=EXPR(:,ctix);
+PRCT=PRCT(:,ctix);
+
+lowpct=all(PRCT<options.min_prct,2);
+EXPR(lowpct,:)=[];
+PRCT(lowpct,:)=[];
+if options.verbose && nnz(lowpct)>0
+    disp("Genes expressed in less than min_prct for all cell groups:")
+    disp(G(lowpct)')
+end
+G(lowpct)=[];
+Ggrp(lowpct)=[];
+
+%other filters? ctname-max/min pct list
+
+%other sort filters?
 
 EXPR=log10(EXPR+1);
-
 Glab=strcat('\it',G);
-
-[ax,hs,cb]=plotDotPlot(Glab,ctnames,PRCT,EXPR,fh,options.Ggroup,options.sortby,options);
+[ax,hs,cb]=plotDotPlot(Glab,ctnames,PRCT,EXPR,fh,Ggrp,options.sortby,options);
