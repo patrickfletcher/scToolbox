@@ -15,11 +15,16 @@ arguments
 end
 %set fsz to 0 to not display the counts or labels
 
-setnames=string(setnames);
-[excl_int,~,int_names]=get_exclusive_intersections(sets, setnames);
-int_names=string(int_names);
-int_names=strrep(int_names,'_','&')
-counts=cellfun(@length,excl_int);
+if ~iscell(sets) && isnumeric(sets)
+    counts=sets(:);
+    int_names=setnames(:);
+else
+    setnames=string(setnames);
+    [excl_int,~,int_names]=get_exclusive_intersections(sets, setnames);
+    int_names=string(int_names);
+    int_names=strrep(int_names,'_','&');
+    counts=cellfun(@length,excl_int);
+end
 
 T=table();
 T.names=int_names(:);
