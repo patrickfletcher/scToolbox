@@ -1,6 +1,12 @@
-function [textpos,textlab] = set_embedding_textpos(COORDS, ident, cols, dopause)
-fh=figure();
-if ~exist('dopause','var'), dopause=true; end
+function [textpos,textlab] = set_embedding_textpos(COORDS, ident, cols, dopause, fh, sp_pars)
+arguments
+    COORDS
+    ident
+    cols
+    dopause=1
+    fh=[]
+    sp_pars=[]
+end
 
 catnames=categories(ident);
 ctcounts=countcats(ident);
@@ -17,7 +23,7 @@ textpos=[textpos,ones(length(catnames),2)];
 textlab=catnames;
 % end
 
-ax=plotScatter(COORDS, 'group', ident, cols, fh);
+ax=plotScatter(COORDS, 'group', ident, cols, fh,[],sp_pars);
 
 axis tight
 axis equal
