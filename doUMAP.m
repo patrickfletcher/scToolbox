@@ -46,7 +46,7 @@ elseif initY~="spectral" && initY~="random"
 end
 
 if ~isnumeric(params.n_neighbors) && params.n_neighbors=="sqrtN"
-    params.n_neighbors=floor(sqrt(size(X,1)));
+    params.n_neighbors=round(sqrt(size(X,1)));
 end
 
 if ~isfield(params,'n_components')
