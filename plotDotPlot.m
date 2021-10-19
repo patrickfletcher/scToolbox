@@ -1,4 +1,14 @@
-function [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,params,do_var_norm)
+function [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,params)
+arguments
+    varNames
+    groupNames
+    sizeData
+    colorData
+    figOrAxis = []
+    varGroup = []
+    sortmethod = 'none'
+    params = []
+end
 %dot plot: area = %>0, color = mean expression value, for a list of genes and
 %groups of cells.
 %
@@ -29,8 +39,9 @@ def_params.cb_prct_gap=0.01;
 def_params.cb_gap=0.02;
 def_params.cb_width=0.02;
 def_params.cblabel='mean log_{10} expression';
+def_params.do_var_norm=false;
 
-if ~exist('params','var')||isempty(params)
+if isempty(params)
     params=def_params;
 end
 parfields=fieldnames(def_params);
@@ -40,84 +51,76 @@ for i=1:length(parfields)
     end
 end
 
-%meanExpr row-wise unitize?
-if ~exist('do_var_norm','var')
-    do_var_norm=false;
-end
-
-if ~exist('varGroup','var') || isempty(varGroup)
+if isempty(varGroup)
     varGroup=ones(size(varNames));
 end
 if ~iscategorical(varGroup); varGroup=categorical(varGroup); end
 varCats=categories(varGroup);
 nPerGroup=countcats(varGroup);
 
-
-if exist('sortmethod','var') && ~isempty(sortmethod)
-    switch sortmethod
-        case 'alpha'
-            for i=1:length(varCats)
-                thiscat=varGroup==varCats{i};
-                varsub=varNames(thiscat);
-                sizesub=sizeData(thiscat,:);
-                colorsub=colorData(thiscat,:);
-                [~,ixs]=natsort(cellstr(varsub));
-                varsub=varsub(ixs);
-                sizesub=sizesub(ixs,:);
-                colorsub=colorsub(ixs,:);
-                varNames(thiscat)=varsub;
-                sizeData(thiscat,:)=sizesub; 
-                colorData(thiscat,:)=colorsub;                  
-            end
-
-        case 'size'
-            [sizeData,ixs]=groupCountMatrix(sizeData',varGroup,'optim');
-            sizeData=sizeData';
-            colorData=colorData(ixs,:);
-            varNames=varNames(ixs);
-
-        case 'maxsize'
-            for i=1:length(varCats)
-                thiscat=varGroup==varCats{i};
-                varsub=varNames(thiscat);
-                sizesub=sizeData(thiscat,:);
-                colorsub=colorData(thiscat,:);
-                [~,ixs]=sort(max(sizesub,[],2),'descend');
-                varsub=varsub(ixs);
-                sizesub=sizesub(ixs,:);
-                colorsub=colorsub(ixs,:);
-                varNames(thiscat)=varsub;
-                sizeData(thiscat,:)=sizesub; 
-                colorData(thiscat,:)=colorsub;                  
-            end
-            
-        case 'color'
-            [colorData,ixs]=groupCountMatrix(colorData',varGroup,'optim');
-            colorData=colorData';
-            sizeData=sizeData(ixs,:);
-            varNames=varNames(ixs);
-
-        case 'maxcolor'
-            for i=1:length(varCats)
-                thiscat=varGroup==varCats{i};
-                varsub=varNames(thiscat);
-                colorsub=colorData(thiscat,:);
-                sizesub=sizeData(thiscat,:);
-                [~,ixs]=sort(max(colorsub,[],2),'descend');
-                varsub=varsub(ixs);
-                colorsub=colorsub(ixs,:);
-                sizesub=sizesub(ixs,:);
-                varNames(thiscat)=varsub;
-                colorData(thiscat,:)=colorsub; 
-                sizeData(thiscat,:)=sizesub;                
-            end
-    end
-
+if params.do_var_norm
+    colorData=colorData./max(colorData,[],2);
 end
 
+switch sortmethod
+    case 'alpha'
+        for i=1:length(varCats)
+            thiscat=varGroup==varCats{i};
+            varsub=varNames(thiscat);
+            sizesub=sizeData(thiscat,:);
+            colorsub=colorData(thiscat,:);
+            [~,ixs]=natsort(cellstr(varsub));
+            varsub=varsub(ixs);
+            sizesub=sizesub(ixs,:);
+            colorsub=colorsub(ixs,:);
+            varNames(thiscat)=varsub;
+            sizeData(thiscat,:)=sizesub; 
+            colorData(thiscat,:)=colorsub;                  
+        end
 
-if do_var_norm
-    colorData=colorData./max(colorData,[],2);
+    case 'size'
+        [sizeData,ixs]=groupCountMatrix(sizeData',varGroup,'optim');
+        sizeData=sizeData';
+        colorData=colorData(ixs,:);
+        varNames=varNames(ixs);
+
+    case 'maxsize'
+        for i=1:length(varCats)
+            thiscat=varGroup==varCats{i};
+            varsub=varNames(thiscat);
+            sizesub=sizeData(thiscat,:);
+            colorsub=colorData(thiscat,:);
+            [~,ixs]=sort(max(sizesub,[],2),'descend');
+            varsub=varsub(ixs);
+            sizesub=sizesub(ixs,:);
+            colorsub=colorsub(ixs,:);
+            varNames(thiscat)=varsub;
+            sizeData(thiscat,:)=sizesub; 
+            colorData(thiscat,:)=colorsub;                  
+        end
+
+    case 'color'
+        [colorData,ixs]=groupCountMatrix(colorData',varGroup,'optim');
+        colorData=colorData';
+        sizeData=sizeData(ixs,:);
+        varNames=varNames(ixs);
+
+    case 'maxcolor'
+        for i=1:length(varCats)
+            thiscat=varGroup==varCats{i};
+            varsub=varNames(thiscat);
+            colorsub=colorData(thiscat,:);
+            sizesub=sizeData(thiscat,:);
+            [~,ixs]=sort(max(colorsub,[],2),'descend');
+            varsub=varsub(ixs);
+            colorsub=colorsub(ixs,:);
+            sizesub=sizesub(ixs,:);
+            varNames(thiscat)=varsub;
+            colorData(thiscat,:)=colorsub; 
+            sizeData(thiscat,:)=sizesub;                
+        end
+    otherwise
+        %no sorting
 end
 
 
@@ -150,21 +153,17 @@ prct_leg_sizes=rescale(leg_prct,minArea,maxArea,'InputMin',minSizeData,'InputMax
 prct_leg_nums=round(leg_prct);
 prct_leg_labels=strcat(num2str(prct_leg_nums(:)),{'%'});
 
-
-
 %%%% set up the figure and axes %%%%%%%%%%%%%%%%
 % alt here: use graphics containers...
 makeAxes=true;
-if exist('figOrAxis','var')
-    if isa(figOrAxis,'matlab.ui.Figure')
-        figH=figure(figOrAxis);clf
-    elseif isa(figOrAxis,'matlab.graphics.axis.Axes')
-        ax=figOrAxis;
-        axes(ax);
-        makeAxes=false;
-    end
-else
+if isempty(figOrAxis)
     figH=figure();
+elseif isa(figOrAxis,'matlab.ui.Figure')
+    figH=figure(figOrAxis);clf
+elseif isa(figOrAxis,'matlab.graphics.axis.Axes')
+    ax=figOrAxis;
+    axes(ax);
+    makeAxes=false;
 end
 
 pos=[params.marg_w(1),params.marg_h(1),1-params.marg_w(1)-params.marg_w(2),1-params.marg_h(1)-params.marg_h(2)];
@@ -192,7 +191,7 @@ ylim([0.5,length(varNames)+0.5])
 box on
 
 %boost nG separations
-if exist('nPerGroup','var') && ~isempty(nPerGroup)
+if length(nPerGroup)>1
     nPerGroup=nPerGroup(:)';
     yGridValues=cumsum(nPerGroup(1:end-1))+0.5;
     line(repmat(xlim()',1,length(yGridValues)),[1;1]*yGridValues,'color',0.*[1,1,1],'tag','groupdiv','linewidth',0.5)
