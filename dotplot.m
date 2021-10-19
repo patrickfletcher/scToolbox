@@ -5,9 +5,9 @@ arguments
     tcounts
     glist
     ident
-    ctnames
+    ctnames=[]
     options.Ggroup=[]
-    options.sortby='maxsize'
+    options.sortby='size'
     options.figid=[]
     options.figunits='inches'
     options.figpos=[]
@@ -47,9 +47,14 @@ end
 
 ident=removecats(ident);
 identnames=categories(ident);
+cellsub=~ismissing(ident);
+ident=ident(cellsub);
+if isempty(ctnames)
+    ctnames=identnames;
+end
 
 [gix, G]=getGeneIndices(glist,genes.name);
-[~,EXPR,PRCT]=getExpression(genes(gix,:),ncounts(gix,:),tcounts(gix,:),ident,'only_expressing',options.only_expressing);
+[~,EXPR,PRCT]=getExpression(genes(gix,:),ncounts(gix,cellsub),tcounts(gix,cellsub),ident,'only_expressing',options.only_expressing);
 
 [~,ctix]=ismember(ctnames,identnames);
 EXPR=EXPR(:,ctix);
