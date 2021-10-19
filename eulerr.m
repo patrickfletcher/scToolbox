@@ -3,6 +3,7 @@ arguments
     sets
     setnames
     pdf_file
+    options.do_int = true
     options.shape = "circle"
     options.cols = []
     options.alpha = 1
@@ -15,9 +16,9 @@ arguments
 end
 %set fsz to 0 to not display the counts or labels
 
-if ~iscell(sets) && isnumeric(sets)
-    counts=sets(:);
-    int_names=setnames(:);
+if ~options.do_int 
+    counts=sets;
+    int_names=setnames;
 else
     setnames=string(setnames);
     [excl_int,~,int_names]=get_exclusive_intersections(sets, setnames);
