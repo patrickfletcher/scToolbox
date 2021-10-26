@@ -1,4 +1,4 @@
-function [textpos,textlab] = set_embedding_textpos(COORDS, ident, cols, dopause, fh, sp_pars)
+function [textpos,textlab] = set_embedding_textpos(COORDS, ident, cols, dopause, fh, sp_pars, FontSize)
 arguments
     COORDS
     ident
@@ -6,6 +6,7 @@ arguments
     dopause=1
     fh=[]
     sp_pars=[]
+    FontSize=8
 end
 
 catnames=categories(ident);
@@ -25,11 +26,10 @@ textlab=catnames;
 
 ax=plotScatter(COORDS, 'group', ident, cols, fh,[],sp_pars);
 
-axis tight
-axis equal
+axis tight equal
 
 ht1=text(ax,textpos(:,1),textpos(:,2),ones(size(textpos,1),1),textlab,...
-    'HorizontalAlignment','center');
+    'HorizontalAlignment','center', 'FontSize',FontSize);
 drawnow
 
 %pause to adjust label positions
