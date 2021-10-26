@@ -37,4 +37,6 @@ if NameValueArgs.flip_high
     c_high=flipud(c_high);
 end
 
+midcol=repmat(midcol,NameValueArgs.Skip,1);
+
 cmap=[c_low(1:end-nskip,:);midcol;c_high(1+nskip:end,:)];
