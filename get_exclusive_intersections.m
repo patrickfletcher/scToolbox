@@ -35,7 +35,7 @@ for k=1:max_k
 %     if k>1, in_ix=flipud(in_ix); end %put combos with first ix's first
     for i=1:size(in_ix,1)
         %compute the intersection of in_sets
-        this_in_ix=in_ix(i,:);
+        this_in_ix=in_ix(i,:)';
         this_excl_int=sets{in_ix(i,1)};
         for j=2:length(this_in_ix)
             [this_excl_int,ia,ib]=intersect(this_excl_int, sets{this_in_ix(j)},options.sortOrder);
