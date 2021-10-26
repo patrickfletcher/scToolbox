@@ -20,6 +20,11 @@ switch params.method
         result.Z=Z; %the tree
         result.K=params.K; 
         
+    case 'spectral'
+        % can pass 'precomputed' as params.metric
+        result.clusterID = spectralcluster(scores,params.K,'Distance',params.metric);
+        result.K=params.K; 
+
     case 'modularity'
         disp('Performing graph-based clustering...')
         %Seurat uses kNN=10 and pruning=1/15 as defaults...
