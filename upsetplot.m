@@ -107,6 +107,17 @@ classdef upsetplot < handle %graphics object??
             setix(discard)=[];
             inter_counts(discard)=[];
             
+            %here need to remove any rows (set names) that have no
+            %remaining items.
+            remainsets=unique(cat(1,setix{:}));
+            discardsets=setdiff((1:n_sets)',remainsets);
+            if ~options.showremaining
+                n_sets=length(remainsets);
+                set_sizes(discardsets)=[];
+                setnames(discardsets)=[];
+                setix=cellfun(@(x) find(ismember(remainsets,x)),setix,'UniformOutput',false);
+            end
+            
             %prepare axis layout
             if options.showdev
                 hup.tiles=tiledlayout(3,1);
