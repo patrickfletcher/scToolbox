@@ -1,11 +1,18 @@
-function M=knnGraph(X,k,type,pruneThr,symmetrize)
+function A=knnGraph(X, k, options)
+arguments
+    X
+    k
+    options.PreComputed = false
+    options.type = ""
+end
 % similarity matrix using knn
 
 %TODO: pruning?
 
 % [idx,Dist]=knnsearch(X,X,'k',k);
 [idx,Dist]=knnsearch(X,X,'k',k+1);
-idx(:,1) = []; Dist(:,1) = []; %remove self-distances
+idx(:,1) = []; 
+Dist(:,1) = []; %remove self-distances
 
 if ~exist('type','var')
     type='adjacency';
@@ -20,19 +27,19 @@ if ~exist('symmetrize','var')
 end
 
 % Create the adjacency matrix for linkage
-M = zeros(size(X,1));
+A = zeros(size(X,1));
 for ii = 1:length(X)
     
     %simple Knn
     switch lower(type)
         case 'adjacency'
             %adjacency matrix only
-            M(ii,idx(ii,:)) = 1;
+            A(ii,idx(ii,:)) = 1;
             
         case 'euclidean'
             %similarity = 1/Euclidean distance
 %             M(ii,idx(ii,:)) = Dist(ii,:); 
-            M(ii,idx(ii,:)) = 1./Dist(ii,:); 
+            A(ii,idx(ii,:)) = 1./Dist(ii,:); 
             
         case 'jaccard'
             %similarity = Jaccard index (shared neighbors)
@@ -43,13 +50,21 @@ for ii = 1:length(X)
             weights = shared_neighbors ./ (2*k-shared_neighbors); % Jaccard coefficient
             %pruning? seems like if weight<pruneKNN, set weight=0.
             weights(weights<pruneThr)=0;
-            M(ii,idx(ii,:)) = weights;
+            A(ii,idx(ii,:)) = weights;
     end
 end
 
 %symmetrize? Louvain non-oriented does this anyway.
 if symmetrize
-    M=M+M';
+    A=A+A';
 end
+
+
+%
+% A = knnAdjacency + knnAdjacency';
+% A(A==1) = 0;
+% % normalize to weights of 1 so the undirected mutual knn graph is unweighted
+% A = A/2;
+
 
 % D=full(knn2jaccard(idx)); %lower triangular, D+D' is equal to my symmetrized.
