@@ -75,6 +75,8 @@ if exist('knn','var') && ~isempty(knn) && size(knn,1)==size(X,1) && params.n_nei
     doKNN=false;
     knn_indices=knn.indices(:,1:params.n_neighbors);
     knn_dists=knn.dists(:,1:params.n_neighbors);
+    result.knn_indices=knn_indices;
+    result.knn_dists=knn_dists;
 end
 
 nn_method='matlab';
@@ -87,11 +89,11 @@ if doKNN && nn_method=="matlab"
     disp('Computing neighbors...')
     tic
     [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors,'Distance',metric); %quite fast!
-    % knn_indices(:,1)=[]; %remove self distances
-    % knn_dists(:,1)=[];
+    knn_indices(:,1)=[]; %remove self distances
+    knn_dists(:,1)=[];
     disp("knnsearch time: " + num2str(toc) + "s")
-%     result.knn_indices=knn_indices;
-%     result.knn_dists=knn_dists;
+    result.knn_indices=knn_indices;
+    result.knn_dists=knn_dists;
     metric='correlation'; %if I do KNN, UMAP doesn't use a metric
 end
 
@@ -130,8 +132,8 @@ out_tuple=umap.fuzzy_simplicial_set(py.numpy.array(X,'float32',pyargs('order','C
 out_tuple=cell(out_tuple); %emb_graph, emb_sigmas, emb_rhos, emb_dists
 emb_graph=out_tuple{1};
 % emb_sigmas=out_tuple{2};
-% emb_rhos=out_tuple{3};
-emb_dists=out_tuple{4};
+% emb_rhos=out_tuple{3}; %this looks like knn_dists to first neighbor
+% emb_dists=out_tuple{4}; %get this only if dens_map
 
 result.graph=sparse(double(emb_graph.toarray())); %is this correct?
 % result.sigmas=double(emb_sigmas);
@@ -172,6 +174,7 @@ if isfield(params,'do_densmap')
     if isfield(params,'dens_var_shift')
         dens_var_shift=params.dens_var_shift;
     end
+    emb_dists=out_tuple{4};
     densmap_kwds=py.dict(pyargs('graph_dists',emb_dists,'lambda',dens_lambda,...
         'frac',dens_frac,'var_shift',dens_var_shift));
 end
