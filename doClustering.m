@@ -22,7 +22,7 @@ switch params.method
         
     case 'spectral'
         % can pass 'precomputed' as params.metric
-        result.clusterID = spectralcluster(scores,params.K,'Distance',params.metric);
+        clusterID = spectralcluster(scores,params.K,'Distance',params.metric);
         result.K=params.K; 
 
     case 'modularity'
@@ -32,6 +32,7 @@ switch params.method
         COMTY = cluster_jl_cpp(D,1,1,0,0);
         clusterID=COMTY.COM{end};
         result.K=length(COMTY.SIZE{end});
+        
     case 'leiden'
         disp('Performing Leidenalg (python) clustering...')
         
