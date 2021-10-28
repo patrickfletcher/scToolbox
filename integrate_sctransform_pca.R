@@ -1,13 +1,22 @@
 # command line script to run Seurat integration, then SCTransform + PCA.
+
 library(Seurat)
 
 args <- commandArgs(TRUE)
 
+#TODO: move to R.matlab - pass struct of params???
+# input_mat_file <- args[1]
+# inputs <- readMat(input_mat_file)
+# output_mat_file <- args[2]
+# writeMat(output_moutput_mat_filet_file)
+
 data_file <- args[1] #full path to h5 file
 cellsubset_file <- args[2] #two column file with full list of cells. Colnames = id, keep
 n_pcs <- as.numeric(args[3])
-out_file <- args[4] #output file to write pearson residuals
+pc_file <- args[4] #output file to write PCs
 splitby <- args[5]
+saveSO <- args[6]
+so_tag <- args[7]
 
 cellsubset <-read.csv(cellsubset_file, row.names = 'id', header = T)
 
@@ -68,4 +77,10 @@ so <- SCTransform(so, method = "glmGamPoi") #sets default assay to SCT , batch_v
 so <- RunPCA(so, verbose=FALSE, npcs = n_pcs)
 pcs <- Embeddings(so, reduction = "pca")
 
-write.csv(pcs,out_file)
+write.csv(pcs,pc_file)
+
+#if saveSO, save so as RDS for later loading/subsetting/new PCA.
+if (saveSO==1){
+  rdsfile<-paste0(paste("integrated",splitby,so_tag,int_method,sep="_"),".rds")
+  saveRDS(so, file = file.path(dirname(datapath),rdsfile))
+}

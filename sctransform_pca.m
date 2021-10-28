@@ -4,6 +4,7 @@ arguments
     cellsub
     options.n_pcs = 50
     options.do_compute = true;
+    options.use_so = false;
     options.result_file = 'tmp_sct_pca.csv'
     options.verbose = false
 end
@@ -17,7 +18,8 @@ toc
 
 Rpath = [FindRpath, filesep, 'Rscript.exe', '" "', '--vanilla '];
 scriptfile = "C:\Users\fletcherpa\Documents\GitHub\scToolbox\sctransform_pca.R";
-command = char(strjoin([scriptfile,datafile,cellsubfile,options.n_pcs,options.result_file]," "));
+command = char(strjoin([scriptfile,datafile,cellsubfile,options.n_pcs,...
+    options.result_file,options.use_so]," "));
 
 commandline=['"', Rpath, command '"'];
 
