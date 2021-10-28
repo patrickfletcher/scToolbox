@@ -1,5 +1,10 @@
-function result = doUMAP(X, params, knn, figID, valuenames, colors)
-
+function [result, used_knn] = doUMAP(X, params, knn, figID)
+arguments
+    X
+    params %everything in here plus below should be name/val
+    knn = [] 
+    figID = []
+end
 %TODO: arguments block
 
 % Cellranger defaults seem to be:
@@ -71,12 +76,10 @@ verbose=true;
 % break into three steps for reuse of intermediates.
 % 1. nearest neighbors --> nnIDX, nnDist (for impute!) - in python, quite slow! the bottleneck.
 doKNN=true;
-if exist('knn','var') && ~isempty(knn) && size(knn,1)==size(X,1) && params.n_neighbors<=size(knn.indices,2)
+if ~isempty(knn) && size(knn.indices,1)==size(X,1) && params.n_neighbors<=size(knn.indices,2)
     doKNN=false;
     knn_indices=knn.indices(:,1:params.n_neighbors);
     knn_dists=knn.dists(:,1:params.n_neighbors);
-    result.knn_indices=knn_indices;
-    result.knn_dists=knn_dists;
 end
 
 nn_method='matlab';
@@ -88,12 +91,10 @@ end
 if doKNN && nn_method=="matlab"
     disp('Computing neighbors...')
     tic
-    [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors,'Distance',metric); %quite fast!
+    [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors+1,'Distance',metric); %quite fast!
     knn_indices(:,1)=[]; %remove self distances
     knn_dists(:,1)=[];
     disp("knnsearch time: " + num2str(toc) + "s")
-    result.knn_indices=knn_indices;
-    result.knn_dists=knn_dists;
     metric='correlation'; %if I do KNN, UMAP doesn't use a metric
 end
 
@@ -113,9 +114,9 @@ py_rand_state=py.numpy.random.RandomState(int64(params.rngSeed));
 % result.knn_dists=double(out{2});
 % toc
 
-disp('Computing UMAP...')
 
 umap=py.importlib.import_module('umap.umap_');
+disp('Computing UMAP...')
 
 % 2. fuzzy simplicial set --> graph
 tic
@@ -187,18 +188,14 @@ embedded = umap.simplicial_set_embedding(X, emb_graph,...
 
 result.coords=double(embedded{1});
 
+used_knn.indices=knn_indices;
+used_knn.dists=knn_dists;
+
 disp("simplicial_set_embedding time: " + num2str(toc) + "s")
     
-if exist('figID','var')
+if ~isempty(figID)
     figure(figID);clf
-    if ~exist('valuenames','var')
-        valuenames="";
-        colors=ones(size(X,1),1);
-    end
-    ax=plotScatter(result.coords,'value',valuenames,colors,figID,[],[],'index');
-    for i=1:length(ax)
-        axis(ax(i),'tight')
-        axis(ax(i),'equal')
-    end
+    plotScatter(result.coords,'group',ones(size(result.coords,1),1),0.66*[1,1,1],figID);
+    axis tight equal
     drawnow
 end
