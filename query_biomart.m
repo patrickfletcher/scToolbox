@@ -23,10 +23,13 @@ writematrix(attributes,attributes_file)
 writematrix(filter_values,vals_file)
 
 
-Rpath = "C:\Users\fletcherpa\Documents\R\R-4.1.0\bin\Rscript --vanilla ";
-script = "C:\Users\fletcherpa\Documents\GitHub\scToolbox\query_biomaRt.R";
+Rpath = [FindRpath, filesep, 'Rscript.exe', '" "', '--vanilla '];
+scriptfile = "C:\Users\fletcherpa\Documents\GitHub\scToolbox\query_biomaRt.R";
+command = char(strjoin([scriptfile,dataset,attributes_file,filter_name,vals_file,result_file]," "));
 
-[status, cmdout]=system(Rpath + strjoin([script,dataset,attributes_file,filter_name,vals_file,result_file]," "));
+commandline=['"', Rpath, command '"'];
+
+[status, cmdout]=system(commandline);
 if status~=0
     error(cmdout)
 end

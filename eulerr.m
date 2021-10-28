@@ -42,12 +42,13 @@ T(counts==0,:)=[];
 setsfile="tmp_eulerr_data.csv";
 writetable(T, setsfile);
 
-Rpath = "C:\Users\fletcherpa\Documents\R\R-4.1.0\bin\Rscript --vanilla ";
+Rpath = [FindRpath, filesep, 'Rscript.exe', '" "', '--vanilla '];
 scriptfile = "C:\Users\fletcherpa\Documents\GitHub\scToolbox\eulerr.R";
+command = char(strjoin([scriptfile,setsfile,options.shape,options.alpha,...
+    options.width,options.height,options.fsz_counts,options.fsz_labels,options.rng_seed,pdf_file]," "));
 
 pdf_file=fullfile(pwd,pdf_file);
-[status, cmdout]=system(Rpath + strjoin([scriptfile,setsfile,options.shape,options.alpha,...
-    options.width,options.height,options.fsz_counts,options.fsz_labels,options.rng_seed,pdf_file]," "));
+[status, cmdout]=system(Rpath + command);
 if status~=0
     error(cmdout)
 end
