@@ -3,12 +3,13 @@ arguments
     genes
     counts
     clust
+%     options.geneSelectMethod='tfidf'
+    options.tfidf_params=[]
     options.simThr=0.5
     options.simMethod='overlap'
     options.nReps=1
     options.doPlot=0;
     options.cell_coords=[]
-    options.tfidf_params=[]
 end
 
 for n=1:options.nReps
@@ -28,7 +29,7 @@ for n=1:options.nReps
         dom{i}=TFIDF.("c"+string(i)).name;
     end
     
-    %one-hot encode:
+    %one-hot encode gene lists:
     uG=unique(cat(1,dom{:}));
     domG=false(K,length(uG));
     for i=1:K
