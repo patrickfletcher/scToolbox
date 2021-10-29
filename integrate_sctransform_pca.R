@@ -20,14 +20,18 @@ so_tag <- args[7]
 
 cellsubset <-read.csv(cellsubset_file, row.names = 'id', header = T)
 
-#as of 8/3/21 - sctransform has a bug with batch_var
-# batch<-ifelse("batch" %in% colnames(cellsubset), c("batch"), NULL)
+nfeatures <- 3000
+ncells <- 5000 #for vst
+n_genes <- 2000 #for vst
+min_cells <- 5 #for vst
+norm_method<-"SCT"
+# int_method <- "cca"
+int_method <- "rpca"
+k.anchor <- 5
+refs <- NULL
+k.weight <-100
+sample.tree <- NULL
 
-print(data_file)
-print(cellsubset_file)
-print(n_pcs)
-print(out_file)
-print(splitby)
 
 data <- Read10X_h5(data_file, use.names=F)
 
@@ -37,43 +41,30 @@ so <- subset(so, subset=keep==1)
 
 so.list <- SplitObject(so, split.by=splitby)
 
-remove(so)
-gc()
+# remove(so)
+# gc()
 
-nfeatures <- 3000
-ncells <- 5000 #for vst
-n_genes <- 2000 #for vst
-min_cells <- 5 #for vst
 so.list <- lapply(X = so.list, FUN = SCTransform, ncells=ncells, variable.features.n=nfeatures,
                    method = "glmGamPoi", n_genes=n_genes, min_cells=min_cells) #vst args
-
 features <- SelectIntegrationFeatures(object.list = so.list, nfeatures = nfeatures)
 so.list <- PrepSCTIntegration(object.list = so.list, anchor.features = features)
-
 so.list <- lapply(X = so.list, FUN = RunPCA, npcs = n_pcs, verbose=FALSE)
-
-norm_method<-"SCT"
-# int_method <- "cca"
-int_method <- "rpca"
-k.anchor <- 5
-refs <- NULL
 anchors <- FindIntegrationAnchors(
   object.list = so.list, reduction = int_method, dims = 1:n_pcs, k.anchor=k.anchor, 
   anchor.features = features, normalization.method = norm_method, reference = refs) 
 
-remove(so.list)
-gc()
+# remove(so.list)
+# gc()
 
-k.weight <-100
-sample.tree <- NULL
 so <- IntegrateData(anchorset = anchors, normalization.method = norm_method,
-                        dims = 1:n_pcs) #, k.weight=k.weight, sample.tree = sample.tree
+                        dims = 1:n_pcs, k.weight=k.weight, sample.tree = sample.tree)
 
-remove(anchors)
-gc()
+# remove(anchors)
+# gc()
 
 DefaultAssay(so) <- "integrated"
-so <- SCTransform(so, method = "glmGamPoi") #sets default assay to SCT , batch_var=batch
+so <- SCTransform(so, method = "glmGamPoi", variable.features.n=nfeatures, 
+                  ncells=ncells,  n_genes=n_genes, min_cells=min_cells)
 so <- RunPCA(so, verbose=FALSE, npcs = n_pcs)
 pcs <- Embeddings(so, reduction = "pca")
 

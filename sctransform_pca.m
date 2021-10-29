@@ -8,6 +8,7 @@ arguments
     options.result_file = 'tmp_sct_pca.csv'
     options.verbose = false
 end
+% if use_so==true, datafile is interpreted as the RDS file to load
 
 cellsubfile='tmp_sct_cellsub.csv';
 

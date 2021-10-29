@@ -8,7 +8,7 @@ arguments
     options.result_file = 'tmp_sct_pca.csv'
     options.verbose = false
     options.saveSO = 0
-    options.saveSOtag = 0
+    options.saveSOtag = ""
 end
 
 cellsubfile='tmp_sct_cellsub.csv';
@@ -42,7 +42,6 @@ tic
 result_tab=readtable(options.result_file);
 toc
 result_tab=renamevars(result_tab,"Var1","barcode");
-
 
 res.npc=options.n_pcs;
 res.method="SCT";
