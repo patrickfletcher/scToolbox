@@ -9,6 +9,7 @@ arguments
     NameValueArgs.N=64
     NameValueArgs.Skip=16
     NameValueArgs.MidCol=[0.75,0.75,0.75]
+    NameValueArgs.RepMidSkip=false
 end
 nc=NameValueArgs.N;
 nskip=NameValueArgs.Skip;
@@ -37,6 +38,8 @@ if NameValueArgs.flip_high
     c_high=flipud(c_high);
 end
 
-midcol=repmat(midcol,NameValueArgs.Skip,1);
+if NameValueArgs.RepMidSkip
+    midcol=repmat(midcol,NameValueArgs.Skip,1);
+end
 
 cmap=[c_low(1:end-nskip,:);midcol;c_high(1+nskip:end,:)];
