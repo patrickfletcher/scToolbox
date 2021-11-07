@@ -44,11 +44,13 @@ writetable(T, setsfile);
 
 Rpath = [FindRpath, filesep, 'Rscript.exe', '" "', '--vanilla '];
 scriptfile = "C:\Users\fletcherpa\Documents\GitHub\scToolbox\eulerr.R";
+pdf_file=fullfile(pwd,pdf_file);
 command = char(strjoin([scriptfile,setsfile,options.shape,options.alpha,...
     options.width,options.height,options.fsz_counts,options.fsz_labels,options.rng_seed,pdf_file]," "));
 
-pdf_file=fullfile(pwd,pdf_file);
-[status, cmdout]=system(Rpath + command);
+commandline=['"', Rpath, command '"'];
+
+[status, cmdout]=system(commandline);
 if status~=0
     error(cmdout)
 end

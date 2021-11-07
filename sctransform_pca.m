@@ -38,11 +38,12 @@ end
 %else, uses result_file
 
 tic
-result_tab=readtable(options.result_file);
+PCs=readmatrix(options.result_file);
 toc
-result_tab=renamevars(result_tab,"Var1","barcode");
+% result_tab=renamevars(result_tab,"Var1","barcode");
 
 
 res.npc=options.n_pcs;
 res.method="SCT";
-res.coords=result_tab{:,2:end};
+res.coords=PCs;
+% res.coords=result_tab{:,2:end};

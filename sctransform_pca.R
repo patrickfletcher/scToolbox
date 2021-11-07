@@ -29,4 +29,4 @@ so <- SCTransform(so, method = "glmGamPoi") #sets default assay to SCT , batch_v
 so <- RunPCA(so, verbose=FALSE, npcs = n_pcs)
 pcs <- Embeddings(so, reduction = "pca")
 
-write.csv(pcs,out_file)
+write.csv(pcs,out_file, row.names = FALSE)
