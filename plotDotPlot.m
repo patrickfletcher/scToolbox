@@ -184,6 +184,8 @@ hs.MarkerEdgeColor=0.5*[1,1,1];
 hs.LineWidth=0.5;
 
 cmap=cbrewer('seq','Reds',64);
+% cmap=cbrewer('seq','OrRd',64);
+cmap=[1,1,1;cmap];
 colormap(ax, cmap)
 
 xlim([0.5,length(groupNames)+0.5])

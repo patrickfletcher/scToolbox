@@ -191,8 +191,12 @@ switch lower(colorby)
     case 'value'
         
 %         cmap=flipud(cbrewer('div','RdBu',11)); %test binning?
-        cmap=cbrewer('seq','OrRd',50); %test binning?
-        cmap=[[.7,.85,0.9];cmap(10:end,:)]; %add a teal color for zero; skip lower couple colors
+%         cmap=cbrewer('seq','OrRd',50); %test binning?
+%         cmap=[[.7,.85,0.9];cmap(10:end,:)]; %add a teal color for zero; skip lower couple colors
+
+        cmap=cbrewer('seq','Reds',64);
+        % cmap=cbrewer('seq','OrRd',64);
+        cmap=[0.8*[1,1,1];cmap];
 
         if isempty(groups)
             groups=repmat("",n,1);
@@ -220,7 +224,7 @@ switch lower(colorby)
                 c.Position(2)=c.Position(2)+c.Position(4)/4;
                 c.Position(4)=c.Position(4)/2;
 
-                d=2; 
+                d=1; 
                 c.Ticks=[ceil((10^d)*c.Limits(1)),floor((10^d)*c.Limits(2))]/ (10^d); %round to 1 decimal point
 
                 hc(i)=c;

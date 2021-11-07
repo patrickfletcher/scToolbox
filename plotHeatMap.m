@@ -23,7 +23,11 @@ varLabels=strcat(repmat({'\it '},size(varNames)),varNames);
 % cellGroupAxLabel='cell type';
 %could pass cell array of names in groupBy - use first for grouping, plot remaining as secondary marker(s)
 
-cmap_HM=flipud(cbrewer('div','RdBu',15));
+% cmap=flipud(cbrewer('div','RdBu',15));
+cmap=cbrewer('seq','Reds',64);
+% cmap=cbrewer('seq','OrRd',64);
+cmap=[1,1,1;cmap];
+
 if ~exist('sp_params','var')||isempty(sp_params)
     sp_params.gap=0.1;
     sp_params.marg_h=0.1;
@@ -178,7 +182,7 @@ keepticks=keepticks(groupCounts>0);
 %%%% main axis for heatmap %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 him=imagesc(axHM,X);
-colormap(axHM,cmap_HM);
+colormap(axHM,cmap);
 
 %boost nG separations
 yGridValues=cumsum(nPerGroup)+0.5;
