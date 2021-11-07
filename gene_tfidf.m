@@ -1,10 +1,11 @@
-function result = gene_tfidf(genes, counts, group, options)
+function [result, restab]= gene_tfidf(genes, counts, group, options)
 arguments
     genes
     counts
     group
     options.N=50
     options.min_count=1
+    options.min_in_freq=0.05
     options.do_hyge=1
     options.fdr_thr=0.05
 end
@@ -60,6 +61,7 @@ end
 
 %sort genes by tfidf and retain top hits
 %store the results in a table
+restab=table();
 for i=1:nGroups
     
     [tfidfs,ixs]=sort(tfidf(:,i),'descend');
@@ -72,13 +74,17 @@ for i=1:nGroups
     res.idf=idf(ixs);
     res.tfidf=tfidfs;
     
-if options.do_hyge
-    res.adj_p=adj_p(ixs,i);
-    res(~sig(ixs,i),:)=[];
-end
+    if options.do_hyge
+        res.adj_p=adj_p(ixs,i);
+        res(~sig(ixs,i),:)=[];
+    end
+
+    res(res.in_freq<options.min_in_freq,:)=[];
     
     res=res(1:min(options.N,height(res)),:);
     
     result.(groupNames{i})=res;
-    
+
+    res.clust_id=repmat(i,height(res),1);
+    restab=[restab;res];
 end
