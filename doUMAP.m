@@ -71,7 +71,7 @@ result = params;
 
 %common python function arguments
 n_neighbors=int64(params.n_neighbors);
-verbose=true;
+verbose=false;
 
 % break into three steps for reuse of intermediates.
 % 1. nearest neighbors --> nnIDX, nnDist (for impute!) - in python, quite slow! the bottleneck.
