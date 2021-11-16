@@ -63,8 +63,7 @@ so <- IntegrateData(anchorset = anchors, normalization.method = norm_method,
 # gc()
 
 DefaultAssay(so) <- "integrated"
-so <- SCTransform(so, method = "glmGamPoi", variable.features.n=nfeatures, 
-                  ncells=ncells,  n_genes=n_genes, min_cells=min_cells)
+#don't do SCTransform again!!!!!
 so <- RunPCA(so, verbose=FALSE, npcs = n_pcs)
 pcs <- Embeddings(so, reduction = "pca")
 
