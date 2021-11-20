@@ -28,6 +28,7 @@ if ~exist('sp_params','var')||isempty(sp_params)
     sp_params.marg_w=0.1;
     sp_params.cb_gap=0.015;
     sp_params.cb_width=0.015;
+    sp_params.round_tick_power=1;
 elseif ~isstruct(sp_params)
     val=sp_params; clear sp_params;
     sp_params.gap=val(1);
@@ -38,6 +39,7 @@ elseif ~isstruct(sp_params)
 end
 cb_gap=sp_params.cb_gap;
 cb_width=sp_params.cb_width;
+d=sp_params.round_tick_power;
 
 if ~exist('figID','var')||isempty(figID)
     if ~exist('subplotdims','var')||isempty(subplotdims)||~(class(subplotdims)=="matlab.graphics.axis.Axes")
@@ -224,7 +226,6 @@ switch lower(colorby)
                 c.Position(2)=c.Position(2)+c.Position(4)/4;
                 c.Position(4)=c.Position(4)/2;
 
-                d=1; 
                 c.Ticks=[ceil((10^d)*c.Limits(1)),floor((10^d)*c.Limits(2))]/ (10^d); %round to 1 decimal point
 
                 hc(i)=c;
