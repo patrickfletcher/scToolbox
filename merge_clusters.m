@@ -18,7 +18,8 @@ for n=1:options.nReps
     K=length(cats)
     
     if ~isempty(options.tfidf_params)
-        TFIDF=gene_tfidf(genes,counts,clust,options.tfidf_params);
+        tfidf_pars=namedargs2cell(options.tfidf_params);
+        TFIDF=gene_tfidf(genes,counts,clust,tfidf_pars{:});
     else
         TFIDF=gene_tfidf(genes,counts,clust);
     end
