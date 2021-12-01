@@ -23,9 +23,9 @@ if (use_so==1){
   data <- Read10X_h5(data_file, use.names=F)
   data <- data[,cellsubset$keep==1]
   so <- CreateSeuratObject(data)
+  so <- SCTransform(so, method = "glmGamPoi") #sets default assay to SCT , batch_var=batch
 }
 
-so <- SCTransform(so, method = "glmGamPoi") #sets default assay to SCT , batch_var=batch
 so <- RunPCA(so, verbose=FALSE, npcs = n_pcs)
 pcs <- Embeddings(so, reduction = "pca")
 
