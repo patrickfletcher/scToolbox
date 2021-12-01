@@ -41,8 +41,8 @@ so <- subset(so, subset=keep==1)
 
 so.list <- SplitObject(so, split.by=splitby)
 
-# remove(so)
-# gc()
+remove(so)
+gc()
 
 so.list <- lapply(X = so.list, FUN = SCTransform, ncells=ncells, variable.features.n=nfeatures,
                    method = "glmGamPoi", n_genes=n_genes, min_cells=min_cells) #vst args
@@ -53,14 +53,14 @@ anchors <- FindIntegrationAnchors(
   object.list = so.list, reduction = int_method, dims = 1:n_pcs, k.anchor=k.anchor, 
   anchor.features = features, normalization.method = norm_method, reference = refs) 
 
-# remove(so.list)
-# gc()
+remove(so.list)
+gc()
 
 so <- IntegrateData(anchorset = anchors, normalization.method = norm_method,
                         dims = 1:n_pcs, k.weight=k.weight, sample.tree = sample.tree)
 
-# remove(anchors)
-# gc()
+remove(anchors)
+gc()
 
 DefaultAssay(so) <- "integrated"
 #don't do SCTransform again!!!!!
