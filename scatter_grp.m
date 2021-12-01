@@ -1,4 +1,4 @@
-function hsc=scatter_grp(coords,groupby,splitby,opts,sopts)
+function hsc=scatter_grp(coords,groupby,splitby,opts,scopts)
 arguments
     coords
     groupby=[]
@@ -12,17 +12,18 @@ arguments
 
     opts.gcols=[]
     opts.draworder {mustBeMember(opts.draworder,["random","index","flat"])} ='flat'
-    sopts.?matlab.graphics.chart.primitive.Scatter
+    scopts.?matlab.graphics.chart.primitive.Scatter
 end
 
 [nObs,nDim]=size(coords);
 
 % default markersize
-defsz=12-log(nObs);
+% defsz=12-log(nObs);
+defsz=3;
 
 %support 3D scatterplots
 do3D=false;
-soptargs=namedargs2cell(sopts);
+soptargs=namedargs2cell(scopts);
 if nDim==2
     scatterfun=@(X,C)scatter(X(:,1),X(:,2),defsz,C,'filled',soptargs{:});
 elseif nDim==3
@@ -75,7 +76,7 @@ elseif isempty(opts.fig)&&~isempty(opts.ax) %create correct # ax
     if length(opts.ax)~=nSplit
         error("Cannot fit "+string(nSplit)+" scatterplots into "+string(length(opts.ax))+" axes");
     end
-    axes(opts.ax(1))
+    ax=opts.ax;
     fh=gcf;
 elseif ~isempty(opts.fig)&&isempty(opts.ax) %make new axes
     fh=figure(opts.fig);
@@ -85,19 +86,25 @@ else %both fig and ax specified: splitby only possible if correct # ax
         error("Cannot fit "+string(nSplit)+" scatterplots into "+string(length(opts.ax))+" axes");
     end
     fh=figure(opts.fig);
+    ax=opts.ax;
 end
 
 if doNewAx
-    nr=floor(sqrt(nSplit));
-    nc=ceil(sqrt(nSplit));
-    ax=tight_subplot(nr,nc,[],opts.tilegaps,opts.margins([1,3]),opts.margins([2,4]));
+    if ~isempty(opts.panels)
+        nr=opts.panels(1);
+        nc=opts.panels(2);
+    else
+        nr=floor(sqrt(nSplit));
+        nc=ceil(sqrt(nSplit));
+    end
+    ax=tight_subplot(nr,nc,[],opts.tilegaps,opts.margins([2,4]),opts.margins([1,3]));
 end
 
 for i=1:nSplit
     axes(ax(i))
     hold on
     for j=1:nGrp
-        thisgrp=groupby==gnames{j} & splitby==snames{i};
+        thisgrp=groupby(:)==gnames{j} & splitby(:)==snames{i};
         hs(j)=scatterfun(coords(thisgrp,:),gcols(j,:));
         hs(j).DisplayName=gnames{j};
 
@@ -124,6 +131,7 @@ end
 linkaxes(ax)
 
 % common title/colorbar
+ht=[];
 if ~isempty(opts.title)
     ht=sgtitle(opts.title); %specify the figure
 end
@@ -132,3 +140,5 @@ hsc.fig=fh;
 hsc.ax=ax;
 hsc.hs=hs;
 hsc.ht=ht;
+hsc.opts=opts;
+hsc.scopts=scopts;

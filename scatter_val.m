@@ -14,11 +14,12 @@ arguments
     opts.cbdims=[0.3,0.01] %[length, width]
     opts.cblabel=[]
     opts.cbLoc {mustBeMember(opts.cbLoc,["east","west","north","south"])}='east'
+    opts.cbJust {mustBeMember(opts.cbJust,["low","mid","high"])}='mid'
     opts.commonCbar=true %true - one cb for all axes same color scale. false - individual cbs
     opts.cmap=[]
     opts.isdiverging=false
 
-    opts.draworder {mustBeMember(opts.draworder,["random","value","flat"])} ='flat'
+    opts.draworder {mustBeMember(opts.draworder,["random","value","valrev","flat"])} ='flat'
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
 %returns a struct containing all handles for post-modification
@@ -27,7 +28,7 @@ end
 
 % default markersize
 % defsz=13-log(nObs);
-defsz=5;
+defsz=3;
 
 %support 3D scatterplots
 do3D=false;
@@ -79,9 +80,14 @@ else %both fig and ax specified: splitby only possible if correct # ax
 end
 
 if doNewAx
-    nr=floor(sqrt(nSplit));
-    nc=ceil(sqrt(nSplit));
-    ax=tight_subplot(nr,nc,[],opts.tilegaps,opts.margins([1,3]),opts.margins([2,4]));
+    if ~isempty(opts.panels)
+        nr=opts.panels(1);
+        nc=opts.panels(2);
+    else
+        nr=floor(sqrt(nSplit));
+        nc=ceil(sqrt(nSplit));
+    end
+    ax=tight_subplot(nr,nc,[],opts.tilegaps,opts.margins([2,4]),opts.margins([1,3]));
 end
 
 
@@ -94,15 +100,15 @@ for i=1:nSplit
     
     if ~opts.commonCbar
         rectpos=ax(i).Position;
-        hcb(i)=makeCB(ax(i),rectpos,opts.cbgap,opts.cbdims,opts.cbLoc);
+        hcb(i)=makeCB(ax(i),rectpos,opts.cbgap,opts.cbdims,opts.cbLoc,opts.cbJust);
         if opts.isdiverging
             ax(i).CLim=abs(max(thiscvals))*[-1,1];
-%             cbtick=unique([min(thiscvals),0,max(thiscvals)]);
-            cbtick=unique(sort([min(hcb(i).Ticks),max(hcb(i).Ticks),0]));
+            cbtick=unique([min(thiscvals),0,max(thiscvals)]);
+%             cbtick=unique(sort([min(hcb(i).Ticks),max(hcb(i).Ticks),0]));
         else
             ax(i).CLim=[min(thiscvals),max(thiscvals)];
-%             cbtick=[min(thiscvals),max(thiscvals)];
-            cbtick=[min(hcb(i).Ticks),max(hcb(i).Ticks)];
+            cbtick=[min(thiscvals),max(thiscvals)];
+%             cbtick=[min(hcb(i).Ticks),max(hcb(i).Ticks)];
         end
         hcb(i).Limits=[min(thiscvals),max(thiscvals)];
         hcb(i).Ticks=sort(cbtick);
@@ -129,7 +135,9 @@ for i=1:nSplit
     if ~do3D
     switch opts.draworder
         case 'value'
-            hs(i).ZData=cvals(thisgrp); %high expr on top
+            hs(i).ZData=cvals(thisgrp); %high on top
+        case 'valrev'
+            hs(i).ZData=-cvals(thisgrp); %low on top
         case 'random'
             hs(i).ZData=rand(size(hs(i).XData));  %randomize the "depth" of points
         case 'flat' %not ordered - keep as 2D (eg. for alpha)
@@ -143,19 +151,24 @@ linkaxes(ax)
 % common title/colorbar
 ht=[];
 if ~isempty(opts.title)
-    ht=sgtitle(opts.title); %specify the figure
+%     if nSplit>1
+        ht=sgtitle(opts.title); %specify the figure?
+%     else
+%         ht=title(opts.title); %specify the axis?
+%     end
 end
 if opts.commonCbar
     rectpos=[opts.margins(1:2),1-opts.margins(3:4)-opts.margins(1:2)];
-    hcb=makeCB(ax(end),rectpos,opts.cbgap,opts.cbdims,opts.cbLoc);
+    hcb=makeCB(ax(end),rectpos,opts.cbgap,opts.cbdims,opts.cbLoc,opts.cbJust);
     hcb.Limits=[min(cvals),max(cvals)];
     if opts.isdiverging
-%         cbtick=[min(cvals),0,max(cvals)];
-        cbtick=unique(sort([min(hcb.Ticks),max(hcb.Ticks),0]));
+        cbtick=[min(cvals),0,max(cvals)];
+%         cbtick=unique(sort([min(hcb.Ticks),max(hcb.Ticks),0]));
     else
-%         cbtick=[min(cvals),max(cvals)];
-        cbtick=[min(hcb.Ticks),max(hcb.Ticks)];
+        cbtick=[min(cvals),max(cvals)];
+%         cbtick=[min(hcb.Ticks),max(hcb.Ticks)];
     end
+    cbtick=[ceil(min(cbtick)*100),floor(max(cbtick)*100)]/100;
     hcb.Ticks=sort(cbtick);
     hcb.TickLength=opts.cbdims(2);
 end
@@ -165,31 +178,52 @@ hsc.ax=ax;
 hsc.hs=hs;
 hsc.cb=hcb;
 hsc.ht=ht;
+hsc.opts=opts;
+hsc.scopts=scopts;
 
 end
-function hcb=makeCB(ax,rectpos,gap,dims,placement)
+
+%more location options (side,low/center/high)
+function hcb=makeCB(ax,rectpos,gap,dims,placement,justify)
+    %common features of east/west or north/south
+    switch placement
+        case {'east','west'}
+            cbh=dims(1)*rectpos(4);
+            cbw=dims(2);
+            switch justify
+                case 'low'
+                    cby=rectpos(2);
+                case 'mid'
+                    cby=rectpos(2)+(rectpos(4)-cbh)/2;
+                case 'high'
+                    cby=rectpos(2)+rectpos(4)-cbh;
+            end
+        case {'north','south'}
+            cbw=dims(1)*rectpos(3);
+            cbh=dims(2);
+            switch justify
+                case 'low'
+                    cbx=rectpos(1);
+                case 'mid'
+                    cbx=rectpos(1)+(rectpos(3)-cbw)/2;
+                case 'high'
+                    cbx=rectpos(1)+rectpos(3)-cbw;
+            end
+    end
+    %unique features of each side: gap from axis
     switch placement
         case 'east'
-            cbh=dims(1);
-            cbw=dims(2);
             cbx=rectpos(1)+rectpos(3)+gap;
-            cby=rectpos(2)+(rectpos(3)-cbh)/2;
         case 'west'
-            cbh=dims(1);
-            cbw=dims(2);
             cbx=rectpos(1)-gap-cbw;
-            cby=rectpos(2)+(rectpos(4)-cbh)/2;
         case 'north'
-            cbw=dims(1);
-            cbh=dims(2);
-            cbx=rectpos(1)+(rectpos(3)-cbw)/2;
             cby=rectpos(2)+rectpos(4)+gap;
         case 'south'
-            cbw=dims(1);
-            cbh=dims(2);
-            cbx=rectpos(1)+(rectpos(3)-cbw)/2;
             cby=rectpos(2)-gap-cbh;
     end
+    
+
+%     [cbx,cby,cbw,cbh]
     hcb=colorbar(ax,placement);
     hcb.Position=[cbx,cby,cbw,cbh];
 end
