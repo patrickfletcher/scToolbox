@@ -204,9 +204,11 @@ classdef upsetplot < handle %graphics object??
                     'linewidth',1,'marker','.','markersize',20);
             end
             if discard_counts>0 && options.showremaining
+                hl_combs(end).LineWidth=0.5;
+                hl_combs(end).LineStyle='-';
                 hl_combs(end).Marker=options.pooled_marker;
                 hl_combs(end).MarkerSize=4;
-                hl_combs(end).MarkerFaceColor=options.pooled_color;
+                hl_combs(end).MarkerFaceColor='none';
                 hl_combs(end).Color=options.pooled_color;
             end
             
