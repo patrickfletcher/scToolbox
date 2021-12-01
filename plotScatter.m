@@ -20,6 +20,7 @@ marker='o';
 % markerSize=5;
 markerSize=13-log(nObs);
 
+
 %common setup
 if ~exist('sp_params','var')||isempty(sp_params)
 %     spmargins=[0.01,0.01];
@@ -37,6 +38,8 @@ elseif ~isstruct(sp_params)
     sp_params.cb_gap=val(2);
     sp_params.cb_width=val(2);
 end
+if ~isfield(sp_params,'round_tick_power'),sp_params.round_tick_power=1;end
+
 cb_gap=sp_params.cb_gap;
 cb_width=sp_params.cb_width;
 d=sp_params.round_tick_power;
