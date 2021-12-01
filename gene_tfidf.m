@@ -6,6 +6,7 @@ arguments
     options.N=50
     options.min_count=1
     options.min_in_freq=0.05
+    options.max_out_freq=1
     options.do_hyge=1
     options.fdr_thr=0.05
 end
@@ -80,11 +81,12 @@ for i=1:nGroups
     end
 
     res(res.in_freq<options.min_in_freq,:)=[];
+    res(res.out_freq>options.max_out_freq,:)=[];
     
     res=res(1:min(options.N,height(res)),:);
     
     result.(groupNames{i})=res;
 
-    res.clust_id=repmat(i,height(res),1);
+    res.clust_id=repmat(string(groupNames{i}),height(res),1);
     restab=[restab;res];
 end
