@@ -91,12 +91,9 @@ switch sortmethod
             sizesub=sizeData(thiscat,:);
             colorsub=colorData(thiscat,:);
             [~,ixs]=sort(max(sizesub,[],2),'descend');
-            varsub=varsub(ixs);
-            sizesub=sizesub(ixs,:);
-            colorsub=colorsub(ixs,:);
-            varNames(thiscat)=varsub;
-            sizeData(thiscat,:)=sizesub; 
-            colorData(thiscat,:)=colorsub;                  
+            varNames(thiscat)=varsub(ixs);
+            colorData(thiscat,:)=colorsub(ixs,:); 
+            sizeData(thiscat,:)=sizesub(ixs,:);                 
         end
 
     case 'color'
@@ -111,13 +108,58 @@ switch sortmethod
             varsub=varNames(thiscat);
             colorsub=colorData(thiscat,:);
             sizesub=sizeData(thiscat,:);
-            [~,ixs]=sort(max(colorsub,[],2),'descend');
+            [~,ixs]=sort(max(colorsub,[],2),'descend'); 
+            varNames(thiscat)=varsub(ixs);
+            colorData(thiscat,:)=colorsub(ixs,:); 
+            sizeData(thiscat,:)=sizesub(ixs,:);         
+        end
+    case 'first'
+        for i=1:length(varCats)
+            thiscat=varGroup==varCats{i};
+            [r,c]=find(sizeData(thiscat,:)>params.min_prct); 
+            varsub=varNames(thiscat);
+            colorsub=colorData(thiscat,:);
+            sizesub=sizeData(thiscat,:);
+            ixs=unique(r,'stable');
+            varNames(thiscat)=varsub(ixs);
+            colorData(thiscat,:)=colorsub(ixs,:); 
+            sizeData(thiscat,:)=sizesub(ixs,:);   
+        end
+    case 'firstsize'
+        for i=1:length(varCats)
+            thiscat=varGroup==varCats{i};
+            [r,c]=find(sizeData(thiscat,:)>params.min_prct); 
+            varsub=varNames(thiscat);
+            colorsub=colorData(thiscat,:);
+            sizesub=sizeData(thiscat,:);
+            [ixs,ia,ic]=unique(r,'stable');
             varsub=varsub(ixs);
             colorsub=colorsub(ixs,:);
             sizesub=sizesub(ixs,:);
-            varNames(thiscat)=varsub;
+
+            [sizesub,ixs]=groupCountMatrix(sizesub',c(ia),'optim');
+            sizesub=sizesub';
+            varNames(thiscat)=varsub(ixs);
+            colorData(thiscat,:)=colorsub(ixs,:); 
+            sizeData(thiscat,:)=sizesub;
+        end
+    case 'firstcolor'
+        for i=1:length(varCats)
+            thiscat=varGroup==varCats{i};
+            [r,c]=find(sizeData(thiscat,:)>params.min_prct); 
+            varsub=varNames(thiscat);
+            colorsub=colorData(thiscat,:);
+            sizesub=sizeData(thiscat,:);
+            [ixs,ia,ic]=unique(r,'stable');
+            varsub=varsub(ixs);
+            colorsub=colorsub(ixs,:);
+            sizesub=sizesub(ixs,:);
+
+            [colorsub,ixs]=groupCountMatrix(colorsub',c(ia),'optim');
+            colorsub=colorsub';
+            varNames(thiscat)=varsub(ixs);
             colorData(thiscat,:)=colorsub; 
-            sizeData(thiscat,:)=sizesub;                
+            sizeData(thiscat,:)=sizesub(ixs,:);
         end
     otherwise
         %no sorting
@@ -135,8 +177,7 @@ if params.min_prct==0, params.min_prct=eps; end
 minSizeData=min(sizeData(:));
 maxSizeData=max(sizeData(:));
 sizeData(sizeData<params.min_prct)=nan;
-sizeData=rescale(sizeData,minArea,maxArea,'InputMin',minSizeData,'InputMax',maxSizeData);
-% sizeData=sizeData.^2;
+areaData=rescale(sizeData,minArea,maxArea,'InputMin',minSizeData,'InputMax',maxSizeData);
 
 %prct_leg = # sizes to show >=2 [min%, max% + even breaks between]
 if isscalar(params.prct_leg)
@@ -179,7 +220,7 @@ ax.PositionConstraint='outerposition';
 
 %%%% plot %%%%%%%%%%%%%%%%
 [X,Y]=meshgrid(1:length(groupNames),1:length(varNames));
-hs=scatter(ax,X(:),Y(:),sizeData(:),colorData(:),mrkr,'filled');
+hs=scatter(ax,X(:),Y(:),areaData(:),colorData(:),mrkr,'filled');
 hs.MarkerEdgeColor=0.5*[1,1,1];
 hs.LineWidth=0.5;
 
@@ -240,3 +281,20 @@ ht=text(ax(2),xvals+0.5,yvals,prct_leg_labels,'HorizontalAlignment','left','Font
 xlim([0.5,2.75])
 ylim([0.5,length(prct_leg_labels)+0.5])
 axis off
+
+dcm_obj = datacursormode(figH);
+set(dcm_obj,'UpdateFcn',{@customDataTips,groupNames,varNames,sizeData(:),colorData(:)})
+
+end
+
+function txt = customDataTips(~,event_obj,groupNames,varNames,Sz,Col)
+% Customizes text of data tips:
+%    dcm_obj = datacursormode(fig);
+%    set(dcm_obj,'UpdateFcn',{@addGeneDatatips,genes.name})
+
+pos = get(event_obj,'Position');
+idx = get(event_obj,'DataIndex');
+txt = {[varNames{pos(2)},', ',groupNames{pos(1)}],...
+       ['Expr: ',num2str(Col(idx))],...
+       ['Prct: ',num2str(Sz(idx))]};
+end
