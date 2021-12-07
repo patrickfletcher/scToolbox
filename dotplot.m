@@ -24,6 +24,7 @@ arguments
     options.cblabel='mean log_{10} expression'
     options.only_expressing=false
     options.verbose=false
+    options.do_var_norm=false
 end
 
 options.marg_h=options.margins(1:2);
