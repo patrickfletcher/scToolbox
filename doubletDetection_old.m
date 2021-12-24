@@ -31,8 +31,17 @@ end
 %doublets don't help). While loop: discard homotypic, continue until nSynth
 
 rng(params.rngSeed,'simdTwister') %for speedup?
+% if ~isempty(params.rngSeed) && isscalar(params.rngSeed)
+%     s=RandStream('dsfmt19937','Seed',params.rngSeed);
+% else
+%     s=RandStream('dsfmt19937');
+% end
 
 nCells=size(rawcounts,2);
+
+if ~isnumeric(params.n_neighbors) && params.n_neighbors=="sqrtN"
+    params.n_neighbors=floor(sqrt(nCells));
+end
 
 %initialize results
 result.params = params;
