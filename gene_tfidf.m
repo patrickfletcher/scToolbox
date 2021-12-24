@@ -18,12 +18,19 @@ if isnumeric(group)
     group=categorical(group,natsort(unique(cellstr(group))));
 end
 
+
 if ~iscategorical(group)
     group=categorical(group);
 end
 group=removecats(group);
 groupNames = categories(group);
 nGroups=length(groupNames);
+
+for i=1:nGroups
+    if ~isnan(str2double(groupNames{i}))
+        groupNames{i} = "c"+ groupNames{i};
+    end
+end
 
 clusterSizes=countcats(group);
 
@@ -90,3 +97,4 @@ for i=1:nGroups
     res.clust_id=repmat(string(groupNames{i}),height(res),1);
     restab=[restab;res];
 end
+% result=[];
