@@ -7,9 +7,10 @@ arguments
     options.bandwidths=[]
     options.widths=0.3
     options.ymode='left'
+    options.ylabmode='vertical'
     options.Padding='compact'
     options.TileSpacing='none'
-    options.ylabmode='vertical'
+    options.ax=[]
 end
 
 %thr=scalar: one line across all (gene thresh)
@@ -37,13 +38,20 @@ if length(options.widths)==1
 elseif length(options.widths)==nGroups
     widths=options.widths;
 end
-    
+
+if isempty(options.ax)
 t=tiledlayout(nVars,1);
 t.Padding=options.Padding;
 t.TileSpacing=options.TileSpacing;
+end
+
 for i=1:nVars
-    ax(i)=nexttile(t);
-%     ax(i)=tight_subplot(nVars,1,i,sppars.gap,sppars.marg_h,sppars.marg_w);
+    if isempty(options.ax)
+        ax(i)=nexttile(t);
+    else
+        ax(i)=options.ax(i);
+    end
+    axes(ax(i))
     
 %     if i<nVars
 %         ax(i).XAxis.Visible='off';
@@ -79,7 +87,7 @@ for i=1:nVars
         v(i,j).WhiskerPlot.Visible='off';
     end
     
-    ylh(i)=ylabel(varNames{i});
+    ylh(i)=ylabel(ax(i),varNames{i});
     if options.ylabmode=="horizontal"
         ylh(i).Rotation=0;
         ylh(i).HorizontalAlignment='right';
@@ -92,6 +100,7 @@ for i=1:nVars
     end
     axis tight
     ax(i).XTickLabel=[];
+    ax(i).YTickLabelMode='auto';
     xlim(ax(i),[0.5,nGroups+0.5]);
     
 %     if ~isempty(thr) && isscalar(thr(i,:))
@@ -103,4 +112,4 @@ for i=1:nVars
 %     end
 end
 ax(end).XTickLabel=groupnames;
-ax(end).YTickLabelMode='auto';
+% ax(end).YTickLabelMode='auto';
