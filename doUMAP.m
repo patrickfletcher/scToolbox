@@ -35,7 +35,7 @@ initY=params.initY;
 if isempty(initY)
     initY="spectral";
     params.initY=initY;
-elseif isnumeric(initY)&&numel(initY)==2
+elseif isnumeric(initY)&&numel(initY)<10
     %initY=[pc1,pc2] indicates index of PCs to use as initial points
     pcix=initY;
     signix=sign(pcix);
