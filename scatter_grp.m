@@ -29,6 +29,7 @@ if nDim==2
 elseif nDim==3
     scatterfun=@(X,C)scatter3(X(:,1),X(:,2),X(:,3),defsz,C,'filled',soptargs{:});
     do3D=true;
+    disp('3D scatterplot')
 else
     error('coors are not 2 or 3 dimensional');
 end

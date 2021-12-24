@@ -3,6 +3,7 @@ arguments
     coords
     cvals=[]
     splitby=[]
+    opts.splitnames=[]
     opts.title=[] %label to use as title
     opts.fig=[] %specify figure to plot in (if empty, new figure)
     opts.ax=[] %specify axis to plot in (ignored if multipanel)
@@ -16,6 +17,8 @@ arguments
     opts.cbLoc {mustBeMember(opts.cbLoc,["east","west","north","south"])}='east'
     opts.cbJust {mustBeMember(opts.cbJust,["low","mid","high"])}='mid'
     opts.commonCbar=true %true - one cb for all axes same color scale. false - individual cbs
+    opts.cbDigits=1
+
     opts.cmap=[]
     opts.isdiverging=false
 
@@ -25,6 +28,41 @@ end
 %returns a struct containing all handles for post-modification
 
 [nObs,nDim]=size(coords);
+
+%default colors
+if isempty(cvals)
+    cvals=ones(nObs,1);
+end
+[m,n]=size(cvals);
+if m~=nObs 
+    if n~=nObs
+        error("cvals and coords have different number of observations")
+    else
+        cvals=cvals';
+        [m,n]=size(cvals);
+    end
+end
+if n>1
+    if ~isempty(splitby)
+        warning("cvals represents multiple features: ignoring splitby")
+    end
+    splitby=categorical(string(1:n));
+end
+
+% organize panel splitting
+if isempty(splitby)
+    splitby=ones(nObs,1);
+end
+if ~iscategorical(splitby)
+    splitby=categorical(splitby);
+end
+splitby=removecats(splitby);
+snames=categories(splitby);
+if ~isempty(opts.splitnames) && length(opts.splitnames)==length(snames)
+    snames=opts.splitnames;
+    splitby=renamecats(splitby,snames);
+end
+nSplit=length(snames);
 
 % default markersize
 % defsz=13-log(nObs);
@@ -42,21 +80,6 @@ else
     error('coors are not 2 or 3 dimensional');
 end
 
-%default colors
-if isempty(cvals)
-    cvals=ones(nObs,1);
-end
-
-% organize panel splitting
-if isempty(splitby)
-    splitby=ones(nObs,1);
-end
-if ~iscategorical(splitby)
-    splitby=categorical(splitby);
-end
-splitby=removecats(splitby);
-snames=categories(splitby);
-nSplit=length(snames);
 
 %decide whether to make figure and/or axes
 doNewAx=false;
@@ -67,15 +90,16 @@ elseif isempty(opts.fig)&&~isempty(opts.ax) %create correct # ax
     if length(opts.ax)~=nSplit
         error("Cannot fit "+string(nSplit)+" scatterplots into "+string(length(opts.ax))+" axes");
     end
-    axes(opts.ax(1))
+    ax=opts.ax(1);
     fh=gcf;
 elseif ~isempty(opts.fig)&&isempty(opts.ax) %make new axes
     fh=figure(opts.fig);
     doNewAx=true;
 else %both fig and ax specified: splitby only possible if correct # ax
     if length(opts.ax)~=nSplit
-        error("Cannot fit "+string(nSplit)+" scatterplots into "+string(length(opts.ax))+" axes");
+        warning("Cannot fit "+string(nSplit)+" scatterplots into "+string(length(opts.ax))+" axes");
     end
+    doNewAx=true;
     fh=figure(opts.fig);
 end
 
@@ -94,9 +118,16 @@ end
 for i=1:nSplit
     axes(ax(i))
 
-    thisgrp=splitby==snames{i};
-    thiscvals=cvals(thisgrp);
-    hs(i)=scatterfun(coords(thisgrp,:),thiscvals);
+    if n>1
+        thisgrp=splitby==snames{i};
+        thiscvals=cvals(:,thisgrp);
+        thiscoords=coords;
+    else
+        thisgrp=splitby==snames{i};
+        thiscvals=cvals(thisgrp);
+        thiscoords=coords(thisgrp,:);
+    end
+    hs(i)=scatterfun(thiscoords,thiscvals);
     
     if ~opts.commonCbar
         rectpos=ax(i).Position;
@@ -111,8 +142,9 @@ for i=1:nSplit
 %             cbtick=[min(hcb(i).Ticks),max(hcb(i).Ticks)];
         end
         hcb(i).Limits=[min(thiscvals),max(thiscvals)];
+        cbtick=[ceil(min(cbtick)*10^opts.cbDigits),floor(max(cbtick)*10^opts.cbDigits)]/10^opts.cbDigits;
         hcb(i).Ticks=sort(cbtick);
-        hcb(i).TickLength=opts.cbdims(2);
+%         hcb(i).TickLength=opts.cbdims(2);
     else
         if opts.isdiverging
             ax(i).CLim=abs(max(cvals))*[-1,1];
@@ -135,9 +167,9 @@ for i=1:nSplit
     if ~do3D
     switch opts.draworder
         case 'value'
-            hs(i).ZData=cvals(thisgrp); %high on top
+            hs(i).ZData=thiscvals; %high on top
         case 'valrev'
-            hs(i).ZData=-cvals(thisgrp); %low on top
+            hs(i).ZData=-thiscvals; %low on top
         case 'random'
             hs(i).ZData=rand(size(hs(i).XData));  %randomize the "depth" of points
         case 'flat' %not ordered - keep as 2D (eg. for alpha)
@@ -168,7 +200,7 @@ if opts.commonCbar
         cbtick=[min(cvals),max(cvals)];
 %         cbtick=[min(hcb.Ticks),max(hcb.Ticks)];
     end
-    cbtick=[ceil(min(cbtick)*100),floor(max(cbtick)*100)]/100;
+    cbtick=[ceil(min(cbtick)*10^opts.cbDigits),floor(max(cbtick)*10^opts.cbDigits)]/10^opts.cbDigits;
     hcb.Ticks=sort(cbtick);
     hcb.TickLength=opts.cbdims(2);
 end
