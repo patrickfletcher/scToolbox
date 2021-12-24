@@ -17,8 +17,8 @@ pc_file <- args[4] #output file to write PCs
 splitby <- args[5]
 saveSO <- args[6]
 so_tag <- args[7]
+genesubset_file <- args[8]
 
-cellsubset <-read.csv(cellsubset_file, row.names = 'id', header = T)
 
 nfeatures <- 3000
 ncells <- 5000 #for vst
@@ -33,7 +33,16 @@ k.weight <-100
 sample.tree <- NULL
 
 
+cellsubset <-read.csv(cellsubset_file, row.names = 'id', header = T)
+if (genesubset_file!=1) {
+  genesubset <-read.csv(genesubset_file, header = T)
+}
+
 data <- Read10X_h5(data_file, use.names=F)
+data <- data[,cellsubset$keep==1]
+if (genesubset_file!=1) {
+  data <- data[genesubset$keep==1,]
+}
 
 so <- CreateSeuratObject(data)
 so <- AddMetaData(object = so, metadata = cellsubset)
@@ -65,9 +74,18 @@ gc()
 DefaultAssay(so) <- "integrated"
 #don't do SCTransform again!!!!!
 so <- RunPCA(so, verbose=FALSE, npcs = n_pcs)
-pcs <- Embeddings(so, reduction = "pca")
 
+pcs <- Embeddings(so, reduction = "pca")
 write.csv(pcs,pc_file)
+
+filename<-basename(out_file)
+resultpath<-dirname(out_file)
+
+loadings <- Loadings(so, reduction = "pca")
+write.csv(loadings, file.path(resultpath,paste("feature_loadings",filename,"_")), row.names = T)
+
+std <- Stdev(so, reduction = "pca")
+write.csv(std, file.path(resultpath,paste("stdev",filename,"_")), row.names = T)
 
 #if saveSO, save so as RDS for later loading/subsetting/new PCA.
 if (saveSO==1){
