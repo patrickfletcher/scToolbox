@@ -3,8 +3,8 @@ arguments
     genes
     counts
     clust
-%     options.geneSelectMethod='tfidf'
-    options.tfidf_params=[]
+%     options.deg_method='tfidf'
+    options.deg_params=[]
     options.simThr=0.5
     options.simMethod='overlap'
     options.nReps=1
@@ -12,29 +12,33 @@ arguments
     options.cell_coords=[]
 end
 
+%TODO:
+% - alternative cluster comparison methods - effect sizes: mean expression
+
 for n=1:options.nReps
     
     cats=unique(clust);
     K=length(cats)
     
-    if ~isempty(options.tfidf_params)
-        tfidf_pars=namedargs2cell(options.tfidf_params);
-        TFIDF=gene_tfidf(genes,counts,clust,tfidf_pars{:});
+    %self vs notSelf DEGs
+    if ~isempty(options.deg_params)
+        deg_par_args=namedargs2cell(options.deg_params);
+        DEG=gene_tfidf(genes,counts,clust,deg_par_args{:});
     else
-        TFIDF=gene_tfidf(genes,counts,clust);
+        DEG=gene_tfidf(genes,counts,clust);
     end
     
-    %fold-changes in expression, self vs notSelf
-    dom=cell(1,K);
+    %extract lists of genes
+    deg=cell(1,K);
     for i=1:K
-        dom{i}=TFIDF.("c"+string(i)).name;
+        deg{i}=DEG.("c"+string(i)).name;
     end
     
     %one-hot encode gene lists:
-    uG=unique(cat(1,dom{:}));
+    uG=unique(cat(1,deg{:}));
     domG=false(K,length(uG));
     for i=1:K
-        domG(i,ismember(uG,dom{i}))=true;
+        domG(i,ismember(uG,deg{i}))=true;
     end
     
     switch lower(options.simMethod)
