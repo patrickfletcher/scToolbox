@@ -61,6 +61,7 @@ classdef upsetplot < handle %graphics object??
                 options.maxcomb=Inf %restrict to up to k-combs
                 options.showremaining=true
                 options.showdev=false
+                options.panels=[1,1]
             end
 
             hup.order_method = options.ordermethod;
@@ -119,15 +120,17 @@ classdef upsetplot < handle %graphics object??
             end
             
             %prepare axis layout
-            if options.showdev
-                hup.tiles=tiledlayout(3,1);
-            else
-                hup.tiles=tiledlayout(2,1);
-            end
+%             if options.showdev
+%                 hup.tiles=tiledlayout(3,1);
+%             else
+%                 hup.tiles=tiledlayout(2,1);
+%             end
+            ntiles=sum(options.panels);
+            hup.tiles=tiledlayout(ntiles,1);
             hup.tiles.Padding=options.Padding;
             hup.tiles.TileSpacing=options.TileSpacing;
-            ax_intersect=nexttile(hup.tiles);
-            ax_combs=nexttile(hup.tiles); 
+            ax_intersect=nexttile(hup.tiles,1,[options.panels(1),1]);
+            ax_combs=nexttile(hup.tiles,options.panels(1)+1,[options.panels(2),1]); 
             
             expected_frac=zeros(size(inter_counts));
             for i=1:length(inter_counts)
