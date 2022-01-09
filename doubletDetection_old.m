@@ -4,7 +4,19 @@ arguments
     normcounts
     logcounts
     genes
-    params
+    params.rngSeed=42
+    params.method='knn'
+    params.libsize_method='max'
+    params.use_true_loadings=true
+    params.do_p_correction=true
+    params.nReps=1
+    params.p_thr=0.05
+    params.n_neighbors=30
+    params.votemethod='any'
+    params.doplot=false
+    params.hvg=[]
+    params.pca=[]
+    params.umap=[]
 end
 % inspired by Shor's Doublet detection (python3):
 % https://github.com/JonathanShor/DoubletDetection
@@ -31,17 +43,8 @@ end
 %doublets don't help). While loop: discard homotypic, continue until nSynth
 
 rng(params.rngSeed,'simdTwister') %for speedup?
-% if ~isempty(params.rngSeed) && isscalar(params.rngSeed)
-%     s=RandStream('dsfmt19937','Seed',params.rngSeed);
-% else
-%     s=RandStream('dsfmt19937');
-% end
 
 nCells=size(rawcounts,2);
-
-if ~isnumeric(params.n_neighbors) && params.n_neighbors=="sqrtN"
-    params.n_neighbors=floor(sqrt(nCells));
-end
 
 %initialize results
 result.params = params;
@@ -54,16 +57,9 @@ if params.nReps==0
 end
 
 %was true, trying false 4/26/21
-use_true_cell_HVG=false; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
+% params.use_true_loadings=false; %if true, don't recompute HVG on synth-augmented normcounts. saves a little time, doesn't seem to impact negatively
 % use_true_cell_HVG=true;
 doMultCompareCorrect=true;
-
-if ~isfield(params,'method')
-    params.method='knn';
-end
-if ~isfield(params,'libsize_method')
-    params.libsize_method='max';
-end
 
 % augment the population with synthetic doublets
 % each doublet created from two randomly selected parents => correct
@@ -73,7 +69,7 @@ nSynth=floor(params.boostrate*nCells);
 %use true cell HVGs 
 
 hvg=[];
-if use_true_cell_HVG
+if params.use_true_loadings
     %get the HVGs from raw data only
     hvg=findVariableGenes(normcounts, genes, params.hvg);
     hvgix=hvg.ix;
@@ -104,7 +100,7 @@ for it=1:params.nReps
     %normalize synthetic doublets across all genes (not just hvgs)
     normcounts_synth=normalizeCounts(rawcounts_synth);
     
-    if use_true_cell_HVG %this projects into true PC space
+    if params.use_true_loadings %this projects into true PC space
         synth_lcounts=log10(normcounts_synth(hvgix,:)+1);
         logcounts_aug(:,nCells+1:end)=synth_lcounts;
         
@@ -180,12 +176,12 @@ for it=1:params.nReps
             synthCount=sum(nnix(1:nCells,:)>nCells,2); %all synthetic cells have index >nCells
             p=hygecdf(synthCount(:),nCells+nSynth,nSynth,params.n_neighbors,'upper');
             
-            [~,~, ~, adj_p]=fdr_bh(p,params.FDR);
+            [~,~, ~, adj_p]=fdr_bh(p,params.p_thr);
             
-            if doMultCompareCorrect
-                this_rep_doublets=adj_p<params.FDR;
+            if params.do_p_correction
+                this_rep_doublets=adj_p<params.p_thr;
             else
-                this_rep_doublets=p<params.pThr;    
+                this_rep_doublets=p<params.p_thr;    
             end
     end
     
@@ -237,7 +233,7 @@ end
 umap=[];
 group=[];
 groupcols=[1,1,1; 0,0.8,0; 0,0,0];
-if isfield(params,'doplot')&&params.doplot
+if params.doplot
     group=zeros(1,size(pca_score,1));
     group(1:nCells)=doublet;
 %     group(1:nCells)=this_rep_doublets; 
