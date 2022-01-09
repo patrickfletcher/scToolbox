@@ -46,7 +46,7 @@ if n>1
     if ~isempty(splitby)
         warning("cvals represents multiple features: ignoring splitby")
     end
-    splitby=categorical(string(1:n));
+    splitby=categorical(1:n);
 end
 
 % organize panel splitting
@@ -149,7 +149,9 @@ for i=1:nSplit
         if opts.isdiverging
             ax(i).CLim=abs(max(cvals))*[-1,1];
         else
-            ax(i).CLim=[min(cvals),max(cvals)];
+            if min(cvals)~=max(cvals)
+                ax(i).CLim=[min(cvals),max(cvals)];
+            end
         end
     end
     
@@ -158,7 +160,7 @@ for i=1:nSplit
 %     axis equal
 
     if nSplit>1
-        title(snames{i})
+        title(snames{i},'FontWeight','normal')
     end
 
     if ~isempty(opts.cmap)
@@ -178,8 +180,6 @@ for i=1:nSplit
     end
 end
 
-linkaxes(ax)
-
 % common title/colorbar
 ht=[];
 if ~isempty(opts.title)
@@ -192,7 +192,10 @@ end
 if opts.commonCbar
     rectpos=[opts.margins(1:2),1-opts.margins(3:4)-opts.margins(1:2)];
     hcb=makeCB(ax(end),rectpos,opts.cbgap,opts.cbdims,opts.cbLoc,opts.cbJust);
-    hcb.Limits=[min(cvals),max(cvals)];
+
+    if min(cvals)~=max(cvals)
+        hcb.Limits=[min(cvals),max(cvals)];
+    end
     if opts.isdiverging
         cbtick=[min(cvals),0,max(cvals)];
 %         cbtick=unique(sort([min(hcb.Ticks),max(hcb.Ticks),0]));
@@ -201,9 +204,22 @@ if opts.commonCbar
 %         cbtick=[min(hcb.Ticks),max(hcb.Ticks)];
     end
     cbtick=[ceil(min(cbtick)*10^opts.cbDigits),floor(max(cbtick)*10^opts.cbDigits)]/10^opts.cbDigits;
-    hcb.Ticks=sort(cbtick);
+
+    if min(cbtick)~=max(cbtick)
+        hcb.Ticks=sort(cbtick);
+    end
+
     hcb.TickLength=opts.cbdims(2);
 end
+
+% ax(end).Selected='on';
+
+if do3D
+    axis(ax,'vis3d')
+elseif length(ax)>1
+    linkaxes(ax)
+end
+
 
 hsc.fig=fh;
 hsc.ax=ax;
