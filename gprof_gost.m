@@ -28,3 +28,7 @@ res=gp.profile(gpargs);
 res=Core_py2matlab(res);
 res=[res{:}];
 res=struct2table(res);
+
+res.expectedfrac=res.term_size./res.effective_domain_size;
+res.expected=res.expectedfrac.*res.query_size;
+res.fold_enrichment=res.intersection_size./res.expected;
