@@ -1,18 +1,20 @@
 function [ncounts,sfs]=normalizeCounts(counts, scale, max_frac)
+arguments
+    counts
+    scale=[]
+    max_frac=[]
+end
 %normalize counts
 
 %TODO: params.method, etc. 
 
-exclude_hiexp=false;
-if exist('max_frac','var')
-    exclude_hiexp=true;
-end
+exclude_hiexp=~isempty(max_frac);
 
 %sum counts per cell
 counts_per_cell=full(sum(counts,1));
 
 %scale computed before exclude genes
-if ~exist('scale','var')||isempty(scale)
+if isempty(scale)
     scale=median(counts_per_cell);
 end
 
