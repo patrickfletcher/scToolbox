@@ -29,7 +29,7 @@ if nDim==2
 elseif nDim==3
     scatterfun=@(X,C)scatter3(X(:,1),X(:,2),X(:,3),defsz,C,'filled',soptargs{:});
     do3D=true;
-    disp('3D scatterplot')
+%     disp('3D scatterplot')
 else
     error('coors are not 2 or 3 dimensional');
 end
@@ -110,14 +110,14 @@ for i=1:nSplit
         hs(j).DisplayName=gnames{j};
 
         if ~do3D
-        switch opts.draworder
-            case 'index'
-                hs(j).ZData=j*ones(size(hs(j).XData));  %order by category index
-            case 'random'
-                hs(j).ZData=rand(size(hs(j).XData));  %randomize the "depth" of points
-            case 'flat' %not ordered - keep as 2D (eg. for alpha)
-            otherwise
-        end
+            switch opts.draworder
+                case 'index'
+                    hs(j).ZData=j*ones(size(hs(j).XData));  %order by category index
+                case 'random'
+                    hs(j).ZData=rand(size(hs(j).XData));  %randomize the "depth" of points
+                case 'flat' %not ordered - keep as 2D (eg. for alpha)
+                otherwise
+            end
         end
     end
     hold off
@@ -129,13 +129,20 @@ for i=1:nSplit
 
 end
 
-linkaxes(ax)
-
 % common title/colorbar
 ht=[];
 if ~isempty(opts.title)
     ht=sgtitle(opts.title); %specify the figure
 end
+
+% ax(end).Selected='on';
+
+if do3D
+    axis(ax,'vis3d')
+elseif length(ax)>1
+    linkaxes(ax)
+end
+
 
 hsc.fig=fh;
 hsc.ax=ax;
@@ -143,3 +150,4 @@ hsc.hs=hs;
 hsc.ht=ht;
 hsc.opts=opts;
 hsc.scopts=scopts;
+end
