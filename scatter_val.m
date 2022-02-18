@@ -109,11 +109,18 @@ if doNewAx
         nc=opts.panels(2);
     else
         nr=floor(sqrt(nSplit));
-        nc=ceil(sqrt(nSplit));
+%         nc=ceil(sqrt(nSplit));
+        nc=nSplit/nr;
     end
     ax=tight_subplot(nr,nc,[],opts.tilegaps,opts.margins([2,4]),opts.margins([1,3]));
 end
+if length(ax)>nSplit
+    delete(ax(nSplit+1:end))
+    ax=ax(1:nSplit);
+end
 
+mincvals=min(cvals(:));
+maxcvals=max(cvals(:));
 
 for i=1:nSplit
     axes(ax(i))
@@ -147,10 +154,10 @@ for i=1:nSplit
 %         hcb(i).TickLength=opts.cbdims(2);
     else
         if opts.isdiverging
-            ax(i).CLim=abs(max(cvals))*[-1,1];
+            ax(i).CLim=abs(maxcvals)*[-1,1];
         else
-            if min(cvals)~=max(cvals)
-                ax(i).CLim=[min(cvals),max(cvals)];
+            if mincvals~=maxcvals
+                ax(i).CLim=[mincvals,maxcvals];
             end
         end
     end
@@ -193,19 +200,16 @@ if opts.commonCbar
     rectpos=[opts.margins(1:2),1-opts.margins(3:4)-opts.margins(1:2)];
     hcb=makeCB(ax(end),rectpos,opts.cbgap,opts.cbdims,opts.cbLoc,opts.cbJust);
 
-    if min(cvals)~=max(cvals)
-        hcb.Limits=[min(cvals),max(cvals)];
+    if mincvals~=maxcvals
+        hcb.Limits=[mincvals,maxcvals];
     end
-    if opts.isdiverging
-        cbtick=[min(cvals),0,max(cvals)];
-%         cbtick=unique(sort([min(hcb.Ticks),max(hcb.Ticks),0]));
-    else
-        cbtick=[min(cvals),max(cvals)];
-%         cbtick=[min(hcb.Ticks),max(hcb.Ticks)];
-    end
+    cbtick=[mincvals,maxcvals];
     cbtick=[ceil(min(cbtick)*10^opts.cbDigits),floor(max(cbtick)*10^opts.cbDigits)]/10^opts.cbDigits;
+    if opts.isdiverging && mincvals<0
+        cbtick=sort(unique([0,cbtick]));
+    end
 
-    if min(cbtick)~=max(cbtick)
+    if min(cbtick)<max(cbtick)
         hcb.Ticks=sort(cbtick);
     end
 

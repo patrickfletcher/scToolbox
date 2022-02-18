@@ -100,6 +100,10 @@ if doNewAx
     end
     ax=tight_subplot(nr,nc,[],opts.tilegaps,opts.margins([2,4]),opts.margins([1,3]));
 end
+if length(ax)>nSplit
+    delete(ax(nSplit+1:end))
+    ax=ax(1:nSplit);
+end
 
 for i=1:nSplit
     axes(ax(i))
