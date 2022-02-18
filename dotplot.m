@@ -1,4 +1,4 @@
-function [ax,hs,cb]=dotplot(genes, ncounts, tcounts, glist, ident, ctnames, options)
+function hdp=dotplot(genes, ncounts, tcounts, glist, ident, ctnames, options)
 arguments
     genes
     ncounts
@@ -14,8 +14,13 @@ arguments
     options.margins=[0.1,0.1,0.1,0.1]
     options.gap=0.1
     options.area_range=[1,144]
-    options.min_prct = 1
-    options.all_expr_prct=100
+    options.min_dot_prct = 5
+    options.min_any_prct = 5
+    options.min_any_ident = []
+    options.min_all_prct=0
+    options.min_all_ident = []
+    options.max_all_prct=100
+    options.max_all_ident = []
     options.prct_leg=3
     options.prct_leg_height=0.05
     options.cb_prct_gap=0.01
@@ -25,6 +30,7 @@ arguments
     options.only_expressing=false
     options.verbose=false
     options.do_var_norm=false
+    options.sortgroups='none'
 end
 
 options.marg_h=options.margins(1:2);
@@ -56,16 +62,35 @@ if isempty(ctnames)
 end
 
 [gix, G]=getGeneIndices(glist,genes.name);
-[~,EXPR,PRCT]=getExpression(genes(gix,:),ncounts(gix,cellsub),tcounts(gix,cellsub),ident,'only_expressing',options.only_expressing);
+[exprTab,EXPR,PRCT]=getExpression(genes(gix,:),ncounts(gix,cellsub),tcounts(gix,cellsub),ident,'only_expressing',options.only_expressing);
 
+%minimum prct in any cts of interest (ctnames by default)
+if isempty(options.min_any_ident)
+    options.min_any_ident=ctnames;
+end
+[~,minctix]=ismember(options.min_any_ident,identnames);
+lowpct=all(PRCT(:,minctix)<options.min_any_prct,2);
+
+%keep only those with min_all_prct in cts of interest (ctnames by default)
+if isempty(options.min_all_ident)
+    options.min_all_ident=ctnames;
+end
+[~,allctix]=ismember(options.min_all_ident,identnames);
+not_all_min=any(PRCT(:,allctix)<options.min_all_prct,2);
+
+%prct considered expressed for all-expressing exclusion in cts of interest (ctnames by default)
+if isempty(options.max_all_ident)
+    options.max_all_ident=ctnames;
+end
+[~,allctix]=ismember(options.max_all_ident,identnames);
+all_expr=all(PRCT(:,allctix)>options.max_all_prct,2);
+
+%restrict to CTs to be plotted
 [~,ctix]=ismember(ctnames,identnames);
 EXPR=EXPR(:,ctix);
 PRCT=PRCT(:,ctix);
 
-lowpct=all(PRCT<options.min_prct,2);
-all_expr=all(PRCT>options.all_expr_prct,2);
-
-discard=lowpct|all_expr;
+discard=lowpct|not_all_min|all_expr;
 EXPR(discard,:)=[];
 PRCT(discard,:)=[];
 if options.verbose && nnz(discard)>0
@@ -77,10 +102,19 @@ end
 G(discard)=[];
 Ggrp(discard)=[];
 
-%other filters? ctname-max/min pct list
-
-%other sort filters?
+%hack until revamp plotDotPlot
+options.min_prct=options.min_dot_prct;
 
 EXPR=log10(EXPR+1);
 Glab=strcat('\it',G);
-[ax,hs,cb]=plotDotPlot(Glab,ctnames,PRCT,EXPR,fh,Ggrp,options.sortby,options);
+[ax,hs,cb,varNames]=plotDotPlot(Glab,ctnames,PRCT,EXPR,fh,Ggrp,options.sortby,options);
+
+varNames=strrep(varNames,"\it","");
+
+hdp.ax=ax;
+hdp.hs=hs;
+hdp.cb=cb;
+exprTab.discard=discard(:);
+[~,exprTab.rowperm]=ismember(glist,varNames);
+hdp.exprTab=exprTab;
+hdp.options=options;

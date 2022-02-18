@@ -1,4 +1,4 @@
-function [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,params)
+function [ax,hs,cb,varNames]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,params)
 arguments
     varNames
     groupNames
@@ -22,8 +22,6 @@ end
 %TODO: pass all the following in via sp_params
 % - alt: args block
 
-%TODO: wrapper that operates on ncounts + genes? then could give just names
-%list, cellgroup, options. e.g. log=T/F, mean_only_expressed, ...
 
 mrkr='o'; %squares don't scale right
 
@@ -40,6 +38,7 @@ def_params.cb_gap=0.02;
 def_params.cb_width=0.02;
 def_params.cblabel='mean log_{10} expression';
 def_params.do_var_norm=false;
+def_params.sortgroups='none';
 
 if isempty(params)
     params=def_params;
@@ -62,6 +61,7 @@ if params.do_var_norm
     colorData=colorData./max(colorData,[],2);
 end
 
+IXS=[];
 switch sortmethod
     case 'alpha'
         for i=1:length(varCats)
@@ -75,7 +75,8 @@ switch sortmethod
             colorsub=colorsub(ixs,:);
             varNames(thiscat)=varsub;
             sizeData(thiscat,:)=sizesub; 
-            colorData(thiscat,:)=colorsub;                  
+            colorData(thiscat,:)=colorsub; 
+%             IXS=[IXS;ixs(:)+length(IXS)];
         end
 
     case 'size'
@@ -83,6 +84,7 @@ switch sortmethod
         sizeData=sizeData';
         colorData=colorData(ixs,:);
         varNames=varNames(ixs);
+%         IXS=[IXS;ixs(:)];
 
     case 'maxsize'
         for i=1:length(varCats)
@@ -93,7 +95,8 @@ switch sortmethod
             [~,ixs]=sort(max(sizesub,[],2),'descend');
             varNames(thiscat)=varsub(ixs);
             colorData(thiscat,:)=colorsub(ixs,:); 
-            sizeData(thiscat,:)=sizesub(ixs,:);                 
+            sizeData(thiscat,:)=sizesub(ixs,:);  
+%             IXS=[IXS;ixs(:)+length(IXS)];               
         end
 
     case 'color'
@@ -101,6 +104,7 @@ switch sortmethod
         colorData=colorData';
         sizeData=sizeData(ixs,:);
         varNames=varNames(ixs);
+%         IXS=[IXS;ixs(:)];
 
     case 'maxcolor'
         for i=1:length(varCats)
@@ -111,7 +115,8 @@ switch sortmethod
             [~,ixs]=sort(max(colorsub,[],2),'descend'); 
             varNames(thiscat)=varsub(ixs);
             colorData(thiscat,:)=colorsub(ixs,:); 
-            sizeData(thiscat,:)=sizesub(ixs,:);         
+            sizeData(thiscat,:)=sizesub(ixs,:);
+%             IXS=[IXS;ixs(:)+length(IXS)];         
         end
     case 'first'
         for i=1:length(varCats)
@@ -123,7 +128,8 @@ switch sortmethod
             ixs=unique(r,'stable');
             varNames(thiscat)=varsub(ixs);
             colorData(thiscat,:)=colorsub(ixs,:); 
-            sizeData(thiscat,:)=sizesub(ixs,:);   
+            sizeData(thiscat,:)=sizesub(ixs,:);
+%             IXS=[IXS;ixs(:)+length(IXS)];   
         end
     case 'firstsize'
         for i=1:length(varCats)
@@ -142,6 +148,7 @@ switch sortmethod
             varNames(thiscat)=varsub(ixs);
             colorData(thiscat,:)=colorsub(ixs,:); 
             sizeData(thiscat,:)=sizesub;
+%             IXS=[IXS;ixs(:)+length(IXS)];
         end
     case 'firstcolor'
         for i=1:length(varCats)
@@ -160,12 +167,24 @@ switch sortmethod
             varNames(thiscat)=varsub(ixs);
             colorData(thiscat,:)=colorsub; 
             sizeData(thiscat,:)=sizesub(ixs,:);
+%             IXS=[IXS;ixs(:)+length(IXS)];
         end
     otherwise
         %no sorting
 end
 
-
+ggrp=ones(1,length(groupNames));
+switch params.sortgroups
+    case 'size'
+        [sizeData,ixs]=groupCountMatrix(sizeData,ggrp,'optim');
+        colorData=colorData(:,ixs);
+        groupNames=groupNames(ixs);
+    case 'color'
+        [colorData,ixs]=groupCountMatrix(colorData,ggrp,'optim');
+        sizeData=sizeData(:,ixs);
+        groupNames=groupNames(ixs);
+    otherwise
+end
 
 %%%% rescale frac to [minArea,maxArea]
 minArea=params.minArea; 
