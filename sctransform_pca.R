@@ -18,6 +18,9 @@ if (genesubset_file!=1) {
 #as of 8/3/21 - sctransform has a bug with batch_var
 # batch<-ifelse("batch" %in% colnames(cellsubset), c("batch"), NULL)
 
+#vars to regress are all other columns besides "keep"
+# vars.to.regress=colnames(cellsubset)
+
 if (use_so==1){
   so <- readRDS(data_file)
   so <- AddMetaData(object = so, metadata = cellsubset)
@@ -38,7 +41,7 @@ if (use_so==1){
     data <- data[genesubset$keep==1,]
   }
   so <- CreateSeuratObject(data)
-  so <- SCTransform(so, method = "glmGamPoi") #sets default assay to SCT , batch_var=batch
+  so <- SCTransform(so, vst.flavor='v2') #sets default assay to SCT , batch_var=batch
 }
 
 so <- RunPCA(so, verbose=FALSE, npcs = n_pcs)

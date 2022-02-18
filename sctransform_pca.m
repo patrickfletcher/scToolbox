@@ -11,6 +11,8 @@ arguments
 end
 % if use_so==true, datafile is interpreted as the RDS file to load
 
+%todo: add vars_to_regress as cellsub columns?
+
 %cellsub must be a table with two columns: id, keep
 cellsubfile='tmp_sct_cellsub.csv';
 writetable(cellsub,cellsubfile)
