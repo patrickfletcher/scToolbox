@@ -11,9 +11,34 @@ function [dominant,specific,allgenes,dominantCondition, specificCondition]...
 %TODO: alternate interface - tcounts+categorical; compute the mean expr &
 %prct expressing here. Also, compute P if not passed in...
 
-%TODO: use arguments block
-
 %TODO: toggle which ES to use (or combo)
+
+%TODO: use arguments block.  Multiple structs can't have same fieldnames
+% selfpars.names={'self'};
+% selfpars.minprct=0;
+% selfpars.maxprct=Inf;
+% selfpars.poolmethod='all';
+% selfpars.some_N=1; %as in for "any"
+% otherpars.names={'other'};
+% otherpars.minprct=0;
+% otherpars.maxprct=Inf;
+% otherpars.poolmethod='all';
+% otherpars.some_N=1; %as in for "any"
+% params.direction='any';
+% params.limitMode='pairwise';
+% params.combine_prct_expr='or';
+% params.specificMode='uniform'; %or pairwise
+% params.prctMetric='diff';
+% params.prctESThr=20;
+% params.fcExprThr=1;
+% params.minPrctEffect=-100;
+% params.minFcEffect=0;
+% params.pthr=0.1;
+% params.pthrpw=0.1;
+% params.pprothr=0.1;
+% params.pprothrpw=0.1;
+% params.sortval='none';
+% params.sortdir='descend';
 
 %parameters
 [self, other, params]=parse_input_pars(selfin,otherin, paramsin);
