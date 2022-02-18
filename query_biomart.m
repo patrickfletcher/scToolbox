@@ -37,6 +37,7 @@ disp(cmdout)
 
 genetab=readtable(result_file);
 [~,Locb]=ismember(filter_values,genetab.ensembl_gene_id);
+Locb(Locb==0)=[];
 genetab=genetab(Locb,:);
 
 % genetab=sortrows(genetab);
