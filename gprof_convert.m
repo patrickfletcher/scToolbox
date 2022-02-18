@@ -7,7 +7,8 @@ end
 
 query=cellstr(query(:)'); %is this enough to handle string vector?
 
-gp=py.gprofiler.GProfiler();
+args=pyargs('base_url','https://biit.cs.ut.ee/gprofiler_archive3/e104_eg51_p15/');
+gp=py.gprofiler.GProfiler(args);
 pyquery=py.list(cellstr(query)); %needs a row-vector cell array of chars
 tic
 gConvArgs=pyargs('organism',organism,'query',pyquery,'target_namespace',target_namespace);

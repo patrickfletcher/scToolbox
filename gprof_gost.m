@@ -10,7 +10,8 @@ arguments
 end
 
 % g:Profiler query
-gp=py.gprofiler.GProfiler();
+args=pyargs('base_url','https://biit.cs.ut.ee/gprofiler_archive3/e104_eg51_p15/');
+gp=py.gprofiler.GProfiler(args);
 
 if isstring(id_list)||iscellstr(id_list)
     query=py.list(cellstr(id_list(:))'); %must be a row vector
