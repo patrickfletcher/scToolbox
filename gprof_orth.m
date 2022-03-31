@@ -11,7 +11,8 @@ res=Core_py2matlab(res);
 res=[res{:}];
 orthTab=struct2table(res);
 
-orthgenes=unique(orthTab(:,{'ortholog_ensg','name'}),'rows','stable');
+[orthgenes,ia]=unique(orthTab(:,{'ortholog_ensg','name'}),'rows','stable');
+% orthTab.ia=ia;
 orthgenes=renamevars(orthgenes,'ortholog_ensg','id');
 orthgenes=sortrows(orthgenes,'name');
 orthgenes(orthgenes.id=="N/A",:)=[];
