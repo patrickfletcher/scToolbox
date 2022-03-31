@@ -99,8 +99,9 @@ else %both fig and ax specified: splitby only possible if correct # ax
     if length(opts.ax)~=nSplit
         warning("Cannot fit "+string(nSplit)+" scatterplots into "+string(length(opts.ax))+" axes");
     end
-    doNewAx=true;
+%     doNewAx=true;
     fh=figure(opts.fig);
+    ax=opts.ax;
 end
 
 if doNewAx
