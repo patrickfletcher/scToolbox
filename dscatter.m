@@ -1,4 +1,4 @@
-function hAxes = dscatter(X,Y, varargin)
+function hAxes = dscatter(X,Y, options)
 % DSCATTER creates a scatter plot coloured by density.
 %
 %   DSCATTER(X,Y) creates a scatterplot of X and Y at the locations
@@ -46,61 +46,82 @@ function hAxes = dscatter(X,Y, varargin)
 % Paul H. C. Eilers and Jelle J. Goeman
 % Enhancing scatterplots with smoothed densities
 % Bioinformatics, Mar 2004; 20: 623 - 628.
-lambda = [];
-nbins = [];
-plottype = 'scatter';
-contourFlag = false;
-msize = 10;
-marker = 's';
-logy = false;
-filled = true;
-if nargin > 2
-    if rem(nargin,2) == 1
-        error('Bioinfo:IncorrectNumberOfArguments',...
-            'Incorrect number of arguments to %s.',mfilename);
-    end
-    okargs = {'smoothing','bins','plottype','logy','marker','msize','filled'};
-    for j=1:2:nargin-2
-        pname = varargin{j};
-        pval = varargin{j+1};
-        k = strmatch(lower(pname), okargs); %#ok
-        if isempty(k)
-            error('Bioinfo:UnknownParameterName',...
-                'Unknown parameter name: %s.',pname);
-        elseif length(k)>1
-            error('Bioinfo:AmbiguousParameterName',...
-                'Ambiguous parameter name: %s.',pname);
-        else
-            switch(k)
-                case 1  % smoothing factor
-                    if isnumeric(pval)
-                        lambda = pval;
-                    else
-                        error('Bioinfo:InvalidScoringMatrix','Invalid smoothing parameter.');
-                    end
-                case 2
-                    if isscalar(pval)
-                        nbins = [ pval pval];
-                    else
-                        nbins = pval;
-                    end
-                case 3
-                    plottype = pval;
-                case 4
-                    logy = pval;
-                    Y = log10(Y);
-                case 5
-                    contourFlag = pval;
-                case 6
-                    marker = pval;
-                case 7
-                    msize = pval;
-                case 8
-                    filled = pval;
-            end
-        end
-    end
+arguments
+    X
+    Y
+    options.lambda = [];
+    options.nbins = [];
+    options.plottype = 'scatter';
+    options.msize = 10;
+    options.marker = 's';
+    options.logy = false;
+    options.filled = true;
 end
+
+lambda = options.lambda;
+nbins = options.nbins;
+plottype = options.plottype;
+msize = options.msize;
+marker = options.marker;
+logy = options.logy;
+filled = options.filled;
+
+% lambda = [];
+% nbins = [];
+% plottype = 'scatter';
+% contourFlag = false;
+% msize = 10;
+% marker = 's';
+% logy = false;
+% filled = true;
+% if nargin > 2
+%     if rem(nargin,2) == 1
+%         error('Bioinfo:IncorrectNumberOfArguments',...
+%             'Incorrect number of arguments to %s.',mfilename);
+%     end
+%     okargs = {'smoothing','bins','plottype','logy','marker','msize','filled'};
+%     for j=1:2:nargin-2
+%         pname = varargin{j};
+%         pval = varargin{j+1};
+%         k = strmatch(lower(pname), okargs); %#ok
+%         if isempty(k)
+%             error('Bioinfo:UnknownParameterName',...
+%                 'Unknown parameter name: %s.',pname);
+%         elseif length(k)>1
+%             error('Bioinfo:AmbiguousParameterName',...
+%                 'Ambiguous parameter name: %s.',pname);
+%         else
+%             switch(k)
+%                 case 1  % smoothing factor
+%                     if isnumeric(pval)
+%                         lambda = pval;
+%                     else
+%                         error('Bioinfo:InvalidScoringMatrix','Invalid smoothing parameter.');
+%                     end
+%                 case 2
+%                     if isscalar(pval)
+%                         nbins = [ pval pval];
+%                     else
+%                         nbins = pval;
+%                     end
+%                 case 3
+%                     plottype = pval;
+%                 case 4
+%                     logy = pval;
+%                     Y = log10(Y);
+%                 case 5
+%                     contourFlag = pval;
+%                 case 6
+%                     marker = pval;
+%                 case 7
+%                     msize = pval;
+%                 case 8
+%                     filled = pval;
+%             end
+%         end
+%     end
+% end
+
 minx = min(X,[],1);
 maxx = max(X,[],1);
 miny = min(Y,[],1);
