@@ -11,6 +11,11 @@ arguments
     options.Padding='compact'
     options.TileSpacing='none'
     options.ax=[]
+    options.ShowData=false;
+    options.ShowMedian{mustBeMember(options.ShowMedian,["on","off"])}='off';
+    options.ShowBox{mustBeMember(options.ShowBox,["on","off"])}='off';
+    options.ShowWhisker{mustBeMember(options.ShowWhisker,["on","off"])}='off';
+
 end
 
 %thr=scalar: one line across all (gene thresh)
@@ -81,10 +86,10 @@ for i=1:nVars
     for j=1:nGroups
         v(i,j).ViolinColor=groupColors(j,:);
         v(i,j).ViolinAlpha=1;
-        v(i,j).ShowData=false;
-        v(i,j).MedianPlot.Visible='off';
-        v(i,j).BoxPlot.Visible='off';
-        v(i,j).WhiskerPlot.Visible='off';
+        v(i,j).ShowData=options.ShowData;
+        v(i,j).MedianPlot.Visible=options.ShowMedian;
+        v(i,j).BoxPlot.Visible=options.ShowBox;
+        v(i,j).WhiskerPlot.Visible=options.ShowWhisker;
     end
     
     ylh(i)=ylabel(ax(i),varNames{i});
