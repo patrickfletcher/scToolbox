@@ -9,6 +9,7 @@ arguments
     mnnpars.k=20
     mnnpars.d=50
     mnnpars.ndist=3
+    mnnpars.merge_order=[]
     options.parfile="tmp_sct_fastMNN_pars.mat"
     options.resultfile="tmp_sct_fastMNN_results.mat"
     options.verbose=false
@@ -27,6 +28,13 @@ cellsubsetfile=cellstr(cellsubsetfile);
 splitby=cellstr(splitby);
 
 sctpars.vars_to_regress=cellstr(sctpars.vars_to_regress);
+
+% mnnpars.merge_order
+if isempty(mnnpars.merge_order)
+%     mnnpars.merge_order=1:length(unique(cellsub.(string(splitby))));
+%     mnnpars.merge_order=cellstr(unique(cellsub.(string(splitby))));
+end
+
 
 save(options.parfile,"datafile","cellsubsetfile","splitby","sctpars","mnnpars")
 
