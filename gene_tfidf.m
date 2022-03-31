@@ -4,7 +4,7 @@ arguments
     counts
     group
     options.N=50
-    options.min_count=1
+    options.min_count=0.1
     options.min_in_freq=0.05
     options.max_out_freq=1
     options.do_hyge=1
