@@ -27,7 +27,6 @@ end
 % result.coords=double(umap_obj.embedding_);
 % result.graph=sparse(double(umap_obj.graph_.toarray())); %just save the scipy.csr_matrix to be passed to leiden
 
-%TODO: switch to allow using UMAP's NN methods
 
 rng(params.rngSeed)
 
@@ -163,9 +162,9 @@ do_densmap=false;
 densmap_kwds='';
 if isfield(params,'do_densmap')
     do_densmap=params.do_densmap;
-    dens_lambda=2;
-    dens_frac=0.3;
-    dens_var_shift=0.1;
+    dens_lambda=2; %weight of density term in optimization
+    dens_frac=0.3; %final fraction of epochs to use density term
+    dens_var_shift=0.1; %small constant to prevent div by zero
     if isfield(params,'dens_lambda')
         dens_lambda=params.dens_lambda;
     end
