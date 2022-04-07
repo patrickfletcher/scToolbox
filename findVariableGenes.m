@@ -1,21 +1,29 @@
-function [result, meanExpr, dispersion, rawnormdisp, ishvg]=findVariableGenes(ncounts,genes,params,figID,highlightGenes)
+function result=findVariableGenes(ncounts,genes,options,plotopts)
+arguments
+    ncounts
+    genes
+    
+    options.normMethod='medmad'
+    options.nBins=25
+    options.minExpr=eps
+    options.minCells=10
+    options.selectMethod='number'
+    options.nHVG=3000
+    options.dispThr=1.3
+
+    plotopts.figID=[]
+    plotopts.highlightGenes=[]
+    plotopts.show_normDisp=0
+end
 %operates on normalized counts, which maintains mean-variance relations (negative binomial)
 
 %TODO: add per-batch capability
 
-result.params = params;
+result = options;
 
 %plotting
 %TODO: tooltips for gene-name
 %TODO: switch for plot disp or norm disp
-
-% if ~exist('params.nBins','var') || isempty(params.nBins)
-%     params.nBins=20;
-% end
-% 
-% if ~exist('params.minExpr','var') || isempty(params.minExpr) || params.minExpr==0 
-%     params.minExpr=eps;
-% end
 
 %normalized dispersion:
 cellsExpr=sum(ncounts>0,2);
@@ -33,31 +41,31 @@ dispersion=(varExpr-meanExpr)./meanExpr.^2; %negative if mean>var
 
 clear ncounts
 
-quantiles=prctile(meanExpr,0:100/(params.nBins):100);
+quantiles=prctile(meanExpr,0:100/(options.nBins):100);
 quantiles(end+1)=max(meanExpr);
 quantiles = unique(quantiles);
-params.nBins=length(quantiles);
+options.nBins=length(quantiles);
 
-if params.nBins<2
+if options.nBins<2
     normdispersion=dispersion;
     
 else
     
     Y=discretize(meanExpr,quantiles);
     
-    means=zeros(params.nBins,1); %mean
-    stds=zeros(params.nBins,1); %standard deviation
-    meds=zeros(params.nBins,1); %median
-    mads=zeros(params.nBins,1); %median absolute deviation
+    means=zeros(options.nBins,1); %mean
+    stds=zeros(options.nBins,1); %standard deviation
+    meds=zeros(options.nBins,1); %median
+    mads=zeros(options.nBins,1); %median absolute deviation
     % highDispIx=[];
-    normdispersion=zeros(params.nBins,1);
-    for i=1:params.nBins
+    normdispersion=zeros(options.nBins,1);
+    for i=1:options.nBins
         thisIx=find(Y==i);
         thisDisp=dispersion(Y==i);
         
         if nnz(thisIx)>0
             
-            switch params.normMethod
+            switch options.normMethod
                 case 'zscore'
                     %Macoscko 2015
                     means(i)=mean(thisDisp);
@@ -110,8 +118,8 @@ end
 rawnormdisp = normdispersion;
 
 %remove genes below params.minExpr from consideration:
-normdispersion(meanExpr<params.minExpr)=nan;
-normdispersion(cellsExpr<params.minCells)=nan;
+normdispersion(meanExpr<options.minExpr)=nan;
+normdispersion(cellsExpr<options.minCells)=nan;
 
 %remove negative dispersion genes?
 % normdispersion(normdispersion<0)=nan;
@@ -120,15 +128,18 @@ normdispersion(cellsExpr<params.minCells)=nan;
 
 [sortedNormDisp,ixs]=sort(normdispersion,'descend','MissingPlacement','last');
         
-switch params.selectMethod
+switch options.selectMethod
     case 'number'
-        hvgix=ixs(1:params.nHVG);
+        hvgix=ixs(1:options.nHVG);
+        result=rmfield(result,'dispThr');
         
     case 'threshold'
-        hvgix=ixs(sortedNormDisp>params.dispThr);
-        
+        hvgix=ixs(sortedNormDisp>options.dispThr);
+        result.nHVG=length(hvgix);
+
     case 'allValid'
         hvgix=ixs(~isnan(sortedNormDisp));
+        result.nHVG=length(hvgix);
         
     otherwise
         error('Unknown option')
@@ -136,14 +147,15 @@ end
 
 result.nHVG=length(hvgix);
 result.ix=hvgix;
-% result.gene_name=genes.name(hvgix);
+result.name=genes.name(hvgix);
 % result.gene_id=genes.id(hvgix);
 
 ishvg=false(size(meanExpr));
 ishvg(hvgix)=true;
 
-if exist('figID','var')
-    figure(figID);clf
+
+if ~isempty(plotopts.figID)
+    figure(plotopts.figID);clf
     
 %     y=dispersion; ylab = 'dispersion';
     y=rawnormdisp; ylab = 'norm dispersion';
@@ -159,13 +171,13 @@ if exist('figID','var')
     
     redix=find(highdisp&nonnegative);
     
-    if exist('highlightGenes','var')&&~isempty(highlightGenes)
+    if ~isempty(plotopts.highlightGenes)
         highlightIx=[];
-        if isnumeric(highlightGenes) && isscalar(highlightGenes)
-            highlightIx = hvgix(1:highlightGenes);
-            highlightGenes = genes.name(highlightIx);
-        elseif isstring(highlightGenes) || iscellstr(highlightGenes)
-            highlightIx=getGeneIndices(highlightGenes,genes.name);
+        if isnumeric(plotopts.highlightGenes) && isscalar(plotopts.highlightGenes)
+            highlightIx = hvgix(1:plotopts.highlightGenes);
+            plotopts.highlightGenes = genes.name(highlightIx);
+        elseif isstring(plotopts.highlightGenes) || iscellstr(plotopts.highlightGenes)
+            highlightIx=getGeneIndices(plotopts.highlightGenes,genes.name);
         end
         ishv=ismember(highlightIx,redix);
         ishvix=highlightIx(ishv);
@@ -181,12 +193,12 @@ if exist('figID','var')
     plot(meanExpr(highdisp&nonnegative),y(highdisp&nonnegative),'r.');
     
     
-    if exist('highlightGenes','var')&&~isempty(highlightGenes)
+    if ~isempty(plotopts.highlightGenes)
         line(meanExpr(ishvix),y(ishvix),'color',[.5,0,0],'marker','.','markersize',10,'linestyle','none');
-        text(meanExpr(ishvix),y(ishvix)+0.03,highlightGenes(ishv),'color',[.5,0,0]);
+        text(meanExpr(ishvix),y(ishvix)+0.03,plotopts.highlightGenes(ishv),'color',[.5,0,0]);
         
         line(meanExpr(isnothvix),y(isnothvix),'color',[.5,.5,.5],'marker','.','markersize',10,'linestyle','none');
-        text(meanExpr(isnothvix),y(isnothvix)+0.03,highlightGenes(isnothv),'color',[.5,.5,.5]);
+        text(meanExpr(isnothvix),y(isnothvix)+0.03,plotopts.highlightGenes(isnothv),'color',[.5,.5,.5]);
     end
     
     xlabel('mean expression')
@@ -199,12 +211,12 @@ if exist('figID','var')
     hold on
     plot(cellsExpr(highdisp&nonnegative),y(highdisp&nonnegative),'r.');
     
-    if exist('highlightGenes','var')&&~isempty(highlightGenes)
+    if ~isempty(plotopts.highlightGenes)
         line(cellsExpr(ishvix),y(ishvix),'color',[.5,0,0],'marker','.','markersize',10,'linestyle','none');
-        text(cellsExpr(ishvix),y(ishvix)+0.03,highlightGenes(ishv),'color',[.5,0,0]);
+        text(cellsExpr(ishvix),y(ishvix)+0.03,plotopts.highlightGenes(ishv),'color',[.5,0,0]);
         
         line(cellsExpr(isnothvix),y(isnothvix),'color',[.5,.5,.5],'marker','.','markersize',10,'linestyle','none');
-        text(cellsExpr(isnothvix),y(isnothvix)+0.03,highlightGenes(isnothv),'color',[.5,.5,.5]);
+        text(cellsExpr(isnothvix),y(isnothvix)+0.03,plotopts.highlightGenes(isnothv),'color',[.5,.5,.5]);
     end
     
     xlabel('cells expressing')
