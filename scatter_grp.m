@@ -12,6 +12,7 @@ arguments
 
     opts.gcols=[]
     opts.draworder {mustBeMember(opts.draworder,["random","index","flat"])} ='flat'
+%     opts.do_keypress=false
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
 
@@ -34,10 +35,28 @@ else
     error('coors are not 2 or 3 dimensional');
 end
 
+% organize panel splitting
+if isempty(splitby)
+    splitby=ones(nObs,1);
+end
+if ~iscategorical(splitby)
+    splitby=categorical(splitby);
+end
+splitby=removecats(splitby);
+snames=categories(splitby);
+nSplit=length(snames);
+
+
 % organize grouping variable for colors
 if isempty(groupby)
     groupby=ones(nObs,1);
 end
+
+% if opts.do_keypress && size(groupby,2)>1
+%     allgroupings=groupby;
+%     groupby=groupby(:,1);
+% end
+
 if ~iscategorical(groupby)
     groupby=categorical(groupby);
 end
@@ -56,17 +75,6 @@ else
         gcols=turbo(nGrp);
     end
 end
-
-% organize panel splitting
-if isempty(splitby)
-    splitby=ones(nObs,1);
-end
-if ~iscategorical(splitby)
-    splitby=categorical(splitby);
-end
-splitby=removecats(splitby);
-snames=categories(splitby);
-nSplit=length(snames);
 
 %decide whether to make figure and/or axes
 doNewAx=false;
