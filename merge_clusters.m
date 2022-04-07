@@ -6,19 +6,20 @@ arguments
 %     options.deg_method='tfidf'
     options.deg_params=[]
     options.simThr=0.5
-    options.simMethod='overlap'
+    options.simMetric='overlap'
     options.nReps=1
     options.doPlot=0;
     options.cell_coords=[]
 end
 
 %TODO:
-% - alternative cluster comparison methods - effect sizes: mean expression
+% - alternative cluster comparison methods: correlation of group means in
+% PC space + linkage?
 
 for n=1:options.nReps
     
     cats=unique(clust);
-    K=length(cats)
+    K=length(cats);
     
     %self vs notSelf DEGs
     if ~isempty(options.deg_params)
@@ -33,6 +34,7 @@ for n=1:options.nReps
     for i=1:K
         deg{i}=DEG.("c"+string(i)).name;
     end
+%     cellfun(@length,deg)
     
     %one-hot encode gene lists:
     uG=unique(cat(1,deg{:}));
@@ -41,7 +43,7 @@ for n=1:options.nReps
         domG(i,ismember(uG,deg{i}))=true;
     end
     
-    switch lower(options.simMethod)
+    switch lower(options.simMetric)
         case 'jaccard'
             simfun=@(A,B) nnz(A&B)/(nnz(A|B));
         case 'overlap'
@@ -63,6 +65,8 @@ for n=1:options.nReps
             Sim(i,j)=simfun(A,B);
         end
     end
+
+    %options for other merge method? linkage? 
     
     % merge and relabel
     [r,c]=find(Sim>options.simThr);
@@ -73,7 +77,8 @@ for n=1:options.nReps
     end
     
     remaincats=unique(merged_clust);
-    newK=length(remaincats)
+    newK=length(remaincats);
+    oldK_newK=[K,newK]
     nT=arrayfun(@(x)nnz(merged_clust==x),remaincats);
     [nT,ix]=sort(nT,'descend');
     IDold=merged_clust;
