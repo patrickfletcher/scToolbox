@@ -10,12 +10,12 @@ arguments
     options.ylabmode='vertical'
     options.Padding='compact'
     options.TileSpacing='none'
+    options.grid{mustBeMember(options.grid,["on","off"])}='off';
     options.ax=[]
     options.ShowData=false;
     options.ShowMedian{mustBeMember(options.ShowMedian,["on","off"])}='off';
     options.ShowBox{mustBeMember(options.ShowBox,["on","off"])}='off';
     options.ShowWhisker{mustBeMember(options.ShowWhisker,["on","off"])}='off';
-
 end
 
 %thr=scalar: one line across all (gene thresh)
@@ -108,6 +108,8 @@ for i=1:nVars
     ax(i).YTickLabelMode='auto';
     xlim(ax(i),[0.5,nGroups+0.5]);
     
+    grid(ax(i),options.grid)
+
 %     if ~isempty(thr) && isscalar(thr(i,:))
 %         line(ax(i),xlim(ax(i)),[1,1]*thr(i),'color',[0.7,0.7,0.7])
 %     else
