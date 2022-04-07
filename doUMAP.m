@@ -1,11 +1,31 @@
-function [result, used_knn] = doUMAP(X, params, knn, figID)
+function [result, used_knn] = doUMAP(X, knn, params, options)
 arguments
     X
-    params %everything in here plus below should be name/val
     knn = [] 
-    figID = []
+    params.nn_method='matlab'
+    params.metric="correlation"
+    params.n_neighbors=30
+    params.n_components=2
+    params.n_epochs=0  %let UMAP decide
+    params.min_dist=0.3
+    params.spread=1
+    params.initial_alpha=1.0; %alpha is SGD learning rate
+    params.gam=1.0; %gamma is repulsion strength
+    params.negative_sample_rate=5; %double or int?
+    params.initY = []
+    params.rngSeed=42
+    params.do_densmap=false
+    params.dens_lambda=2; %weight of density term in optimization
+    params.dens_frac=0.3; %final fraction of epochs to use density term
+    params.dens_var_shift=0.1; %small constant to prevent div by zero
+    options.verbose=false
+    options.figID = []
 end
-%TODO: arguments block
+
+%TODO: is it correct to use the graph output by umap.fuzzy_simplicial_set
+%for downstream clustering?
+
+%TODO - use of projection methods to add new points into UMAP?
 
 % Cellranger defaults seem to be:
 % npc=10, distance=correlation, n_neighbors=30, min_dist=0.3, seed=0.
@@ -27,10 +47,12 @@ end
 % result.coords=double(umap_obj.embedding_);
 % result.graph=sparse(double(umap_obj.graph_.toarray())); %just save the scipy.csr_matrix to be passed to leiden
 
-
-rng(params.rngSeed)
-
+%for now unpack a few params:
 initY=params.initY;
+metric=params.metric;
+nn_method=params.nn_method;
+verbose=options.verbose;
+
 if isempty(initY)
     initY="spectral";
     params.initY=initY;
@@ -49,28 +71,22 @@ elseif initY~="spectral" && initY~="random"
     error('unknown initialization method for UMAP');
 end
 
-if ~isnumeric(params.n_neighbors) && params.n_neighbors=="sqrtN"
-    params.n_neighbors=round(sqrt(size(X,1)));
+if isstring(params.n_neighbors)||ischar(params.n_neighbors)
+    switch params.n_neighbors
+        case "sqrtN"
+            params.n_neighbors=round(sqrt(size(X,1)));
+        otherwise
+            error('unknoqn n_neighbors string')
+    end
 end
 
-if ~isfield(params,'n_components')
-    params.n_components=2;
-end
-
-% metric='euclidean';
-metric='correlation'; %Cellranger? Seurat umap-learn option
-% metric='cosine'; %Seurat
-if isfield(params,'metric')
-    metric=params.metric;
-end
-params.metric=metric;
+rng(params.rngSeed)
 
 %initialize results (flat struct with all params + results)
 result = params;
 
 %common python function arguments
 n_neighbors=int64(params.n_neighbors);
-verbose=false;
 
 % break into three steps for reuse of intermediates.
 % 1. nearest neighbors --> nnIDX, nnDist (for impute!) - in python, quite slow! the bottleneck.
@@ -79,11 +95,6 @@ if ~isempty(knn) && size(knn.indices,1)==size(X,1) && params.n_neighbors<=size(k
     doKNN=false;
     knn_indices=knn.indices(:,1:params.n_neighbors);
     knn_dists=knn.dists(:,1:params.n_neighbors);
-end
-
-nn_method='matlab';
-if isfield(params,'nn_method')
-    nn_method=params.nn_method;
 end
 
 %matlab knn
@@ -146,11 +157,20 @@ disp("fuzzy_simplicial_set time: " + num2str(toc) + "s")
 tic
 
 n_components=int64(params.n_components);
-initial_alpha=1.0; %alpha is SGD learning rate
-gam=1.0; %gamma is repulsion strength
-negative_sample_rate=5; %double or int?
-n_epochs=int64(params.n_epochs);
-init=initY;
+
+n_epochs=params.n_epochs;
+if n_epochs==0
+    if size(X,1)<10000
+        n_epochs=500;
+    else
+        n_epochs=200;
+    end
+end
+n_epochs=int64(n_epochs);
+
+initial_alpha=params.initial_alpha; %alpha is SGD learning rate
+gam=params.gam; %gamma is repulsion strength
+negative_sample_rate=params.negative_sample_rate; %double or int?
 
 out=umap.find_ab_params(params.spread, params.min_dist);
 a=out{1}; b=out{2};
@@ -158,32 +178,18 @@ result.a=double(a);
 result.b=double(b);
 
 %do dens_map?
-do_densmap=false;
 densmap_kwds='';
-if isfield(params,'do_densmap')
-    do_densmap=params.do_densmap;
-    dens_lambda=2; %weight of density term in optimization
-    dens_frac=0.3; %final fraction of epochs to use density term
-    dens_var_shift=0.1; %small constant to prevent div by zero
-    if isfield(params,'dens_lambda')
-        dens_lambda=params.dens_lambda;
-    end
-    if isfield(params,'dens_frac')
-        dens_frac=params.dens_frac;
-    end
-    if isfield(params,'dens_var_shift')
-        dens_var_shift=params.dens_var_shift;
-    end
+if params.do_densmap
     emb_dists=out_tuple{4};
     densmap_kwds=py.dict(pyargs('graph_dists',emb_dists,'lambda',dens_lambda,...
         'frac',dens_frac,'var_shift',dens_var_shift));
 end
 
-kwargs = pyargs('verbose',verbose,'densmap',do_densmap,'densmap_kwds',densmap_kwds,'output_dens',false);
+kwargs = pyargs('verbose',verbose,'densmap',params.do_densmap,'densmap_kwds',densmap_kwds,'output_dens',false);
 
 embedded = umap.simplicial_set_embedding(X, emb_graph,...
     n_components, initial_alpha, a, b, gam, negative_sample_rate,... 
-    n_epochs, init, py_rand_state, metric, metric_kwargs, kwargs);
+    n_epochs, initY, py_rand_state, metric, metric_kwargs, kwargs);
 
 result.coords=double(embedded{1});
 
@@ -192,9 +198,9 @@ used_knn.dists=knn_dists;
 
 disp("simplicial_set_embedding time: " + num2str(toc) + "s")
     
-if ~isempty(figID)
-    figure(figID);clf
-    plotScatter(result.coords,'group',ones(size(result.coords,1),1),0.66*[1,1,1],figID);
+if ~isempty(options.figID)
+    figure(options.figID);clf
+    scatter_grp(result.coords,ones(size(result.coords,1),1),gcols=0.66*[1,1,1],fig=options.figID);
     axis tight equal
     drawnow
 end
