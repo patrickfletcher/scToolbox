@@ -63,7 +63,10 @@ end
 else
 end
 
-result.partition=partition;
+
+% result.partition=partition;
 result.K=K;
 result.clusterID=clusterID;
+result.mod=partition.modularity;
+result.q=partition.q;
 result.clusterCounts = nT;

@@ -15,6 +15,8 @@ end
 
 % tic
 result = params;
+result.partition_type=partition_type;
+result.resolution_range=resolution_range;
 
 disp('Performing Leidenalg (python) clustering...')
 
