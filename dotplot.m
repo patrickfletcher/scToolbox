@@ -21,16 +21,41 @@ arguments
     options.min_all_ident = []
     options.max_all_prct=100
     options.max_all_ident = []
+    options.max_any_prct=100
+    options.max_any_ident = []
     options.prct_leg=3
     options.prct_leg_height=0.05
     options.cb_prct_gap=0.01
     options.cb_gap=0.02
     options.cb_width=0.02
-    options.cblabel='mean log_{10} expression'
+    options.cblabel='log mean expression'
+    options.expr_method='mean'
     options.only_expressing=false
     options.verbose=false
-    options.do_var_norm=false
+    options.log=true
+    options.logbase='e'
+    options.pre_scale=false
+    options.scale_method=[]
+    options.scale_param=[]
+    options.is_diverging=false
+    options.cmap=[];
     options.sortgroups='none'
+end
+
+%TODO: refator plotDotPlot
+
+if ~isempty(options.scale_method)
+    if ismember(options.scale_method,["zscore","center","medianiqr"])
+        options.is_diverging=1;
+    end
+    switch options.scale_method
+        case 'zscore'
+            options.cblabel="z score";
+        case 'center'
+            options.cblabel="centered expression";
+        case {'norm','range'}
+            options.cblabel="normalized expression";
+    end
 end
 
 options.marg_h=options.margins(1:2);
@@ -62,7 +87,21 @@ if isempty(ctnames)
 end
 
 [gix, G]=getGeneIndices(glist,genes.name);
-[exprTab,EXPR,PRCT]=getExpression(genes(gix,:),ncounts(gix,cellsub),tcounts(gix,cellsub),ident,'only_expressing',options.only_expressing);
+
+N=ncounts(gix,cellsub);
+T=tcounts(gix,cellsub);
+
+if options.pre_scale
+    if ~isempty(options.scale_method)
+        if isempty(options.scale_param)
+            N=normalize(N,2,options.scale_method);
+        else
+            N=normalize(N,2,options.scale_method, options.scale_param);
+        end
+    end
+end
+
+[exprTab,EXPR,PRCT]=getExpression(genes(gix,:),N,T,ident,method=options.expr_method,only_expressing=options.only_expressing);
 
 %minimum prct in any cts of interest (ctnames by default)
 if isempty(options.min_any_ident)
@@ -85,12 +124,18 @@ end
 [~,allctix]=ismember(options.max_all_ident,identnames);
 all_expr=all(PRCT(:,allctix)>options.max_all_prct,2);
 
+if isempty(options.max_any_ident)
+    options.max_any_ident=ctnames;
+end
+[~,allctix]=ismember(options.max_any_ident,identnames);
+any_expr=any(PRCT(:,allctix)>options.max_any_prct,2);
+
 %restrict to CTs to be plotted
 [~,ctix]=ismember(ctnames,identnames);
 EXPR=EXPR(:,ctix);
 PRCT=PRCT(:,ctix);
 
-discard=lowpct|not_all_min|all_expr;
+discard=lowpct|not_all_min|all_expr|any_expr;
 EXPR(discard,:)=[];
 PRCT(discard,:)=[];
 if options.verbose && nnz(discard)>0
@@ -105,16 +150,50 @@ Ggrp(discard)=[];
 %hack until revamp plotDotPlot
 options.min_prct=options.min_dot_prct;
 
-EXPR=log10(EXPR+1);
+if options.log
+    switch options.logbase
+        case '2'
+            EXPR=log2(EXPR+1);
+        case '10'
+            EXPR=log10(EXPR+1);
+        case 'e'
+            EXPR=log1p(EXPR);
+    end
+end
+
+if ~options.pre_scale
+    if ~isempty(options.scale_method)
+        if isempty(options.scale_param)
+            EXPR=normalize(EXPR,2,options.scale_method);
+        else
+            EXPR=normalize(EXPR,2,options.scale_method, options.scale_param);
+        end
+    end
+end
+
 Glab=strcat('\it',G);
 [ax,hs,cb,varNames]=plotDotPlot(Glab,ctnames,PRCT,EXPR,fh,Ggrp,options.sortby,options);
 
-varNames=strrep(varNames,"\it","");
+if isempty(options.cmap)
+    if options.is_diverging
+        cmap=split_cmap();
+    else
+        cmap=cbrewer('seq','Reds',64); cmap=[1,1,1;cmap];
+    end
+end
+colormap(ax(1),cmap);
 
+if options.is_diverging
+    ax(1).CLim=max(abs(EXPR(:)))*[-1,1];
+    cb.Limits=[min(EXPR(:)),max(EXPR(:))];
+end
+
+varNames=strrep(varNames,"\it","");
 hdp.ax=ax;
 hdp.hs=hs;
 hdp.cb=cb;
 exprTab.discard=discard(:);
-[~,exprTab.rowperm]=ismember(glist,varNames);
+[~,locB]=ismember(glist,varNames);
+exprTab.rowperm=locB(:);
 hdp.exprTab=exprTab;
 hdp.options=options;
