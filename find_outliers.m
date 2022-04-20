@@ -86,7 +86,7 @@ for i=1:size(tf,1)
             
     end
     
-    %don't impose thresholds (except clipvals) on low-pop cts
+    %don't impose thresholds (except clipvals) on low-pop groups
     if isempty(thisqc) || length(thisqc)<params.min_cells
         lowthr(i)=params.lowthr_clipval;
         hithr(i)=params.hithr_clipval;
