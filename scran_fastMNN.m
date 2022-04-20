@@ -13,6 +13,11 @@ arguments
     options.verbose=false
 end
 
+
+if options.verbose
+    disp("Running " + mfilename + "...")
+end
+
 result.method="scran_fastMNN";
 result.normpars=normpars;
 result.mnnpars=mnnpars;

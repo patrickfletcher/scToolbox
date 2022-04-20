@@ -1,7 +1,7 @@
 # command line script to run Seurat SCTransform normalization + fastMNN
-library(scran)
-library(batchelor)
-library(R.matlab)
+suppressPackageStartupMessages(library(scran))
+suppressPackageStartupMessages(library(batchelor))
+suppressPackageStartupMessages(library(R.matlab))
 
 args <- commandArgs(TRUE)
 
@@ -18,14 +18,14 @@ splits <- unlist(mat$splitby)
 
 normpars=mat$normpars[,,1]
 
-n_hvg = normpars$n.features
+n_hvg = as.numeric(normpars$n.features)
 
 mnnpars=mat$mnnpars[,,1]
 # print(mnnpars)
 
-k <- mnnpars$k
-d <- mnnpars$d
-ndist <- mnnpars$ndist
+k <- as.numeric(mnnpars$k)
+d <- as.numeric(mnnpars$d)
+ndist <- as.numeric(mnnpars$ndist)
 #auto.merge
 
 cellinfo <-read.csv(cellsubsetfile, row.names = 'id', header = T)
