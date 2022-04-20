@@ -71,6 +71,8 @@ switch options.method
         expr_fun=@(x) mean(prctile(x,[25,50,50,75],2),2); %fastest
     case 'trimmean'
         expr_fun=@(x) trimmean(x, options.trim_prct, 2);
+    case 'sum'
+        expr_fun=@(x) sum(x,2);
     otherwise
         expr_fun=eval("@(x)"+options.method+"(x,2,'omitnan')");
 end
