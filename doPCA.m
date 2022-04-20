@@ -7,10 +7,23 @@ arguments
     params.maxScaled=10
     params.npc=0
     params.permute_reps=100
+    params.scale_pcs=false
     options.verbose=true
     options.figID=[]
     options.pcix=[]
 end
+
+%TODO: investigate 1) pre-scale/center data, 2) post normalize PCs
+
+%covariance = X'*X/(n-1) <=> X is centered.
+
+% https://stats.stackexchange.com/questions/134282/relationship-between-svd-and-pca-how-to-use-svd-to-perform-pca
+
+%TODO: support returning eigenvalues (PC variances)  si^2/(n-1)
+%TODO: standardized scores = sqrt(n-1)*U
+%TODO: clarify loadings vs principal axes (V).  loadings need: *sqrt(S)
+%TODO: add interface to numerical options of eigs (tolerance, etc)
+
 
 result = params;
 
@@ -27,6 +40,9 @@ scale_args = [];
 scale_fun = @(x) x;
 switch params.scale_method
     case 'zscore'
+        % --> PCA on correlation matrix, not covariance.
+        % --> standardized loadings (correlation)
+
         % Seurat scaling
 %         X=(X-mu)./sig; %zscore gene distributions
         
@@ -77,6 +93,7 @@ switch params.scale_method
         scale_fun = @(x,args) (x-args.xmin)./(args.xmax-args.xmin);
         
     case 'center'
+        % --> PCA on covariance matrix
         scale_args = mean(x,2);
         scale_fun = @(x, mu) x-mu;
         
@@ -98,15 +115,24 @@ if params.npc<1
     result.p=p;
     result.explained=e;
     result.explained_null=d;
+    if options.verbose, disp(['Number of PCs: ',num2str(result.npc)]), end
 else
     result.npc=params.npc;
 end
-if options.verbose, disp(['Number of PCs: ',num2str(result.npc)]), end
 
 % do the pca
 if options.verbose, disp('Computing PCA...'), end
-[coeff,score]=fast_pca(X',result.npc);
- 
+
+%useless intermediate function...
+% [coeff,score]=fast_pca(X',result.npc);
+
+[U,S,coeff] = svdsecon(X',result.npc);
+score =  U*S';
+
+if params.scale_pcs
+    score=score./std(score,0,1);
+end
+
 result.coeff=coeff;
 result.coords=score;
 
