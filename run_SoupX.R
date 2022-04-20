@@ -12,7 +12,7 @@ sampleinfofile <- args[2] #csv indicating the sample folders
 cellinfofile <- args[3] #csv table with vars: id, sample, cluster
 adjustedfile <- args[]
 
-samp.folders <- c("Anterior1","A_P_1","A_P_2","Posterior1")
+samp.folders <- 
 
 samp.name <- "merge"
 datapath <- paste0("D:/scRNAseq/rat/Feb2020/",samp.name,"/outs/")
