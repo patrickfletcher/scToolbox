@@ -11,7 +11,7 @@ arguments
     opts.panels=[] %specific layout of [nrow, ncol] subplots
 
     opts.gcols=[]
-    opts.draworder {mustBeMember(opts.draworder,["random","index","flat"])} ='flat'
+    opts.draworder {mustBeMember(opts.draworder,["random","index","revind","flat"])} ='flat'
 %     opts.do_keypress=false
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
@@ -104,7 +104,8 @@ if doNewAx
         nc=opts.panels(2);
     else
         nr=floor(sqrt(nSplit));
-        nc=ceil(sqrt(nSplit));
+        nc=ceil(nSplit/nr);
+%         nc=ceil(sqrt(nSplit));
     end
     ax=tight_subplot(nr,nc,[],opts.tilegaps,opts.margins([2,4]),opts.margins([1,3]));
 end
@@ -125,6 +126,8 @@ for i=1:nSplit
             switch opts.draworder
                 case 'index'
                     hs(j).ZData=j*ones(size(hs(j).XData));  %order by category index
+                case 'revind'
+                    hs(j).ZData=-j*ones(size(hs(j).XData));  %order by reversed category index
                 case 'random'
                     hs(j).ZData=rand(size(hs(j).XData));  %randomize the "depth" of points
                 case 'flat' %not ordered - keep as 2D (eg. for alpha)

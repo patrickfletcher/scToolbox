@@ -137,25 +137,38 @@ for i=1:nSplit
     end
     hs(i)=scatterfun(thiscoords,thiscvals);
     
+    minc=min(thiscvals);
+    maxc=max(thiscvals);
+    maxmagc=max(abs(thiscvals(:)));
+
+    if minc==maxc
+        minc=minc-0.1*maxc;
+        maxc=maxc+0.1*maxc;
+    end
+    if minc==0 && maxc==0
+        minc=-1;
+        maxc=1;
+    end
+
     if ~opts.commonCbar
         rectpos=ax(i).Position;
         hcb(i)=makeCB(ax(i),rectpos,opts.cbgap,opts.cbdims,opts.cbLoc,opts.cbJust);
         if opts.isdiverging
-            ax(i).CLim=abs(max(thiscvals))*[-1,1];
-            cbtick=unique([min(thiscvals),0,max(thiscvals)]);
+            ax(i).CLim=abs(maxc)*[-1,1];
+            cbtick=unique([minc,0,maxc]);
 %             cbtick=unique(sort([min(hcb(i).Ticks),max(hcb(i).Ticks),0]));
         else
-            ax(i).CLim=[min(thiscvals),max(thiscvals)];
-            cbtick=[min(thiscvals),max(thiscvals)];
+            ax(i).CLim=[minc,maxc];
+            cbtick=[minc,maxc];
 %             cbtick=[min(hcb(i).Ticks),max(hcb(i).Ticks)];
         end
-        hcb(i).Limits=[min(thiscvals),max(thiscvals)];
+        hcb(i).Limits=[minc,maxc];
         cbtick=[ceil(min(cbtick)*10^opts.cbDigits),floor(max(cbtick)*10^opts.cbDigits)]/10^opts.cbDigits;
         hcb(i).Ticks=sort(cbtick);
 %         hcb(i).TickLength=opts.cbdims(2);
     else
         if opts.isdiverging
-            ax(i).CLim=abs(maxcvals)*[-1,1];
+            ax(i).CLim=maxmagc*[-1,1];
         else
             if mincvals~=maxcvals
                 ax(i).CLim=[mincvals,maxcvals];
