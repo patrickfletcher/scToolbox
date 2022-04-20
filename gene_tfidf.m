@@ -9,6 +9,8 @@ arguments
     options.max_out_freq=1
     options.do_hyge=1
     options.fdr_thr=0.05
+    options.sortby="tfidf"
+    options.sortdir="descend"
 end
 
 nCells=size(counts,2);
@@ -71,27 +73,27 @@ end
 %store the results in a table
 restab=table();
 for i=1:nGroups
-    
-    [tfidfs,ixs]=sort(tfidf(:,i),'descend');
-    
+        
     res=table;
-    res.name=genes.name(ixs);
-    res.in_freq=tf(ixs,i);
-    res.out_freq=ntf(ixs,i);
-    res.tot_freq=totalCounts(ixs)./nCells;
-    res.idf=idf(ixs);
-    res.tfidf=tfidfs;
+    res.name=genes.name;
+    res.in_freq=tf(:,i);
+    res.out_freq=ntf(:,i);
+    res.tot_freq=totalCounts./nCells;
+    res.idf=idf;
+    res.tfidf=tfidf(:,i);
     
     if options.do_hyge
-        res.adj_p=adj_p(ixs,i);
-        res(~sig(ixs,i),:)=[];
+        res.adj_p=adj_p(:,i);
+        res(~sig(:,i),:)=[];
     end
 
     res(res.in_freq<options.min_in_freq,:)=[];
     res(res.out_freq>options.max_out_freq,:)=[];
     
+    res=sortrows(res,options.sortby,options.sortdir);
+
     res=res(1:min(options.N,height(res)),:);
-    
+
     result.(groupNames{i})=res;
 
     res.clust_id=repmat(string(groupNames{i}),height(res),1);
