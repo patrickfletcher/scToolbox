@@ -10,7 +10,7 @@ resultsmatfile <- args[2]
 
 mat <- readMat(parsmatfile)
 
-print(mat)
+# print(mat)
 
 datafile <- unlist(mat$datafile) #full path to h5 file
 cellsubsetfile <- unlist(mat$cellsubsetfile) #two column file with full list of cells. Colnames = id, keep
@@ -19,16 +19,17 @@ splitby2 <- unlist(mat$splitby)[2]
 
 
 sctpars=mat$sctpars[,,1]
-print(sctpars)
+# print(sctpars)
 
-vars.to.regress = unlist(sctpars$vars.to.regress)
-if (vars.to.regress=="none") {
-  vars.to.regress<-NULL
+vars.to.regress<-NULL
+par = unlist(sctpars$vars.to.regress)
+if (par!="NULL") {
+  vars.to.regress <- par
 }
-print(vars.to.regress)
+# print(vars.to.regress)
 
-n.features = sctpars$n.features
-n.anchor.features = sctpars$n.anchor.features
+n.features = as.numeric(sctpars$n.features)
+n.anchor.features = as.numeric(sctpars$n.anchor.features)
 #method
 #...
 
@@ -36,9 +37,9 @@ n.anchor.features = sctpars$n.anchor.features
 mnnpars=mat$mnnpars[,,1]
 # print(mnnpars)
 
-k <- mnnpars$k
-d <- mnnpars$d
-ndist <- mnnpars$ndist
+k <- as.numeric(mnnpars$k)
+d <- as.numeric(mnnpars$d)
+ndist <- as.numeric(mnnpars$ndist)
 #auto.merge
 
 #if 0<k<1, use prop.k
@@ -94,4 +95,4 @@ so <- RunFastMNN(so.list,
 remove('so.list')
 gc()
 mnn <- Embeddings(so, reduction = "mnn")
-writeMat(resultsmatfile, mnn=mnn)
+writeMat(resultsmatfile, mnn=mnn, features=var.features)

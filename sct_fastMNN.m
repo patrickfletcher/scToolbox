@@ -3,7 +3,7 @@ arguments
     datafile
     cellsub
     splitby {string,char,cellstr}
-    sctpars.vars_to_regress{string,char,cellstr}="none"
+    sctpars.vars_to_regress{string,char,cellstr}="NULL"
     sctpars.n_features=3000
     sctpars.n_anchor_features=2000
     mnnpars.k=20
