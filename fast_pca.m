@@ -1,10 +1,17 @@
-function [coeff,score, mu, sig]=fast_pca(X,npc,maxscaled)
+function [V, score, mu, sig]=fast_pca(X,npc,maxscaled)
 % X is NxD matrix of data
 
-%TODO: increase tolerance to increase speed?
+%covariance = X'*X/(n-1) <=> X is centered.
+
+% https://stats.stackexchange.com/questions/134282/relationship-between-svd-and-pca-how-to-use-svd-to-perform-pca
+
+%TODO: support returning eigenvalues (PC variances)  si^2/(n-1)
+%TODO: standardized scores = sqrt(n-1)*U
+%TODO: clarify loadings vs V
+%TODO: add interface to numerical options of eigs (tolerance, etc)
 
 mu=zeros(size(X,1),1);
-sig=zeros(size(X,1),1);
+sig=ones(size(X,1),1);
 if exist('maxscaled','var')
     mu=mean(X,1);
     sig=std(X,[],1);
@@ -16,7 +23,5 @@ end
 % n=size(X,1);
 % DOF = max(0,n-1);%expects centered data
 % [U, sigma, coeff] = svds(X, npc);  %irlba in MatLab
-[U,S,coeff] = svdsecon(X,npc);
+[U,S,V] = svdsecon(X,npc);
 score =  U*S';
-
-%also return eigenvalues of covariance matrix: si^2/(n-1) ?
