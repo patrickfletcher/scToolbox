@@ -1,4 +1,4 @@
-function eulerr(sets, setnames, pdf_file, options)
+function [excl_int,int_names]=eulerr(sets, setnames, pdf_file, options)
 arguments
     sets
     setnames
@@ -37,7 +37,7 @@ if ~isempty(options.cols)
     T.cols=hexcols(:);
 end
 
-T(counts==0,:)=[];
+% T(counts==0,:)=[];
 
 setsfile="tmp_eulerr_data.csv";
 writetable(T, setsfile);

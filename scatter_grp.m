@@ -10,7 +10,12 @@ arguments
     opts.tilegaps=[0.05,0.05] %multi-subplot gaps [horizontal, vertical]
     opts.panels=[] %specific layout of [nrow, ncol] subplots
 
+    opts.draw_outline=true %when splitby is used draw all points behind
+    opts.outline_col=0.85*[1,1,1];
+    opts.outline_size=4
     opts.gcols=[]
+    opts.darken_edges=0
+    opts.darken_strength=0.2 %in [0,1]: how far towards black to interp
     opts.draworder {mustBeMember(opts.draworder,["random","index","revind","flat"])} ='flat'
 %     opts.do_keypress=false
     scopts.?matlab.graphics.chart.primitive.Scatter
@@ -116,10 +121,16 @@ end
 
 for i=1:nSplit
     axes(ax(i))
+    if nSplit>1 && opts.draw_outline
+        hs0=scatterfun(coords, opts.outline_col);
+        hs0.Annotation.LegendInformation.IconDisplayStyle='off';
+    end
+    this_split=splitby(:)==snames{i};
     hold on
     for j=1:nGrp
-        thisgrp=groupby(:)==gnames{j} & splitby(:)==snames{i};
-        hs(j)=scatterfun(coords(thisgrp,:),gcols(j,:));
+        thisgrp=groupby(:)==gnames{j};
+        cellsub=thisgrp & this_split;
+        hs(j)=scatterfun(coords(cellsub,:),gcols(j,:));
         hs(j).DisplayName=gnames{j};
 
         if ~do3D
@@ -134,6 +145,14 @@ for i=1:nSplit
                 otherwise
             end
         end
+        if opts.darken_edges
+            edgecol(1,1)=interp1([0,1],[gcols(j,1),0],opts.darken_strength);
+            edgecol(1,2)=interp1([0,1],[gcols(j,2),0],opts.darken_strength);
+            edgecol(1,3)=interp1([0,1],[gcols(j,3),0],opts.darken_strength);
+            hs(j).MarkerFaceColor=gcols(j,:);
+            hs(j).MarkerEdgeColor=edgecol;
+            hs(j).LineWidth=0.25;
+        end
     end
     hold off
 
@@ -142,6 +161,8 @@ for i=1:nSplit
         title(snames{i})
     end
 
+    %by default tight/equal?
+    axis(ax(i),'tight','equal')
 end
 
 % common title/colorbar
@@ -154,7 +175,8 @@ end
 
 if do3D
     axis(ax,'vis3d')
-elseif length(ax)>1
+end
+if length(ax)>1
     linkaxes(ax)
 end
 

@@ -26,15 +26,26 @@ sets_df <-read.csv(setsfile, header = T)
 
 combos <- setNames(unlist(sets_df$counts), unlist(sets_df$names))
 
-extraopt <- list(extraopt_control = list(seed = rng_seed))
 
-fit1<-eulerr::euler(combos, shape=shape)
+control <- list(extraopt=T,
+                extraopt_threshold = 0,
+                extraopt_control = list(seed = rng_seed, max.time=30,  
+                                        verbose=T, smooth=F, temperature=1000))
+# list(seed = rng_seed, smooth=F, 
+#      maxit=1e100, temperature=10000,verbose=T,
+#      nb.stop.improvement=1e3)
+print(control)
+
+fit1<-eulerr::euler(combos, shape=shape, control=control)
+
 print(fit1)
 
 fills <- list()
 if ("cols" %in% colnames(sets_df) ) {
   fills$fill = unlist(sets_df$cols)
 }
+# print(fills)
+
 fills$alpha = alpha
 
 quantities <- FALSE

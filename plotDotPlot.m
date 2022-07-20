@@ -1,4 +1,4 @@
-function [ax,hs,cb,varNames]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,params)
+function hdp=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,options)
 arguments
     varNames
     groupNames
@@ -6,49 +6,29 @@ arguments
     colorData
     figOrAxis = []
     varGroup = []
-    sortmethod = 'none'
-    params = []
+    options.sortby = 'none'
+    options.gap=0.1;
+    options.margins=[0.1,0.1,0.1,0.1]
+    options.area_range=[1,144];
+    options.min_dot_prct = 5; 
+    options.prct_leg=3; 
+    options.prct_leg_dims=[0.2,0.075];
+    options.cb_prct_gap=0.01;
+    options.cb_gap=0.01;
+    options.cb_dims=[0.25, 0.01];
+    options.cblabel='mean log_{10} expression';
+    options.cb_digits=2;
+    options.do_var_norm=false;
+    options.sortgroups='none';
+    options.is_diverging=false
+    options.cmap=[];
+    options.FontSize=9;
+    options.xtickangle=90;
 end
 %dot plot: area = %>0, color = mean expression value, for a list of genes and
 %groups of cells.
-%
-% [ax,hs,cb]=plotDotPlot(varNames,groupNames,sizeData,colorData,figOrAxis,varGroup,sortmethod,sp_params,do_var_norm)
-
-%TODO: pass this in as varNames
-% varLabels=strcat(repmat({'\it '},size(varNames)),varNames);
-
-%TODO: varGroup contains label info, add as text centered on each block
-
-%TODO: pass all the following in via sp_params
-% - alt: args block
-
 
 mrkr='o'; %squares don't scale right
-
-def_params.gap=0.1;
-def_params.marg_h=[0.1,0.1];
-def_params.marg_w=[0.1,0.1];
-def_params.minArea=1;
-def_params.maxArea=144;
-def_params.min_prct = 5; 
-def_params.prct_leg=3; 
-def_params.prct_leg_height=0.05;
-def_params.cb_prct_gap=0.01;
-def_params.cb_gap=0.02;
-def_params.cb_width=0.02;
-def_params.cblabel='mean log_{10} expression';
-def_params.do_var_norm=false;
-def_params.sortgroups='none';
-
-if isempty(params)
-    params=def_params;
-end
-parfields=fieldnames(def_params);
-for i=1:length(parfields)
-    if ~isfield(params,parfields{i})
-        params.(parfields{i})=def_params.(parfields{i});
-    end
-end
 
 if isempty(varGroup)
     varGroup=ones(size(varNames));
@@ -57,12 +37,13 @@ if ~iscategorical(varGroup); varGroup=categorical(varGroup); end
 varCats=categories(varGroup);
 nPerGroup=countcats(varGroup);
 
-if params.do_var_norm
+if options.do_var_norm
     colorData=colorData./max(colorData,[],2);
 end
 
+varNamesIn=varNames;
 IXS=[];
-switch sortmethod
+switch options.sortby
     case 'alpha'
         for i=1:length(varCats)
             thiscat=varGroup==varCats{i};
@@ -121,7 +102,7 @@ switch sortmethod
     case 'first'
         for i=1:length(varCats)
             thiscat=varGroup==varCats{i};
-            [r,c]=find(sizeData(thiscat,:)>params.min_prct); 
+            [r,c]=find(sizeData(thiscat,:)>options.min_dot_prct); 
             varsub=varNames(thiscat);
             colorsub=colorData(thiscat,:);
             sizesub=sizeData(thiscat,:);
@@ -134,7 +115,7 @@ switch sortmethod
     case 'firstsize'
         for i=1:length(varCats)
             thiscat=varGroup==varCats{i};
-            [r,c]=find(sizeData(thiscat,:)>params.min_prct); 
+            [r,c]=find(sizeData(thiscat,:)>options.min_dot_prct); 
             varsub=varNames(thiscat);
             colorsub=colorData(thiscat,:);
             sizesub=sizeData(thiscat,:);
@@ -153,7 +134,7 @@ switch sortmethod
     case 'firstcolor'
         for i=1:length(varCats)
             thiscat=varGroup==varCats{i};
-            [r,c]=find(sizeData(thiscat,:)>params.min_prct); 
+            [r,c]=find(sizeData(thiscat,:)>options.min_dot_prct); 
             varsub=varNames(thiscat);
             colorsub=colorData(thiscat,:);
             sizesub=sizeData(thiscat,:);
@@ -174,7 +155,7 @@ switch sortmethod
 end
 
 ggrp=ones(1,length(groupNames));
-switch params.sortgroups
+switch options.sortgroups
     case 'size'
         [sizeData,ixs]=groupCountMatrix(sizeData,ggrp,'optim');
         colorData=colorData(:,ixs);
@@ -187,23 +168,23 @@ switch params.sortgroups
 end
 
 %%%% rescale frac to [minArea,maxArea]
-minArea=params.minArea; 
-maxArea=params.maxArea;
+minArea=options.area_range(1); 
+maxArea=options.area_range(2);
 % maxArea=(ax(1).Position(3)/length(groupNames))^2;
 if minArea==0, minArea=eps; end
-if params.min_prct==0, params.min_prct=eps; end
+if options.min_dot_prct==0, options.min_dot_prct=eps; end
 
 minSizeData=min(sizeData(:));
 maxSizeData=max(sizeData(:));
-sizeData(sizeData<params.min_prct)=nan;
+sizeData(sizeData<options.min_dot_prct)=nan;
 areaData=rescale(sizeData,minArea,maxArea,'InputMin',minSizeData,'InputMax',maxSizeData);
 
 %prct_leg = # sizes to show >=2 [min%, max% + even breaks between]
-if isscalar(params.prct_leg)
-    n_prct_leg = params.prct_leg;
-    leg_prct=linspace(params.min_prct,maxSizeData,n_prct_leg);
+if isscalar(options.prct_leg)
+    n_prct_leg = options.prct_leg;
+    leg_prct=linspace(options.min_dot_prct,maxSizeData,n_prct_leg);
 else
-    leg_prct=params.prct_leg;
+    leg_prct=options.prct_leg;
     leg_prct(leg_prct>maxSizeData)=maxSizeData;
     leg_prct=unique(leg_prct);
 end
@@ -226,7 +207,9 @@ elseif isa(figOrAxis,'matlab.graphics.axis.Axes')
     makeAxes=false;
 end
 
-pos=[params.marg_w(1),params.marg_h(1),1-params.marg_w(1)-params.marg_w(2),1-params.marg_h(1)-params.marg_h(2)];
+marg_h=options.margins(1:2);
+marg_w=options.margins(3:4);
+pos=[marg_w(1),marg_h(1),1-sum(marg_w),1-sum(marg_h)];
 if makeAxes
 %     ax=tight_subplot(1,1,1,sp_params.gap,sp_params.marg_h,sp_params.marg_w);
     ax=axes('OuterPosition',[0,0,1,1],'Position',pos);
@@ -243,10 +226,15 @@ hs=scatter(ax,X(:),Y(:),areaData(:),colorData(:),mrkr,'filled');
 hs.MarkerEdgeColor=0.5*[1,1,1];
 hs.LineWidth=0.5;
 
-cmap=cbrewer('seq','Reds',64);
-% cmap=cbrewer('seq','OrRd',64);
-cmap=[1,1,1;cmap];
-colormap(ax, cmap)
+%handle colormap/diverging
+if isempty(options.cmap)
+    if options.is_diverging
+        cmap=split_cmap();
+    else
+        cmap=cbrewer('seq','Reds',64); cmap=[1,1,1;cmap];
+    end
+end
+colormap(ax(1),cmap);
 
 xlim([0.5,length(groupNames)+0.5])
 ylim([0.5,length(varNames)+0.5])
@@ -263,32 +251,44 @@ ax.YDir='reverse';
 set(ax,'XTick',1:length(groupNames),'XTickLabel',groupNames)
 set(ax,'YTick',1:length(varNames),'YTickLabel',varNames)
 
-axPos=ax.Position;
-axTop=axPos(2)+axPos(4);
-axRight=axPos(1)+axPos(3);
-cRight=axRight-axPos(3)/2;
+ax.FontSize=options.FontSize;
+xtickangle(ax,options.xtickangle)
 
 cb=colorbar('orientation','horizontal');
-cb.Position(2)=axTop+params.cb_gap;
-cb.Position(4)=params.cb_width;
-cb.Position(3)=axPos(3)/2;
-cb.Position(1)=ax.Position(1); %doing this last makes it work...
-rp=1;
-% cb.Ticks=[ceil(10^rp*cb.Limits(1)),...
-%           floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
+rp=options.cb_digits;
+cb.Ticks=[ceil(10^rp*cb.Limits(1)),...
+          floor(10^rp*cb.Limits(2))]/10^rp; %round to 1 decimal point
 %           round(10^rp*(cb.Limits(1)+diff(cb.Limits)/2)),...
 % cb.Limits=cb.Ticks([1,3]);
 cb.TickLength=0.025;
 
-cb.Label.String=params.cblabel;
+cb.Label.String=options.cblabel;
 % cb.Label.HorizontalAlignment='right';
 cb.Label.Units='normalized';
 % cb.Label.Position(1)=0.25;
 
+if options.is_diverging
+    ax(1).CLim=max(abs(colorData(:)))*[-1,1];
+    cb.Limits=[min(colorData(:)),max(colorData(:))];
+end
+
+axPos=ax.Position;
+axTop=axPos(2)+axPos(4);
+axRight=axPos(1)+axPos(3);
+
+cb.Position(1)=axPos(1); 
+cb.Position(2)=axTop+options.cb_gap;
+cb.Position(3)=options.cb_dims(1);
+cb.Position(4)=options.cb_dims(2);
+
+cRight=axPos(1)+options.cb_dims(1);
+
 %legend for %
-ax(2)=axes(gcf,'Position',...
-    [cRight+params.cb_prct_gap, axTop+params.cb_gap,...
-     axRight-cRight-params.cb_prct_gap, params.prct_leg_height]);
+prct_leg_pos=[1-marg_w(2)-options.prct_leg_dims(1), axTop+options.cb_gap,...
+     options.prct_leg_dims(1), options.prct_leg_dims(2)];
+% prct_leg_pos=[cRight+options.cb_prct_gap, axTop+options.cb_gap,...
+%      axRight-cRight-options.cb_prct_gap, options.prct_leg_height];
+ax(2)=axes(gcf,'Position',prct_leg_pos);
  
 xvals=ones(size(prct_leg_labels));
 yvals=1:length(prct_leg_labels);
@@ -303,6 +303,14 @@ axis off
 
 dcm_obj = datacursormode(figH);
 set(dcm_obj,'UpdateFcn',{@customDataTips,groupNames,varNames,sizeData(:),colorData(:)})
+
+hdp.ax=ax;
+hdp.hs=hs;
+hdp.cb=cb;
+[~,locB]=ismember(varNames,varNamesIn);
+hdp.rowperm=locB(:);
+hdp.varNames=varNames;
+hdp.options=options;
 
 end
 

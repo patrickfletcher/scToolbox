@@ -15,13 +15,15 @@ arguments
     opts.cbdims=[0.3,0.01] %[length, width]
     opts.cblabel=[]
     opts.cbLoc {mustBeMember(opts.cbLoc,["east","west","north","south"])}='east'
-    opts.cbJust {mustBeMember(opts.cbJust,["low","mid","high"])}='mid'
+    opts.cbJust {mustBeMember(opts.cbJust,["low","midlo","mid","midhi","high"])}='mid'
     opts.commonCbar=true %true - one cb for all axes same color scale. false - individual cbs
     opts.cbDigits=1
 
     opts.cmap=[]
     opts.isdiverging=false
 
+    opts.draw_outline=true %when splitby is used draw all points behind
+    opts.outline_col=0.85*[1,1,1];
     opts.draworder {mustBeMember(opts.draworder,["random","value","valrev","flat"])} ='flat'
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
@@ -105,13 +107,13 @@ else %both fig and ax specified: splitby only possible if correct # ax
 end
 
 if doNewAx
-    if ~isempty(opts.panels)
+    if ~isempty(opts.panels)&&sum(opts.panels(:))~=nSplit
         nr=opts.panels(1);
         nc=opts.panels(2);
     else
         nr=floor(sqrt(nSplit));
 %         nc=ceil(sqrt(nSplit));
-        nc=nSplit/nr;
+        nc=ceil(nSplit/nr);
     end
     ax=tight_subplot(nr,nc,[],opts.tilegaps,opts.margins([2,4]),opts.margins([1,3]));
 end
@@ -125,6 +127,11 @@ maxcvals=max(cvals(:));
 
 for i=1:nSplit
     axes(ax(i))
+    if nSplit>1 && opts.draw_outline
+        hs0=scatterfun(coords,opts.outline_col);
+        hs0.Annotation.LegendInformation.IconDisplayStyle='off';
+    end
+    hold on
 
     if n>1
         thisgrp=splitby==snames{i};
@@ -154,7 +161,7 @@ for i=1:nSplit
         rectpos=ax(i).Position;
         hcb(i)=makeCB(ax(i),rectpos,opts.cbgap,opts.cbdims,opts.cbLoc,opts.cbJust);
         if opts.isdiverging
-            ax(i).CLim=abs(maxc)*[-1,1];
+            ax(i).CLim=maxmagc*[-1,1];
             cbtick=unique([minc,0,maxc]);
 %             cbtick=unique(sort([min(hcb(i).Ticks),max(hcb(i).Ticks),0]));
         else
@@ -163,7 +170,8 @@ for i=1:nSplit
 %             cbtick=[min(hcb(i).Ticks),max(hcb(i).Ticks)];
         end
         hcb(i).Limits=[minc,maxc];
-        cbtick=[ceil(min(cbtick)*10^opts.cbDigits),floor(max(cbtick)*10^opts.cbDigits)]/10^opts.cbDigits;
+        cbtick(1)=ceil(min(cbtick)*10^opts.cbDigits)/10^opts.cbDigits;
+        cbtick(end)=floor(max(cbtick)*10^opts.cbDigits)/10^opts.cbDigits;
         hcb(i).Ticks=sort(cbtick);
 %         hcb(i).TickLength=opts.cbdims(2);
     else
@@ -176,9 +184,7 @@ for i=1:nSplit
         end
     end
     
-    axis off
-%     axis tight
-%     axis equal
+    axis(ax(i),'off','tight','equal')
 
     if nSplit>1
         title(snames{i},'FontWeight','normal')
@@ -259,8 +265,12 @@ function hcb=makeCB(ax,rectpos,gap,dims,placement,justify)
             switch justify
                 case 'low'
                     cby=rectpos(2);
+                case 'midlo'
+                    cby=rectpos(2)+(rectpos(4)-cbh)*0.25;
                 case 'mid'
-                    cby=rectpos(2)+(rectpos(4)-cbh)/2;
+                    cby=rectpos(2)+(rectpos(4)-cbh)*0.5;
+                case 'midhi'
+                    cby=rectpos(2)+(rectpos(4)-cbh)*0.75;
                 case 'high'
                     cby=rectpos(2)+rectpos(4)-cbh;
             end
@@ -270,8 +280,12 @@ function hcb=makeCB(ax,rectpos,gap,dims,placement,justify)
             switch justify
                 case 'low'
                     cbx=rectpos(1);
+                case 'midlo'
+                    cbx=rectpos(1)+(rectpos(3)-cbw)*0.25;
                 case 'mid'
-                    cbx=rectpos(1)+(rectpos(3)-cbw)/2;
+                    cbx=rectpos(1)+(rectpos(3)-cbw)*0.5;
+                case 'midhi'
+                    cbx=rectpos(1)+(rectpos(3)-cbw)*0.75;
                 case 'high'
                     cbx=rectpos(1)+rectpos(3)-cbw;
             end
