@@ -1,12 +1,26 @@
-function [ncounts,sfs]=normalizeCounts(counts, scale, max_frac)
+function [ncounts,sfs]=normalizeCounts(counts, options)
 arguments
     counts
-    scale=[]
-    max_frac=[]
+    options.method="libsize"
+    options.scale=[]
+    options.max_frac=[]
 end
 %normalize counts
 
+%TODO: center size factors around 1??
+
+%TODO: other methods???
+% - what if cell borrowed info from k-nn? needs way to get KNN (pca???)
+% -- 1. naive counts_per_cell, naive scale --> sfs0=counts/median(counts)
+%  [knn: sfs0 -> norm, logcounts -> pca -> knn.idx]
+% -- 2. summed counts_per_cell: countsK, summed scale=median(countsK): scaleK --> sfsK=countsK/scaleK 
+% -- 3. sfs --> sfsK*
+
 %TODO: params.method, etc. 
+
+method=options.method;
+scale=options.scale;
+max_frac=options.max_frac;
 
 exclude_hiexp=~isempty(max_frac);
 
