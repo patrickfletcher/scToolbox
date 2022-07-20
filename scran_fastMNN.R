@@ -1,4 +1,5 @@
 # command line script to run Seurat SCTransform normalization + fastMNN
+suppressPackageStartupMessages(library(DropletUtils))
 suppressPackageStartupMessages(library(scran))
 suppressPackageStartupMessages(library(batchelor))
 suppressPackageStartupMessages(library(R.matlab))
@@ -17,8 +18,12 @@ cellsubsetfile <- unlist(mat$cellsubsetfile) #two column file with full list of 
 splits <- unlist(mat$splitby)
 
 normpars=mat$normpars[,,1]
+# print(normpars)
 
 n_hvg = as.numeric(normpars$n.features)
+min.mean = as.numeric(normpars$min.mean)
+do_pooledsizefactors = as.logical(normpars$do.pooledsizefactors)
+do_multibatch = as.logical(normpars$do.multibatch)
 
 mnnpars=mat$mnnpars[,,1]
 # print(mnnpars)
@@ -29,13 +34,18 @@ ndist <- as.numeric(mnnpars$ndist)
 #auto.merge
 
 cellinfo <-read.csv(cellsubsetfile, row.names = 'id', header = T)
+cellinfo <- as(cellinfo, "DataFrame")
 
 # restrict=cellsubset$restrict
 
-data <- Seurat::Read10X_h5(datafile)
-sce <- SingleCellExperiment(assays=list(counts=data), colData=as(cellinfo, "DataFrame"))
+data <- Seurat::Read10X_h5(datafile, use.names = F)
+# data<-read10xCounts(datafile)
+# data <- as.array(counts(data))
+sce <- SingleCellExperiment(assays=list(counts=data))
+colData(sce) <- cellinfo
 sce <- sce[,sce$keep==1]
 
+#figure out the split/merge order
 split1<-sce@colData[,splits[1]]
 
 merge.cats <- unique(split1)
@@ -59,20 +69,51 @@ print(merge.order)
 block=split1
 
 #options? libsize
-clust.pin <- quickCluster(sce, block=block)
-sce <- computeSumFactors(sce, cluster=clust.pin, min.mean=0.1)
-sce <- multiBatchNorm(sce, batch=block)
+# - seems like a different option for partitioning might work... 
+
+if (do_pooledsizefactors==T) {
+  print('computeSumFactors...')
+  start_time = Sys.time()
+  
+  clust.pin <- quickCluster(sce, block=block)
+  sce <- computeSumFactors(sce, cluster=clust.pin, min.mean=min.mean)
+  
+  end_time = Sys.time()
+  print(end_time - start_time)
+}
+
+if (do_multibatch==T) {
+  print('multiBatchNorm...')
+  sce <- multiBatchNorm(sce, batch=block)
+} else
+{
+  print('logNormCounts...')
+  sce <- logNormCounts(sce)
+}
 
 blk <- modelGeneVarByPoisson(sce, block=block)
 # blk <- modelGeneVar(sce, block=block)
 
 chosen.hvgs <- getTopHVGs(blk, n=n_hvg)
 
+print('Performing fastMNN correction...')
+start_time = Sys.time()
+
 fp <-FastMnnParam(k=k, d=d, ndist=ndist, merge.order=merge.order)
 sce.mnn <- correctExperiments(sce,
                               batch = block,
                               subset.row=chosen.hvgs,
                               PARAM = fp)
+end_time = Sys.time()
+print(end_time - start_time)
 
 mnn <- reducedDim(sce.mnn, "corrected")
-writeMat(resultsmatfile, mnn=mnn, hvgs=chosen.hvgs, sizefactors=sizeFactors(sce))
+rot <- as.matrix(rowData(sce.mnn))
+
+print('Writing results to MAT file...')
+start_time = Sys.time()
+
+writeMat(resultsmatfile, mnn=mnn, hvgs=chosen.hvgs, rot=rot, sizefactors=sizeFactors(sce))
+
+end_time = Sys.time()
+print(end_time - start_time)

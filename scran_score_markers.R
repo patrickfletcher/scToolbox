@@ -25,61 +25,140 @@ mat <- readMat(parsmatfile)
 # print(mat)
 
 datafile <- unlist(mat$datafile) #full path to h5 file
-cellinfofile <- unlist(mat$cellinfofile)
+cellsubsetfile <- unlist(mat$cellsubsetfile)
 
 groupvar <- unlist(mat$groupvar)
 
-blockvar <- NULL
-par <- unlist(mat$blockvar)
+batchvar <- NULL
+par <- unlist(mat$batchvar)
 if (par!="NULL") {
-  blockvar<-par
+  batchvar<-par
 }
+print(batchvar)
+
+
+normpars=mat$normpars[,,1]
+# print(normpars)
+
+min.mean = as.numeric(normpars$min.mean)
+do_pooledsizefactors = as.logical(normpars$do.pooledsizefactors)
+do_multibatch_norm = as.logical(normpars$do.multibatch.norm)
+
+
+scorepars=mat$scorepars[,,1]
+nPairGroups = as.numeric(scorepars$nPairGroups)
+
+# print(scorepars)
 
 pairings <- NULL
-par <- unlist(intpars$pairings)
-if (par!="NULL") {
+par <- unlist(scorepars$pairings)
+if (length(par)>1 || (length(par)==1 & par!="NULL")) {
   pairings<-par
 }
 
-lfc <- as.numeric(mat$lfc)
-row.data = NULL
-full.stats = FALSE
-subset.row = NULL
+par2 <- unlist(scorepars$pairings2)
+if (length(par2)>1|| (length(par2)==1 & par2!="NULL")) {
+  pairings=list(pairings,par2)
+}
+
+
+print(pairings)
+
+lfc <- as.numeric(scorepars$lfc)
+full.stats = as.logical(scorepars$full.stats)
+min.cells = as.numeric(scorepars$min.cells)
 
 normpars=mat$normpars[,,1]
 
+cellinfo <-read.csv(cellsubsetfile, row.names = 'id', header = T)
+cellinfo <- as(cellinfo, "DataFrame")
+# print(head(cellinfo))
 
-#testing: hard paths
-datafile <- "D:/scRNAseq/human/h5/Aggr_all.h5"
-# cellinfofile <- "C:/Users/fletcherpa/Box/scRNAseq/human_adenoma/matlab/tmp_sct_cellsub.csv"
-cellinfofile <- "C:/Users/fletcherpa/Box/scRNAseq/human_adenoma/matlab/integrated_6P/p1p2p3_cellinfo_042021.csv"
-
-cellinfo <-read.csv(cellinfofile, header = T)
-
-keep <- cellinfo$cleaned_SL_AmbUnc
-cellinfo$keep=keep
-groupvar <- "type_cleaned_SL_AmbUnc"
-blockvar <- "patient"
-lfc <- 1.5
-
+#TODO: is the gene info same as matlab????
 
 data <- Seurat::Read10X_h5(datafile)
-sce <- SingleCellExperiment(assays=list(counts=data), colData=as(cellinfo, "DataFrame"))
+# data<-read10xCounts(datafile)
+# data <- as.array(counts(data))
+sce <- SingleCellExperiment(assays=list(counts=data))
+colData(sce) <- cellinfo
 sce <- sce[,sce$keep==1]
 
+# print(head(colData(sce)))
+
 groups <- sce@colData[,groupvar]
-block<-sce@colData[,blockvar]
 
-#options? libsize
-clust <- quickCluster(sce, block=block)
-sce <- computeSumFactors(sce, cluster=clust, min.mean=0.1)
-sce <- multiBatchNorm(sce, batch=block)
+block<-NULL
+if (!is.null(batchvar)) {
+  block<-sce@colData[,batchvar]
+}
 
-scores <- scoreMarkers(sce, groups, block, pairings, lfc, full.stats=T)
+print(block)
 
-# how to get table into matlab? 
-# - extract data as matrices, column names, row names. 
-# - reconstruct on the matlab side...
+if (do_pooledsizefactors==T) {
+  print('computeSumFactors...')
+  clust.pin <- quickCluster(sce, block=block)
+  sce <- computeSumFactors(sce, cluster=clust.pin, min.mean=min.mean)
+}
+
+if (do_multibatch_norm==T) {
+  print('multiBatchNorm...')
+  sce <- multiBatchNorm(sce, batch=block)
+} else
+{
+  print('logNormCounts...')
+  sce <- logNormCounts(sce)
+}
 
 
-# writeMat()
+subset.row=rowSums(counts(sce))>=min.cells
+
+# print(head(groups))
+# print(head(block))
+# print(lfc)
+# print(full.stats)
+# print(head(subset.row))
+print(sum(subset.row==T))
+
+scores <- scoreMarkers(sce, groups=groups, block=block, pairings=pairings, 
+                       lfc=lfc, full.stats=full.stats, subset.row=subset.row)
+
+# how to get table into matlab?
+# Without full.stats:
+# - simple list --> struct with cell type names, but missing column/row names
+# - also pass those.
+# Full stats needs extra. 
+# - each list element has sub-dataframes...
+
+#this handles all cases. Flattens the sub-dataframes into one big one.
+# -- except writeMat gets stuck trying to write it...
+
+ids=groups
+if (!is.null(block)) {
+  ids=DataFrame(group=groups,block=block)
+}
+
+summaries  <- summarizeAssayByGroup(logcounts(sce),
+                                    ids, 
+                                    statistics=c("mean", "prop.detected"),
+                                    subset.row=subset.row)
+colnames(summaries)
+
+averages <- assay(summaries, "mean")
+props <- assay(summaries, "prop.detected")
+if (!is.null(batchvar)) {
+averages <- correctGroupSummary(averages, group=summaries$group, block=summaries$block)
+props <- correctGroupSummary(props, group=summaries$group, block=summaries$block, transform="logit")
+}
+
+S=lapply(scores, FUN=function(x) as.data.frame(x))
+
+S$groupnames=c(names(scores))
+S$genenames=row.names(scores[[1]])
+S$averages= as.data.frame(averages)
+S$props= as.data.frame(props)
+
+library(rmatio)
+write.mat(S, resultfile)
+
+# writeMat(resultfile, )
+# writeMat(resultfile, scores=S, groupnames=groupnames, genenames=genenames)

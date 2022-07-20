@@ -1,18 +1,15 @@
-function result = scran_fastMNN(datafile, cellsub, splitby, normpars, mnnpars, options)
+function result = scran_hvgs(datafile, cellsub, genes, batch, normpars, hvgpars, options)
 arguments
     datafile
     cellsub
-    splitby {string,char,cellstr}
-    normpars.n_features=3000
+    genes
+    batch {string,char,cellstr}
     normpars.do_multibatch=true
     normpars.do_pooledsizefactors=true
     normpars.min_mean=0.1
-    mnnpars.k=20
-    mnnpars.d=50
-    mnnpars.ndist=3
-    mnnpars.merge_order=[]
-    options.parfile="D:\tmp\tmp_scran_fastMNN_pars.mat"
-    options.resultfile="D:\tmp\tmp_scran_fastMNN_results.mat"
+    hvgpars.n_features=3000
+    options.parfile="D:\tmp\tmp_scran_hvg_pars.mat"
+    options.resultfile="D:\tmp\tmp_scran_hvg_results.mat"
     options.verbose=false
 end
 % TODO - complete api:
@@ -24,9 +21,9 @@ if options.verbose
     disp("Running " + mfilename + "...")
 end
 
-result.method="scran_fastMNN";
+result.method="scran_hvgs";
 result.normpars=normpars;
-result.mnnpars=mnnpars;
+result.hvgpars=hvgpars;
 
 datafile=cellstr(datafile);
 
@@ -34,14 +31,9 @@ cellsubsetfile='D:\tmp\tmp_cellsub.csv';
 writetable(cellsub,cellsubsetfile)
 cellsubsetfile=cellstr(cellsubsetfile);
 
-splitby=cellstr(splitby);
-% mnnpars.merge_order
-if isempty(mnnpars.merge_order)
-%     mnnpars.merge_order=1:length(unique(cellsub.(string(splitby))));
-%     mnnpars.merge_order=cellstr(unique(cellsub.(string(splitby))));
-end
+batch=cellstr(batch);
 
-save(options.parfile,"datafile","cellsubsetfile","splitby","normpars","mnnpars")
+save(options.parfile,"datafile","cellsubsetfile","batch","normpars","hvgpars")
 
 tmpresultfile=options.resultfile+".tmp";
 if exist(tmpresultfile,"file")
@@ -66,7 +58,6 @@ disp(mfilename+": ")
 toc
 
 R_result=load(options.resultfile);
-result.coords=R_result.mnn;
-result.coeff=R_result.rot;
-result.hvgs=R_result.hvgs;
+result.name=R_result.hvgs;
+result.ix = getGeneIndices(R_result.hvgs, genes.name);
 result.sizefactors=R_result.sizefactors;
