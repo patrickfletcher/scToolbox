@@ -1,4 +1,4 @@
-classdef SCDataset < handle & matlab.mixin.Copyable
+classdef ScDataset < handle & matlab.mixin.Copyable
     % container class for scRNAseq data
     
     %goals:
@@ -8,10 +8,8 @@ classdef SCDataset < handle & matlab.mixin.Copyable
     
     %ultimately put analysis/plotting functions here too:
     % - simplifies API by not requiring all the data as function args.
-    
-    %idea: save one of these per cell group of interest (raw, cleaned, ...)
-    
-    %cell/gene data: struct vs map??
+        
+    %cell/gene data: struct vs map?? Map is like named list. 
     % struct: scd.dimred.my_dr_name.x -> check fieldnames(scd.dimred)
     % map: scd.dimred("my_dr_name").x -> check keys(scd.dimred)
     
@@ -26,36 +24,29 @@ classdef SCDataset < handle & matlab.mixin.Copyable
         symbol_db
         
         %indices into original counts matrix (for loadCounts)
-        cellsub_full
-        genesub_full
-        
-        %map rows=genes, cols=cells: can be a table: array2table(X,'rownames',genes)
+        orig_cellsub
+        orig_genesub
+
+        %map rows=genes, cols=cells: can be a table - array2table(X,'rownames',genes)
         counts
         ncounts
         tcounts
         
-        %make vars unique: genename->geneid map???
+        %original items from countsfile
         geneid
         genename
         cellid
         
-        params %for basics or all items? defaults set via method here?
-        
         %cell data (sync on cell subsetting)
         % metadata table - can add variables to tables at will
-        % reductions: map - scd.dimred('umap').coords  (pca, umap, etc)
-        % clusterings: map - scd.clust('leiden').clusterID
+        % reductions: map - scd.dimred("umap").coords  (pca, umap, etc)
+        % clusterings: map - eg, scd.clust("leiden_r1.0").clusterID
         cells=table
         neighbors
         dimred
         clust
         
         idents %the default cell-grouping variable
-        
-        %defines marker based classification tree datastruct + methods
-        % - classification generates cell-wise or group-wise data
-        % support multiple? if so: map
-        ct
         
         %gene-wise data (sync on gene subsetting)
         % metadata and computed items
@@ -64,7 +55,7 @@ classdef SCDataset < handle & matlab.mixin.Copyable
         genes=table
         ges
         hvg
-        
+
         %arbitrary data: map - scd.misc('qcData')
         misc
         
@@ -81,7 +72,7 @@ classdef SCDataset < handle & matlab.mixin.Copyable
     methods
         
         %Constructor
-        function this=SCDataset(countsfile, organism, doSparse, isPreV3)
+        function this=ScDataset(countsfile, organism, doSparse, isPreV3)
             arguments
                 countsfile
                 organism
@@ -107,8 +98,8 @@ classdef SCDataset < handle & matlab.mixin.Copyable
             this.isPreV3 = isPreV3;
             this.loadCounts(countsfile)
             
-            this.cellsub_full=true(1,size(this.counts,2));
-            this.genesub_full=true(size(this.counts,1),1);
+            this.orig_cellsub=true(1,size(this.counts,2));
+            this.orig_genesub=true(size(this.counts,1),1);
 %             this.dimred=containers.Map();
 %             this.clust=containers.Map();
 %             this.ges=containers.Map();
@@ -143,19 +134,19 @@ classdef SCDataset < handle & matlab.mixin.Copyable
             this.countsfile = countsfile;
             [C,gene_name,barcode,gene_id]=load10Xh5matrix(countsfile,doSparse,isPreV3);
             
-            if ~isempty(this.cellsub_full)
-                C=C(:,this.cellsub_full);
-                barcode=barcode(this.cellsub_full);
+            if ~isempty(this.orig_cellsub)
+                C=C(:,this.orig_cellsub);
+                barcode=barcode(this.orig_cellsub);
             end
             N=normalizeCounts(C); %TODO: if new normalization methods are supported, will need params here
             T=log1p(N); 
             %normalization by total counts happens before subsetting genes... or can I do it after?
-            if ~isempty(this.genesub_full)
-                C=C(this.genesub_full,:);
-                N=N(this.genesub_full,:);
-                T=T(this.genesub_full,:);
-                gene_name=gene_name(this.genesub_full);
-                gene_id=gene_id(this.genesub_full);
+            if ~isempty(this.orig_genesub)
+                C=C(this.orig_genesub,:);
+                N=N(this.orig_genesub,:);
+                T=T(this.orig_genesub,:);
+                gene_name=gene_name(this.orig_genesub);
+                gene_id=gene_id(this.orig_genesub);
             end
             this.counts = C;
             this.ncounts = N;
@@ -242,7 +233,7 @@ classdef SCDataset < handle & matlab.mixin.Copyable
     % - cell/gene subsetting and indexing
     % for now simpler wrappers for:
     % - QC stuff (
-    % - dimred stuff (findVarGenes, doPCA, SCTransform_PCA, neighbors, UMAP, clustering)
+    % - dimred stuff (findVarGenes, doPCA, sctransform_pca, neighbors, UMAP, clustering)
     % - group expression summary, DEGs
     methods
         
@@ -251,6 +242,8 @@ classdef SCDataset < handle & matlab.mixin.Copyable
             
         end
         
+        %fetch data -> look in gene names OR cell table var names...
+
         % filter cells/genes. applies selection to all relevant properties
         function this=subset(this, cellsub, genesub)
             arguments
@@ -283,11 +276,11 @@ classdef SCDataset < handle & matlab.mixin.Copyable
             end
             
             % args are index into current counts. also update global subs
-            cellsub_full_ix = find(this.cellsub_full);
-            this.cellsub_full(cellsub_full_ix(~cellsub))=false;
+            cellsub_full_ix = find(this.orig_cellsub);
+            this.orig_cellsub(cellsub_full_ix(~cellsub))=false;
             
-            genesub_full_ix = find(this.genesub_full);
-            this.genesub_full(genesub_full_ix(~genesub))=false;
+            genesub_full_ix = find(this.orig_genesub);
+            this.orig_genesub(genesub_full_ix(~genesub))=false;
         end
         
         
