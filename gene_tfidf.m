@@ -89,10 +89,12 @@ for i=1:nGroups
 
     res(res.in_freq<options.min_in_freq,:)=[];
     res(res.out_freq>options.max_out_freq,:)=[];
-    
-    res=sortrows(res,options.sortby,options.sortdir);
 
+    res=sortrows(res,'tfidf','descend');
+    
     res=res(1:min(options.N,height(res)),:);
+
+    res=sortrows(res,options.sortby,options.sortdir);
 
     result.(groupNames{i})=res;
 

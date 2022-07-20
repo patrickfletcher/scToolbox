@@ -10,7 +10,7 @@ arguments
     optin.genes=[]
     optin.clusterID=[]
 
-    params.pK=[0.0005,0.001,0.003,0.005, 0.01, 0.03, 0.1]
+    params.nK=round(logspace(log10(3),log10(sqrt(nnz(cg.subset))),10));
     params.pN=0.15:0.05:0.3
     params.rngSeed=42
     params.pExp=0.075 %how many doublets to remove - reduce to account for homotypic
@@ -28,9 +28,6 @@ arguments
     params.do_p_correction=true
     params.pthr=0.05
 
-    params.n_reps=1
-    params.vote_thr=0 %call doublets present in this fraction of reps
-
     hvgpars.nHVG=5000
 
     pcapars.npc=50
@@ -42,6 +39,8 @@ arguments
     umappars.n_epochs = 0
     umappars.n_components=2
 
+    options.top_k = 1
+    options.store_all=false
     options.figID=[]
 end
 % inspired by Shor's Doublet detection (python3):
@@ -63,7 +62,7 @@ rng(params.rngSeed,'simdTwister') %for speedup?
 [nGenes,nCells]=size(rawcounts);
 nExp=round(params.pExp*nCells);
 
-PK=params.pK;
+NK=params.nK;
 PN=params.pN;
 
 %initialize results
@@ -106,11 +105,11 @@ pca_score = pca.coords;
 % - BCmvn=mean(BC)/var(BC), mean&var across BR.
 % - find peak BCmvn (save this curve, for verfication)
 % -- also save the hygecdf vals...
-doublet_scores=zeros(length(PK), nCells, length(PN));
-p_hyge=ones(length(PK), nCells, length(PN));
-doublets = false(length(PK), nCells, length(PN));
+doublet_scores=zeros(length(NK), nCells, length(PN));
+p_hyge=ones(length(NK), nCells, length(PN));
+doublets = false(length(NK), nCells, length(PN));
 % doublets_hyge = false(length(PK), nCells, length(PN));
-BC=zeros(length(PN),length(PK));
+BC=zeros(length(PN),length(NK));
 
 % tick=round(params.nReps/10); %progress meter
 % t0=tic;
@@ -135,7 +134,7 @@ for i=1:length(PN)
     pca_score = pca.coords;
     pca_score(nCells+nSynth, pca.npc)=0; 
 
-    for j=1:length(PK)
+    for j=1:length(NK)
 
         rawcounts_synth=createSyntheticDoublets(rawcounts,nSynth,params, optin.clusterID);
     
@@ -165,7 +164,8 @@ for i=1:length(PN)
                 
         %get the kNN of each cell, compute fraction of synth doublets in
         %this neighborhood.
-        K = round(PK(j)*nCells);
+%         K = round(PK(j)*nCells);
+        K = NK(j);
         [nnix, nndists]=knnsearch(pca_score, pca_score,K=K+1,Distance=params.nn_metric); 
         nnix(:,1)=[]; nndists(:,1)=[]; 
 
@@ -204,28 +204,40 @@ if length(PN)==1
     varBC=ones(size(meanBC));
 end
 BCmvn = meanBC./varBC;
-[topBCmvn, topBCKix]=max(BCmvn);
+[topBCmvn, topBCKix]=maxk(BCmvn, options.top_k);
+
 %use the top K selection to choose the top N
-[topBC, topBCNix]=max(BC(:,topBCKix));
+for i=1:options.top_k
+    [b, ix]=max(BC(:,topBCKix(i)));
+    topBC(i)=b;
+    topBCNix(i)=ix;
+end
+%alt: could do "voting" on the results from best NK. eg. keep any cell
+%called as doublet across those reps (makes sense if same PN used for
+%several reps)
+% usedoublets=sum(doublets(topBCKix,:,:),3)/length(PN)>=votethr;
 
 usedoublets=squeeze(doublets(topBCKix,:,topBCNix));
 usescores=squeeze(doublet_scores(topBCKix,:,topBCNix));
 usep=squeeze(p_hyge(topBCKix,:,topBCNix));
 
-result.bestPK=PK(topBCKix);
+result.bestNK=NK(topBCKix);
 result.bestPN=PN(topBCNix);
 result.doublets=usedoublets;
 result.doublet_scores=usescores;
 result.p_hyge=usep;
 
-%for detailed investigation:
-result.all_scores=doublet_scores;
-result.all_p_hyge=p_hyge;
-result.all_doublets=doublets;
 result.BC=BC;
 result.BCmvn=BCmvn;
 result.topBCmvn=topBCmvn;
 result.topBC=topBC;
+
+%for detailed investigation:
+if options.store_all
+result.all_scores=doublet_scores;
+result.all_p_hyge=p_hyge;
+result.all_doublets=doublets;
+end
 
 % rep_counts=sum(rep_doublet,2);
 % 
@@ -257,7 +269,7 @@ if ~isempty(options.figID)
 
     %could just do a new sim at the best K/N combo...
 
-    knn.indices=nnix; knn.dists=nndists;
+    knn.idx=nnix; knn.dists=nndists;
     umappars.metric = params.nn_metric;
     umapargs=namedargs2cell(umappars);
     umap=doUMAP(pca_score, knn, umapargs{:});

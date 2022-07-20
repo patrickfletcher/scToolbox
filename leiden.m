@@ -14,7 +14,7 @@ end
 % tic
 result = params;
 
-disp('Performing Leidenalg (python) clustering...')
+disp('Performing Leidenalg clustering...')
 
 %add path to python script if needed...
 Pypath = py.sys.path;
@@ -26,6 +26,10 @@ end
 
 %X should contain the graph from umap... need to convert to a csr matrix
 %can't pass sparse to python
+
+if contains(class(X),"graph")
+    X=adjacency(X);
+end
 
 N=size(X,1);
 [sources,targets,weights]=find(X);

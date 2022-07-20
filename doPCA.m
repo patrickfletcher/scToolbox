@@ -1,7 +1,8 @@
-function result = doPCA(tcounts, genes, params, options)
+function result = doPCA(tcounts, genes, batch, params, options)
 arguments
     tcounts
     genes
+    batch=[]
     params.hvgix=[]
     params.scale_method='zscore'
     params.maxScaled=10
@@ -12,6 +13,12 @@ arguments
     options.figID=[]
     options.pcix=[]
 end
+
+%TODO: multibatch PCA - batchelor.  Seems like just a specific choice of
+%centering/scaling??  
+% - center gene expression using grand mean of batch means
+% - scale using weigths
+% - project centered back onto PC space computed from scaled..
 
 %TODO: investigate 1) pre-scale/center data, 2) post normalize PCs
 
@@ -94,7 +101,7 @@ switch params.scale_method
         
     case 'center'
         % --> PCA on covariance matrix
-        scale_args = mean(x,2);
+        scale_args = mean(X,2);
         scale_fun = @(x, mu) x-mu;
         
 end

@@ -1,145 +1,195 @@
-function result=findVariableGenes(ncounts,genes,options,plotopts)
+function result=findVariableGenes(ncounts, genes, block, params, options)
 arguments
     ncounts
     genes
-    
-    options.normMethod='medmad'
-    options.nBins=25
-    options.minExpr=eps
-    options.minCells=10
-    options.selectMethod='number'
-    options.nHVG=3000
-    options.dispThr=1.3
+    block = []
+    params.nBins=25
+    params.minExpr=1e-6
+    params.minCells=1
+    params.center="median"
+    params.scale="mad1"
+    params.selectMethod='number'
+    params.nHVG=3000
+    params.dispThr=1.3
 
-    plotopts.figID=[]
-    plotopts.highlightGenes=[]
-    plotopts.show_normDisp=0
+    params.combine_val="disp"
+    params.combine_method='mean'
+    params.equiweight=true
+
+    params.factor_mad0=1.2533;
+    params.factor_mad1=1.4826;
+
+    options.all_stats=false
+    options.figID=[]
+    options.highlightGenes=[]
+    options.show_normDisp=0
 end
 %operates on normalized counts, which maintains mean-variance relations (negative binomial)
 
-%TODO: add per-batch capability
+%factors to approximate units of stdev (https://www.ibm.com/docs/en/cognos-analytics/11.1.0?topic=terms-modified-z-score)
 
-result = options;
+%TODO: clean up 
+% - options.center, options.scale
+% - splitapply on bins?
+
+%TODO: add blocking capability
+% - combineVar (scran) averages the statistics across batches:
+% --> measure normdisp for each batch, then average, then rank.
 
 %plotting
 %TODO: tooltips for gene-name
 %TODO: switch for plot disp or norm disp
 
-%normalized dispersion:
-cellsExpr=sum(ncounts>0,2);
-% fracExpr=cellsExpr/size(ncounts,2);
-meanExpr=mean(ncounts,2,'omitnan');
-% stdExpr=std(ncounts,[],2,'omitnan');
-% varExpr=stdExpr.^2;
-varExpr=var(ncounts,[],2,'omitnan');
-% dispersion=sqrt(stdExpr);
-% dispersion=stdExpr;
-% dispersion=varExpr;
-% dispersion=varExpr./meanExpr;
-% dispersion=(varExpr-meanExpr)./meanExpr;
-dispersion=(varExpr-meanExpr)./meanExpr.^2; %negative if mean>var
+disp('Identifying highly variable genes...')
+tic
 
-clear ncounts
+result = params;
 
-quantiles=prctile(meanExpr,0:100/(options.nBins):100);
-quantiles(end+1)=max(meanExpr);
-quantiles = unique(quantiles);
-options.nBins=length(quantiles);
+if isempty(block)
+    block=ones(1,size(ncounts,2));
+end
+if ~iscategorical(block)
+    block=categorical(block);
+end
+blocks=categories(block);
+n_blocks=length(blocks);
 
-if options.nBins<2
-    normdispersion=dispersion;
+keeps=false(size(ncounts,1),n_blocks);
+ncells=zeros(size(ncounts,1),n_blocks);
+expr=zeros(size(ncounts,1),n_blocks);
+vars=zeros(size(ncounts,1),n_blocks);
+disp0=zeros(size(ncounts,1),n_blocks);
+dispZ=zeros(size(ncounts,1),n_blocks);
+dispZrank=zeros(size(ncounts,1),n_blocks);
+for j=1:n_blocks
     
-else
+    this_block=block==blocks{j};
+    N=ncounts(:,this_block);
+    cellsExpr=sum(N>0,2);
+    meanExpr=mean(N,2,'omitnan');
+    varExpr=var(N,[],2,'omitnan');
+    dispersion=(varExpr-meanExpr)./meanExpr.^2; %negative if mean>var
     
-    Y=discretize(meanExpr,quantiles);
+    keep=meanExpr>params.minExpr & cellsExpr>params.minCells;
     
-    means=zeros(options.nBins,1); %mean
-    stds=zeros(options.nBins,1); %standard deviation
-    meds=zeros(options.nBins,1); %median
-    mads=zeros(options.nBins,1); %median absolute deviation
-    % highDispIx=[];
-    normdispersion=zeros(options.nBins,1);
-    for i=1:options.nBins
-        thisIx=find(Y==i);
-        thisDisp=dispersion(Y==i);
-        
-        if nnz(thisIx)>0
-            
-            switch options.normMethod
-                case 'zscore'
-                    %Macoscko 2015
-                    means(i)=mean(thisDisp);
-                    if nnz(thisIx)>1 %to be able to compute variance
-                        stds(i)=std(thisDisp);
-                    else
-                        stds(i)=1; %is this correct? makes the normDisp=0
-                    end
-                    thisDispZ=(thisDisp-means(i))./stds(i);
-                
-                case 'meanmad'
-                    %mean + mean absolute deviation
-                    meds(i)=mean(thisDisp);
-                    if nnz(thisIx)>1 %to be able to compute variance
-                        mads(i)=mad(thisDisp,0); %median absolute deviation
-                    else
-                        mads(i)=1;
-                    end
-%                     if mads(i)==0
-% %                         factor=1.25; 
-% %                         mads(i)=mad(thisDisp); %mean absolute deviation
-%                         stds(i)=std(thisDisp);
-%                     end
-                    thisDispZ=(thisDisp-meds(i))./mads(i);
-                    
-                case 'medmad'
-                    %Zheng2017 (10X)
-                    meds(i)=median(thisDisp);
-                    if nnz(thisIx)>1 %to be able to compute variance
-                        mads(i)=mad(thisDisp,1); %median absolute deviation
-                    else
-                        mads(i)=1;
-                    end
-                    factor=1;
-%                     factor=1.49; %to approximate units of stdev (https://www.ibm.com/support/knowledgecenter/en/SS4QC9/com.ibm.solutions.wa_an_overview.2.0.0.doc/modified_z.html)
-                    if mads(i)==0
-%                         factor=1.25; 
-                        mads(i)=mad(thisDisp); %mean absolute deviation
-%                         mads(i)=std(thisDisp);
-                    end
-                    thisDispZ=(thisDisp-meds(i))./(mads(i)*factor);
+    ptiles=prctile(meanExpr(keep),0:100/(params.nBins-1):100);
+    ptiles(end+1)=min(meanExpr);
+    ptiles(end+1)=max(meanExpr);
+    ptiles = sort(unique(ptiles));
+    params.nBins=length(ptiles);
+    
+    Y=discretize(meanExpr,ptiles);
+    
+    centers=zeros(params.nBins,1);
+    scales=zeros(params.nBins,1); 
+    normdispersion=zeros(size(dispersion));
+    for i=1:params.nBins
+%         this_bin=Y==i;
+        this_bin= Y==i & keep; %can i exclude non-keep genes this way?
+        this_gix=find(this_bin);
+        thisDisp=dispersion(this_bin);
+        if nnz(this_gix)>0
+            switch params.center
+                case 'mean'
+                    centers(i)=mean(thisDisp);
+                case 'median'
+                    centers(i)=median(thisDisp);
             end
-            
-            normdispersion(thisIx)=thisDispZ(:);
+            switch params.scale
+                case 'std'
+                    scales(i)=std(thisDisp);
+                    factor=1;
+                case 'mad0'
+                    scales(i)=mad(thisDisp,0);
+                    factor=params.factor_mad0;
+                    if scales(i)==0 %try falling back to std
+                        scales(i)=std(thisDisp);
+                        factor=1;
+                    end
+                case 'mad1'
+                    scales(i)=mad(thisDisp,1);
+                    factor=params.factor_mad1;
+                    if scales(i)==0 %try falling back to meanAD, std
+                        scales(i)=mad(thisDisp,0);
+                        factor=params.factor_mad0;
+                        if scales(i)==0
+                            scales(i)=std(thisDisp);
+                            factor=1;
+                        end
+                    end
+            end
+    
+            if nnz(this_gix)==1
+                scales(i)=1; %is this correct?
+            end
+            thisDispZ=(thisDisp-centers(i))./(scales(i)*factor);
+            normdispersion(this_gix)=thisDispZ(:);
         end
     end
-    
+
+    %remove genes below minExpr/minCells from consideration:
+%     normdispersion(~keep)=nan; %is this the best way?? 
+%     normdispersion(~keep)=min(normdispersion(keep));% alt: minimum observed...
+
+    %remove negative dispersion genes?
+    % normdispersion(normdispersion<0)=nan;
+    % normdispersion(dispersion<0)=nan;
+
+    keeps(:,j)=keep;
+    ncells(:,j)=cellsExpr;
+    expr(:,j)=meanExpr;
+    vars(:,j)=varExpr;
+    disp0(:,j)=dispersion;
+    dispZ(:,j)=normdispersion;
+    [~,ixs]=sort(normdispersion,'descend','MissingPlacement','last');
+    dispZrank(:,j)=ixs;
 end
 
-rawnormdisp = normdispersion;
+keep_all = all(keeps,2);
+switch params.combine_val
+    case "disp"
+        comb_val = dispZ;
+        sortdir='descend';
+    case "rank"
+        comb_val = dispZrank;
+        sortdir='ascend';
+end
 
-%remove genes below params.minExpr from consideration:
-normdispersion(meanExpr<options.minExpr)=nan;
-normdispersion(cellsExpr<options.minCells)=nan;
+comb_val(~keep_all,:)=nan;
+switch params.combine_method
+    case 'mean'
+        comb_val = mean(comb_val,2); %grand mean across blocks ,'omitnan'
+    case 'median'
+        comb_val = median(comb_val,2); 
+    case 'min'
+        comb_val = min(comb_val,[],2); 
+    case 'max'
+        comb_val = max(comb_val,[],2);
+end
 
-%remove negative dispersion genes?
-% normdispersion(normdispersion<0)=nan;
-% normdispersion(dispersion<0)=nan;
-% normdispersion(varExpr<meanExpr)=nan;
-
-[sortedNormDisp,ixs]=sort(normdispersion,'descend','MissingPlacement','last');
+[sorted_comb_val,ixs]=sort(comb_val,sortdir,'MissingPlacement',"last");
         
-switch options.selectMethod
+switch params.selectMethod
     case 'number'
-        hvgix=ixs(1:options.nHVG);
+        N=min(params.nHVG,nnz(keep_all));
+        if N<params.nHVG, warning('Used fewer than requested nHVG'); end
+        hvgix=ixs(1:N);
         result=rmfield(result,'dispThr');
         
     case 'threshold'
-        hvgix=ixs(sortedNormDisp>options.dispThr);
+        hvgix=ixs(sorted_comb_val>params.dispThr);
         result.nHVG=length(hvgix);
 
     case 'allValid'
-        hvgix=ixs(~isnan(sortedNormDisp));
+        hvgix=ixs(~isnan(sorted_comb_val));
         result.nHVG=length(hvgix);
+        result=rmfield(result,'dispThr');
+
+%     case 'minrank'
+%         validrank=all(dispZrank<params.nHVG,2);
+%         hvgix=ixs(validrank);
+%         result.nHVG=length(hvgix);
+%         result=rmfield(result,'dispThr');
         
     otherwise
         error('Unknown option')
@@ -150,12 +200,27 @@ result.ix=hvgix;
 result.name=genes.name(hvgix);
 % result.gene_id=genes.id(hvgix);
 
-ishvg=false(size(meanExpr));
-ishvg(hvgix)=true;
+result.comb_val=comb_val;
+result.sorted_comb_val=sorted_comb_val;
 
+if options.all_stats
+    result.stats.keep=keeps;
+    result.stats.ncells=ncells;
+    result.stats.mean=expr;
+    result.stats.var=vars;
+    result.stats.dispersion=disp0;
+    result.stats.norm_disp=dispZ;
+    result.stats.norm_disp_combined=sorted_comb_val;
+    result.stats.rank=dispZrank;
+end
 
-if ~isempty(plotopts.figID)
-    figure(plotopts.figID);clf
+disp(mfilename + " time: " + string(toc) +"s")
+
+if ~isempty(options.figID)
+
+rawnormdisp = dispZ;
+
+    figure(options.figID);clf
     
 %     y=dispersion; ylab = 'dispersion';
     y=rawnormdisp; ylab = 'norm dispersion';
@@ -171,13 +236,13 @@ if ~isempty(plotopts.figID)
     
     redix=find(highdisp&nonnegative);
     
-    if ~isempty(plotopts.highlightGenes)
+    if ~isempty(options.highlightGenes)
         highlightIx=[];
-        if isnumeric(plotopts.highlightGenes) && isscalar(plotopts.highlightGenes)
-            highlightIx = hvgix(1:plotopts.highlightGenes);
-            plotopts.highlightGenes = genes.name(highlightIx);
-        elseif isstring(plotopts.highlightGenes) || iscellstr(plotopts.highlightGenes)
-            highlightIx=getGeneIndices(plotopts.highlightGenes,genes.name);
+        if isnumeric(options.highlightGenes) && isscalar(options.highlightGenes)
+            highlightIx = hvgix(1:options.highlightGenes);
+            options.highlightGenes = genes.name(highlightIx);
+        elseif isstring(options.highlightGenes) || iscellstr(options.highlightGenes)
+            highlightIx=getGeneIndices(options.highlightGenes,genes.name);
         end
         ishv=ismember(highlightIx,redix);
         ishvix=highlightIx(ishv);
@@ -193,12 +258,12 @@ if ~isempty(plotopts.figID)
     plot(meanExpr(highdisp&nonnegative),y(highdisp&nonnegative),'r.');
     
     
-    if ~isempty(plotopts.highlightGenes)
+    if ~isempty(options.highlightGenes)
         line(meanExpr(ishvix),y(ishvix),'color',[.5,0,0],'marker','.','markersize',10,'linestyle','none');
-        text(meanExpr(ishvix),y(ishvix)+0.03,plotopts.highlightGenes(ishv),'color',[.5,0,0]);
+        text(meanExpr(ishvix),y(ishvix)+0.03,options.highlightGenes(ishv),'color',[.5,0,0]);
         
         line(meanExpr(isnothvix),y(isnothvix),'color',[.5,.5,.5],'marker','.','markersize',10,'linestyle','none');
-        text(meanExpr(isnothvix),y(isnothvix)+0.03,plotopts.highlightGenes(isnothv),'color',[.5,.5,.5]);
+        text(meanExpr(isnothvix),y(isnothvix)+0.03,options.highlightGenes(isnothv),'color',[.5,.5,.5]);
     end
     
     xlabel('mean expression')
@@ -211,12 +276,12 @@ if ~isempty(plotopts.figID)
     hold on
     plot(cellsExpr(highdisp&nonnegative),y(highdisp&nonnegative),'r.');
     
-    if ~isempty(plotopts.highlightGenes)
+    if ~isempty(options.highlightGenes)
         line(cellsExpr(ishvix),y(ishvix),'color',[.5,0,0],'marker','.','markersize',10,'linestyle','none');
-        text(cellsExpr(ishvix),y(ishvix)+0.03,plotopts.highlightGenes(ishv),'color',[.5,0,0]);
+        text(cellsExpr(ishvix),y(ishvix)+0.03,options.highlightGenes(ishv),'color',[.5,0,0]);
         
         line(cellsExpr(isnothvix),y(isnothvix),'color',[.5,.5,.5],'marker','.','markersize',10,'linestyle','none');
-        text(cellsExpr(isnothvix),y(isnothvix)+0.03,plotopts.highlightGenes(isnothv),'color',[.5,.5,.5]);
+        text(cellsExpr(isnothvix),y(isnothvix)+0.03,options.highlightGenes(isnothv),'color',[.5,.5,.5]);
     end
     
     xlabel('cells expressing')

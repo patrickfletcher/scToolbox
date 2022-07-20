@@ -5,7 +5,8 @@ arguments
     domainsize
     options.min_K=0
     options.str_intersections=false
-    options.sortby='none'
+    options.sortby='fdr'
+    options.sortdir='ascend'
 end
 
 %query, references: array of structs with fields "name" and "genes"
@@ -75,5 +76,5 @@ if nQ>1
     results.max_fc=max(results{:,contains(resvars,"fc")},[],2);
 %     results=sortrows(results,'min_fdr','ascend');
 else
-%     results=sortrows(results,'fdr','ascend');
+    results=sortrows(results,options.sortby,options.sortdir);
 end

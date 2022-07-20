@@ -80,10 +80,10 @@ if isstring(params.n_neighbors)||ischar(params.n_neighbors)
     end
 end
 
-rng(params.rngSeed)
-
 %initialize results (flat struct with all params + results)
 result = params;
+
+rng(params.rngSeed)
 
 %common python function arguments
 n_neighbors=int64(params.n_neighbors);
@@ -91,9 +91,9 @@ n_neighbors=int64(params.n_neighbors);
 % break into three steps for reuse of intermediates.
 % 1. nearest neighbors --> nnIDX, nnDist (for impute!) - in python, quite slow! the bottleneck.
 doKNN=true;
-if ~isempty(knn) && size(knn.indices,1)==size(X,1) && params.n_neighbors<=size(knn.indices,2)
+if ~isempty(knn) && size(knn.idx,1)==size(X,1) && params.n_neighbors<=size(knn.idx,2)
     doKNN=false;
-    knn_indices=knn.indices(:,1:params.n_neighbors);
+    knn_indices=knn.idx(:,1:params.n_neighbors);
     knn_dists=knn.dists(:,1:params.n_neighbors);
 end
 
@@ -105,7 +105,7 @@ if doKNN && nn_method=="matlab"
     knn_indices(:,1)=[]; %remove self distances
     knn_dists(:,1)=[];
     disp("knnsearch time: " + num2str(toc) + "s")
-    metric='correlation'; %if I do KNN, UMAP doesn't use a metric
+    metric='precomputed'; %if I do KNN, UMAP doesn't use a metric
 end
 
 metric_kwargs=py.dict();
@@ -143,13 +143,9 @@ out_tuple=umap.fuzzy_simplicial_set(py.numpy.array(X,'float32',pyargs('order','C
 out_tuple=cell(out_tuple); %emb_graph, emb_sigmas, emb_rhos, emb_dists
 emb_graph=out_tuple{1};
 % emb_sigmas=out_tuple{2};
-% emb_rhos=out_tuple{3}; %this looks like knn_dists to first neighbor
+% emb_rhos=out_tuple{3}; %this looks like knn_dists to first neighbor (radius to first-NN)
 % emb_dists=out_tuple{4}; %get this only if dens_map
 
-result.graph=sparse(double(emb_graph.toarray())); %is this correct?
-% result.sigmas=double(emb_sigmas);
-% result.rhos=double(emb_rhos); 
-% result.dists=sparse(double(emb_dists.toarray())); 
 disp("fuzzy_simplicial_set time: " + num2str(toc) + "s")
 
 
@@ -174,8 +170,6 @@ negative_sample_rate=params.negative_sample_rate; %double or int?
 
 out=umap.find_ab_params(params.spread, params.min_dist);
 a=out{1}; b=out{2};
-result.a=double(a);
-result.b=double(b);
 
 %do dens_map?
 densmap_kwds='';
@@ -187,17 +181,33 @@ end
 
 kwargs = pyargs('verbose',verbose,'densmap',params.do_densmap,'densmap_kwds',densmap_kwds,'output_dens',false);
 
+%metric here is for Spectral initY only
+metric=params.metric; %set it back to the original metric choice in case we used pre-computed.
+% - has special code branch for Euclidean - is it faster??
 embedded = umap.simplicial_set_embedding(X, emb_graph,...
     n_components, initial_alpha, a, b, gam, negative_sample_rate,... 
     n_epochs, initY, py_rand_state, metric, metric_kwargs, kwargs);
 
-result.coords=double(embedded{1});
-
-used_knn.indices=knn_indices;
-used_knn.dists=knn_dists;
 
 disp("simplicial_set_embedding time: " + num2str(toc) + "s")
     
+%store the results
+result.graph=sparse(double(emb_graph.toarray())); %is this correct?
+% result.sigmas=double(emb_sigmas);
+% result.rhos=double(emb_rhos); 
+% result.dists=sparse(double(emb_dists.toarray())); 
+result.a=double(a);
+result.b=double(b);
+result.coords=double(embedded{1});
+
+%connectivities used to generate UMAP's graph:
+used_knn.indices=knn_indices;
+used_knn.dists=knn_dists;
+
+%connectivities in UMAP graph:
+% [s,t,w]=find(cg.umap.graph);
+% umap_graph_neighbors=splitapply(@(x) {x}, t, s);
+
 if ~isempty(options.figID)
     figure(options.figID);clf
     scatter_grp(result.coords,ones(size(result.coords,1),1),gcols=0.66*[1,1,1],fig=options.figID);
