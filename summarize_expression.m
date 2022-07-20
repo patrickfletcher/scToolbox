@@ -9,9 +9,11 @@ arguments
     options.doPrct = true
     options.doPooled = false %true: Cat1, nonCat1, Cat2, ... 
     options.only_expressing = false;
+    options.pairwise_contrasts=false
 end
 %streamlined version of expression summary table (no more thresholds)
 
+%groupsummary????
 
 %remove cats first?
 if isempty(group)

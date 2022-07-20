@@ -1,4 +1,9 @@
 function ES = effectsizeContrasts(X, group, options)
+arguments
+    X %summarized expression table? X.name
+    group
+    options
+end
 % generate a table of all pairwise contrasts in group, per type of effect size
 % goes with DEtestPairwiseAnova, which provides the non-parametric ANOVA +
 % multiple comparisons for the same contrasts.
@@ -20,11 +25,7 @@ function ES = effectsizeContrasts(X, group, options)
 %     function expressionEffectSizes(genes, selfin, otherin, paramsin)
 
 
-%parameters
-[self, other, params]=parse_input_pars(selfin,otherin, paramsin);
-
 nGenes=height(genes);
-
 
 groupNames=groupNames(:)';
 combs=combnk(groupNames,2);

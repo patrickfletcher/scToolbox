@@ -1,4 +1,4 @@
-function result=stratify_factors(factor1,factor2, separator)
+function [result, name_combos]=stratify_factors(factor1,factor2, separator)
 arguments
     factor1
     factor2

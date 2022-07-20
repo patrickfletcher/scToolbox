@@ -7,6 +7,7 @@ arguments
     options.factor2 = []
     options.threshgroup = []
     options.method = 'mean'
+    options.expr_vals = 'ncounts'
     options.trim_prct = 0
     options.doPrct = true
     options.doPooled = false %true: Cat1, nonCat1, Cat2, ... 
@@ -87,16 +88,26 @@ end
 for i=1:length(factorNames)
     thisGroup=factor==factorNames(i);
     
-    N1=ncounts(:,thisGroup);
+    switch options.expr_vals
+        case 'ncounts'
+            E1=ncounts(:,thisGroup);
+        case 'tcounts'
+            E1=tcounts(:,thisGroup);
+    end
     if options.only_expressing
-        N1(N1==0)=nan;
+        E1(E1==0)=nan;
     end
 
-    E(:,i) = expr_fun(N1);
+    E(:,i) = expr_fun(E1);
     
     if options.doPooled
-        N2=ncounts(:,~thisGroup);
-        Eother(:,i)=expr_fun(N2);
+        switch options.expr_vals
+            case 'ncounts'
+                E2=ncounts(:,~thisGroup);
+            case 'tcounts'
+                E2=tcounts(:,~thisGroup);
+        end
+        Eother(:,i)=expr_fun(E2);
     end
     
     if options.doPrct
