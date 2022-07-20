@@ -139,7 +139,7 @@ classdef CellType %< handle & matlab.mixin.Copyable
         
         
         function [this_condition,markerScore] = evaluateMarkers2(ct, tcounts, genes)
-            markerScore=score_genes(ct.markers,tcounts,genes.name,25); %# per cell
+            markerScore=score_genes(ct.markers,tcounts,genes.name,ctrl_size=25); %# per cell
             ct.threshold=geneThresholdOtsu(markerScore);
             this_condition=markerScore>ct.threshold;
         end
