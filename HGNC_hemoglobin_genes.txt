@@ -1,0 +1,11 @@
+HGNC ID	Approved symbol	Approved name	Status	Locus type	Previous symbols	Alias symbols	Chromosome	NCBI Gene ID	Ensembl gene ID	Vega gene ID	Group ID	Group name
+HGNC:4823	HBA1	hemoglobin subunit alpha 1	Approved	gene with protein product		HBA-T3	16p13.3	3039	ENSG00000206172	OTTHUMG00000060138	940	Hemoglobin subunits
+HGNC:4824	HBA2	hemoglobin subunit alpha 2	Approved	gene with protein product		HBA-T2	16p13.3	3040	ENSG00000188536	OTTHUMG00000059924	940	Hemoglobin subunits
+HGNC:4827	HBB	hemoglobin subunit beta	Approved	gene with protein product		CD113t-C, beta-globin	11p15.4	3043	ENSG00000244734	OTTHUMG00000066678	940	Hemoglobin subunits
+HGNC:4829	HBD	hemoglobin subunit delta	Approved	gene with protein product			11p15.4	3045	ENSG00000223609	OTTHUMG00000066674	940	Hemoglobin subunits
+HGNC:4830	HBE1	hemoglobin subunit epsilon 1	Approved	gene with protein product		HBE	11p15.4	3046	ENSG00000213931	OTTHUMG00000066675	940	Hemoglobin subunits
+HGNC:4831	HBG1	hemoglobin subunit gamma 1	Approved	gene with protein product		HBG-T2	11p15.4	3047	ENSG00000213934	OTTHUMG00000066681	940	Hemoglobin subunits
+HGNC:4832	HBG2	hemoglobin subunit gamma 2	Approved	gene with protein product		HBG-T1	11p15.4	3048	ENSG00000196565	OTTHUMG00000066673	940	Hemoglobin subunits
+HGNC:4826	HBM	hemoglobin subunit mu	Approved	gene with protein product	HBAP2	HBK	16p13.3	3042	ENSG00000206177	OTTHUMG00000059926	940	Hemoglobin subunits
+HGNC:4833	HBQ1	hemoglobin subunit theta 1	Approved	gene with protein product		HBQ	16p13.3	3049	ENSG00000086506	OTTHUMG00000060727	940	Hemoglobin subunits
+HGNC:4835	HBZ	hemoglobin subunit zeta	Approved	gene with protein product		HBZ1, HBZ-T1	16p13.3	3050	ENSG00000130656	OTTHUMG00000059928	940	Hemoglobin subunits

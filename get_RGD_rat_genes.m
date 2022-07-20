@@ -3,10 +3,11 @@
 rgdSaveFile='D:\scRNAseq\GENES_RAT.txt';
 rgdSavePath=fileparts(rgdSaveFile);
 
-% readRGDfromWeb
-ftpobj = ftp('ftp.rgd.mcw.edu');
-cd(ftpobj,'pub/data_release');
-mget(ftpobj,'GENES_RAT.txt',rgdSavePath);
+%%%%%BROKEN
+
+% webopts=weboptions("ContentType","text");
+% data=webread("https://download.rgd.mcw.edu/data_release/GENES_RAT.txt",webopts);
+% data=table(data,delimitedTextImportOptions)
 
 opts=detectImportOptions(rgdSaveFile,'TextType','string');
 chrvar=opts.VariableNames(contains(opts.VariableNames,'CHROMOSOME'));
