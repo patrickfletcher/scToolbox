@@ -22,6 +22,8 @@ arguments
     options.figID = []
 end
 
+t0=tic;
+
 %TODO: is it correct to use the graph output by umap.fuzzy_simplicial_set
 %for downstream clustering?
 
@@ -207,6 +209,8 @@ used_knn.dists=knn_dists;
 %connectivities in UMAP graph:
 % [s,t,w]=find(cg.umap.graph);
 % umap_graph_neighbors=splitapply(@(x) {x}, t, s);
+
+disp("doUMAP time: " + num2str(toc(t0)) + "s")
 
 if ~isempty(options.figID)
     figure(options.figID);clf
