@@ -1,30 +1,28 @@
-function p_adj=DEtest2(method, X, group1, group2, correctionmethod, genesToTest, minFrac)
+function p_adj=DEtest2(method, X, group1, group2, options)
+arguments
+    method
+    X
+    group1
+    group2=[]
+    options.correctionmethod='fdr'
+    options.genesToTest='either'
+    options.min_frac=0
+end
 %two sample differential expression test with multiple corrections
 % tests each row, comparing two groups of columns
 %method specifies which test to use
 
 %group1 = logical, group2 absent/empty => group2=~group1
 %group1 = logical, group2=logical => two sample test
-
-if ~exist('method','var')||isempty(method)
+if isempty(method)
     method='ranksum';
 end
-
-if ~exist('group2','var')||isempty(group2)
+if isempty(group2)
     group2=~group1;
 end
-
-if ~exist('correctionmethod','var')||isempty(correctionmethod)
-    correctionmethod='fdr';
-end
-
-if ~exist('minFrac','var')||isempty(minFrac)
-    minFrac=0;
-end
-
-if ~exist('genesToTest','var')||isempty(genesToTest)
-    genesToTest='either';
-end
+correctionmethod=options.correctionmethod;
+genesToTest=options.genesToTest;
+min_frac=options.min_frac;
 
 [nGenes,nCells]=size(X);
 
@@ -39,11 +37,11 @@ switch genesToTest
     case 'all'
         keep=true(nGenes,1); %all
     case 'group1'
-        keep=frac1 > minFrac;
+        keep=frac1 > min_frac;
     case 'group2'
-        keep=frac2 > minFrac;
+        keep=frac2 > min_frac;
     case 'either'
-        keep=frac1 > minFrac | frac2 > minFrac;
+        keep=frac1 > min_frac | frac2 > min_frac;
 end
 
 keepix=find(keep);
