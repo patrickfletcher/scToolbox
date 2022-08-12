@@ -453,10 +453,10 @@ classdef GroupedExpressionSummary < handle
             %could use self/othernames+key to just do specific contrasts
 
             %TODO: what if run same effectsize twice?
-            if isfield(ges.effectsizes, key) && options.overwrite_key==false
-                warning("Key exists:" + key + ". Set overwrite_key=true to force overwrite.")
-                return
-            end
+%             if isfield(ges.effectsizes, key) && options.overwrite_key==false
+%                 warning("Key exists:" + key + ". Set overwrite_key=true to force overwrite.")
+%                 return
+%             end
 
             pre_transform=options.pre_transform;
             post_transform=options.post_transform;
