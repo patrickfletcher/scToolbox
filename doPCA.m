@@ -14,6 +14,8 @@ arguments
     options.pcix=[]
 end
 
+%TODO: return variance explained
+
 %TODO: multibatch PCA - batchelor.  Seems like just a specific choice of
 %centering/scaling??  
 % - center gene expression using grand mean of batch means
