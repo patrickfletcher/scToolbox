@@ -238,12 +238,13 @@ end
 
 % ax(end).Selected='on';
 
-if do3D
-    axis(ax,'vis3d')
-elseif length(ax)>1
-    linkaxes(ax)
-end
+% if do3D
+%     axis(ax,'vis3d')
+% elseif length(ax)>1
+%     linkaxes(ax)
+% end
 
+axes(ax(1))
 
 hsc.fig=fh;
 hsc.ax=ax;

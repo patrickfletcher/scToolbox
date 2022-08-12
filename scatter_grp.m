@@ -10,7 +10,9 @@ arguments
     opts.tilegaps=[0.05,0.05] %multi-subplot gaps [horizontal, vertical]
     opts.panels=[] %specific layout of [nrow, ncol] subplots
 
-    opts.draw_outline=true %when splitby is used draw all points behind
+    opts.draw_outline=false %when splitby is used draw all points behind
+    opts.outline_ident=[];
+    opts.outline_alpha=0.9;
     opts.outline_col=0.85*[1,1,1];
     opts.outline_size=4
     opts.gcols=[]
@@ -31,9 +33,9 @@ defsz=3;
 do3D=false;
 soptargs=namedargs2cell(scopts);
 if nDim==2
-    scatterfun=@(X,C)scatter(X(:,1),X(:,2),defsz,C,'filled',soptargs{:});
+    scatterfun=@(X,S,C,A)scatter(X(:,1),X(:,2),S,C,'filled','MarkerFaceAlpha',A,soptargs{:});
 elseif nDim==3
-    scatterfun=@(X,C)scatter3(X(:,1),X(:,2),X(:,3),defsz,C,'filled',soptargs{:});
+    scatterfun=@(X,S,C,A)scatter3(X(:,1),X(:,2),X(:,3),S,C,'filled','MarkerFaceAlpha',A,soptargs{:});
     do3D=true;
 %     disp('3D scatterplot')
 else
@@ -119,18 +121,30 @@ if length(ax)>nSplit
     ax=ax(1:nSplit);
 end
 
+if ~opts.draw_outline
+    hs0=[];
+end
+
 for i=1:nSplit
     axes(ax(i))
-    if nSplit>1 && opts.draw_outline
-        hs0=scatterfun(coords, opts.outline_col);
-        hs0.Annotation.LegendInformation.IconDisplayStyle='off';
+    if opts.draw_outline
+        if isempty(opts.outline_ident)
+            out_ix=true(size(coords,1),1);
+        else
+            out_ix=opts.outline_ident;
+        end
+        hs0(i)=scatterfun(coords(out_ix,:), opts.outline_size, opts.outline_col, opts.outline_alpha);
+        hs0(i).Annotation.LegendInformation.IconDisplayStyle='off';
+%         hs0.MarkerFaceAlpha=opts.outline_alpha;
+%     else
+%         hs0=[];
     end
     this_split=splitby(:)==snames{i};
     hold on
     for j=1:nGrp
         thisgrp=groupby(:)==gnames{j};
         cellsub=thisgrp & this_split;
-        hs(j)=scatterfun(coords(cellsub,:),gcols(j,:));
+        hs(j)=scatterfun(coords(cellsub,:), defsz, gcols(j,:), 1);
         hs(j).DisplayName=gnames{j};
 
         if ~do3D
@@ -184,6 +198,7 @@ end
 hsc.fig=fh;
 hsc.ax=ax;
 hsc.hs=hs;
+hsc.hs0=hs0;
 hsc.ht=ht;
 hsc.opts=opts;
 hsc.scopts=scopts;
