@@ -4,8 +4,8 @@ arguments
     cellsub
     splitby {string,char,cellstr}
     normpars.n_features=3000
-    normpars.do_multibatch=true
-    normpars.do_pooledsizefactors=true
+    normpars.do_multibatch=false
+    normpars.do_pooledsizefactors=false
     normpars.min_mean=0.1
     mnnpars.k=20
     mnnpars.d=50
