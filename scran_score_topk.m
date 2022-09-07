@@ -13,6 +13,7 @@ end
 selftypes=options.selftypes;
 if isempty(selftypes)
     selftypes=scorestruct.pairings;
+    options.selftypes=selftypes;
 end
 
 minlFC=0;

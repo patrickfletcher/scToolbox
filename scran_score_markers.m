@@ -4,8 +4,8 @@ arguments
     cellsub
     groupvar {string,char,cellstr}
     batchvar {string,char,cellstr} = "NULL"
-    normpars.do_multibatch_norm=true
-    normpars.do_pooledsizefactors=true
+    normpars.do_multibatch_norm=false
+    normpars.do_pooledsizefactors=false
     normpars.min_mean=0.1
     scorepars.pairings="NULL"  %self
     scorepars.pairings2="NULL"  %other

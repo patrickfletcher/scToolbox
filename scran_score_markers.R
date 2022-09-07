@@ -16,6 +16,7 @@ suppressPackageStartupMessages(library(scran))
 suppressPackageStartupMessages(library(batchelor))
 suppressPackageStartupMessages(library(DropletUtils))
 suppressPackageStartupMessages(library(R.matlab))
+suppressPackageStartupMessages(library(rmatio))
 
 args <- commandArgs(TRUE)
 parsmatfile <- args[1]
@@ -157,7 +158,6 @@ S$genenames=row.names(scores[[1]])
 S$averages= as.data.frame(averages)
 S$props= as.data.frame(props)
 
-library(rmatio)
 write.mat(S, resultfile)
 
 # writeMat(resultfile, )
