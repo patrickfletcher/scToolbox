@@ -1,7 +1,10 @@
 function [orthgenes, orthTab] = gprof_orth(query, source, target)
 
+% args=pyargs('base_url','https://biit.cs.ut.ee/gprofiler_archive3/e103_eg50_p15/');
 args=pyargs('base_url','https://biit.cs.ut.ee/gprofiler_archive3/e104_eg51_p15/');
+% args=pyargs('base_url','https://biit.cs.ut.ee/gprofiler_archive3/e105_eg52_p16/');
 gp=py.gprofiler.GProfiler(args);
+% gp=py.gprofiler.GProfiler();
 
 pyquery=py.list(cellstr(query(:)'));
 gOrthArgs=pyargs('organism',source,'query',pyquery,'target',target);
