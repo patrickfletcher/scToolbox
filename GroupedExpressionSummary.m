@@ -211,7 +211,9 @@ classdef GroupedExpressionSummary < handle
                 % initialize the effectsize struct
                 for i=1:length(ges.group_names)
                     self=ges.group_names(i);
-                    ges.effectsizes.(self).summary=table('Size',[ges.n_genes,0],'RowNames',ges.gene);
+                    ges.effectsizes.(self).summary=table();
+                    ges.effectsizes.(self).summary.gene=ges.gene;
+%                     ges.effectsizes.(self).summary=table('Size',[ges.n_genes,0],'RowNames',ges.gene);
                 end
 % %TODO: API - support passing list of multiple summary names to be computed
 %                 ges.pairwiseDeltas("fc_expr");
@@ -423,8 +425,6 @@ classdef GroupedExpressionSummary < handle
         % -- ranking in pooled values of pair (AUC)
         %=> optionally accept expression matrix as input?
 
-        % support fc (division instead of subtraction...)
-
         % compute effect sizes: compose as difference(transform(X))
         function [summary, all_stats] = pairwiseDeltas(ges, effect_name, selfnames, othernames, key, options)
             arguments
@@ -509,25 +509,16 @@ classdef GroupedExpressionSummary < handle
 
                 this_fc=post_transform(this_fc);     
 
-                fc_tab=array2table(this_fc,"RowNames",ges.gene,"VariableNames",others);
+%                 fc_tab=table();
+%                 fc_tab.gene=ges.gene;
+%                 fc_tab=[fc_tab,array2table(this_fc,"VariableNames",others)];
+                fc_tab=array2table(this_fc,"VariableNames",others, "RowNames",ges.gene);
                 all_stats.(key)=fc_tab;
                 summary=ges.summarizeContrasts(fc_tab, key);
                 all_stats.summary=[all_stats.summary,summary];
                 ges.effectsizes.(self)=all_stats;
             end
 
-        end
-
-        % stats from hypothesis test functions
-        % generate both effect sizes and p-values...
-        % - ttest2 VarType=unequal (Cohen's d with pooled var?)
-        % - ranksum (AUC)
-        % - kstest2??
-        function pairwiseTest(ges, testname)
-            arguments
-                ges
-                testname
-            end
         end
 
         % Aggregation across pairwise comparisons
@@ -553,6 +544,95 @@ classdef GroupedExpressionSummary < handle
             end
             summary.("minrank_"+key)=min(esRank,[],2);
         end
+
+        %wrapper function to support lists of effect sizes. If effect_names
+        %not specified, compute a standard set.
+        function computeEffectSizes(ges, effect_names, selfnames, othernames, options)
+            arguments
+                ges GroupedExpressionSummary
+                effect_names = ["lfc_expr","cohen_d","delta_prop"]
+                selfnames = ges.group_names
+                othernames = ges.group_names
+                options.save_pw_stats=true
+                options.overwrite_key=false
+            end
+
+%             pwargs=namedargs2cell(options);
+
+            for i=1:length(effect_names)
+                pairwiseDeltas(ges, effect_names(i), selfnames, othernames);
+            end
+        end
+
+        % extract the top markers across all clusters based on thresholding
+        % effect size summary tables
+        function result = topMarkers(ges, summary_name, method, selfnames, options)
+            arguments
+                ges
+                summary_name = "minrank_delta_prop"
+                method = "thr"
+                selfnames = ges.group_names
+                options.nTop=10;
+                options.thr=5;
+                options.p=95;
+                options.min_self_prop=0
+%                 options.max_other_prop=1
+            end
+            %default: keep minrank_delta_prop<=5
+
+            sortdir="descend";
+            thr_dir="gt";
+            if contains(summary_name,"minrank")
+                sortdir="ascend";
+                thr_dir="lt";
+            end
+
+            result=table;
+            for i=1:length(selfnames)
+                thisname=selfnames(i);
+                thistab=ges.effectsizes.(thisname).summary;
+
+                propfilt=ges.grouped.prop.(thisname)>options.min_self_prop;
+%                 propfilt=propfilt&
+                thistab=thistab(propfilt,:);
+    
+                thistab=sortrows(thistab,summary_name,sortdir,'missingplacement','last');
+                switch method
+                    case "thr"
+                        keep=thistab.(summary_name)>=options.thr; 
+                        if thr_dir=="lt"
+                            keep=thistab.(summary_name)<=options.thr; 
+                        end
+                    case "top"
+                        keep = 1:min(options.nTop,height(thistab));
+                    case "prctile"
+                        thr=prctile(thistab.(summary_name),options.p);
+                        keep=thistab.(summary_name)>=thr; 
+                        if thr_dir=="lt"
+                            keep=thistab.(summary_name)<=thr; 
+                        end
+                end
+
+                thistab=thistab(keep,:);
+                thistab.celltype=repmat(thisname,nnz(keep),1);
+                thistab=movevars(thistab,"celltype","before",1);
+                result=[result;thistab];
+            end
+
+        end
+
+        % stats from hypothesis test functions
+        % generate both effect sizes and p-values...
+        % - ttest2 VarType=unequal (Cohen's d with pooled var?)
+        % - ranksum (AUC)
+        % - kstest2??
+        function pairwiseTest(ges, testname)
+            arguments
+                ges
+                testname
+            end
+        end
+
 
         %combine p-vals from statistical tests..
         function summary=combinePvals(ges, key, options)
