@@ -7,16 +7,20 @@ arguments
     options.deg_params=[]
     options.simThr=0.5
     options.simMetric='overlap'
-    options.nReps=1
+%     options.nReps=1
     options.doPlot=0;
     options.cell_coords=[]
 end
 
 %TODO:
+% - support/force externally computed markers? what API makes sense?
+% -- 1) do marker ID here. 2) pass markers in and just check similaritie here 
+% --- 1 offers iteration: can find markers of new clustering and do another merge 
+%
 % - alternative cluster comparison methods: correlation of group means in
 % PC space + linkage?
 
-for n=1:options.nReps
+% for n=1:options.nReps
     
     cats=unique(clust);
     K=length(cats);
@@ -66,6 +70,8 @@ for n=1:options.nReps
         end
     end
 
+%     Sim=geneset_similarities(M.gene,M.celltype,options.simMetric);
+
     %options for other merge method? linkage? 
     
     % merge and relabel
@@ -76,6 +82,7 @@ for n=1:options.nReps
         merged_clust(tomerge)=r(i);
     end
     
+    %TODO>use rename_clusters.
     remaincats=unique(merged_clust);
     newK=length(remaincats);
     oldK_newK=[K,newK]
@@ -86,9 +93,9 @@ for n=1:options.nReps
         merged_clust(IDold==remaincats(ix(i)))=i;
     end
     
-    if isequal(clust,merged_clust)
-        break
-    end
+%     if isequal(clust,merged_clust)
+%         break
+%     end
     
     if options.doPlot
         fh=figure(1);clf
@@ -111,4 +118,4 @@ for n=1:options.nReps
     end
     
     clust=merged_clust;
-end
+% end
