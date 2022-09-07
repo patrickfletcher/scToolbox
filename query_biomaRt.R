@@ -22,7 +22,11 @@ df <- read.csv(vals_file, header = F)
 vals <- as.character(df[,1]) #make a vector from the dataframe
 print(length(vals))
 
-ensembl = useMart("ensembl",dataset=dataset)
+df=listEnsemblArchives()
+version="104"
+host_url=df$url[df$version==version]
+
+ensembl = useMart("ensembl",dataset=dataset, host=host_url)
 
 gene.data <- getBM(attributes=c('ensembl_gene_id','external_gene_name', attributes),
                    filters = filter_name, values = vals, mart = ensembl)
