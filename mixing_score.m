@@ -5,7 +5,7 @@ arguments
     K = 100
     nnix = []
     nndists = []
-    options.method = "sum_dev"
+    options.method = "entropy"
     options.weigth_by_dist=false
 end
 
