@@ -7,6 +7,8 @@ arguments
     options.marker_selectby = "min_cohen_d"
     options.marker_method = "top"
     options.marker_nTop = 20
+    options.score_method = "expr" %corr
+    options.select_method = "otsu" %quantile
     options.refine = true
     options.refine_ptile = 95
 end
