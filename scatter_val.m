@@ -186,9 +186,9 @@ for i=1:nSplit
     
     axis(ax(i),'off','tight','equal')
 
-    if nSplit>1
+%     if nSplit>1
         title(snames{i},'FontWeight','normal')
-    end
+%     end
 
     if ~isempty(opts.cmap)
         colormap(ax(i),opts.cmap)

@@ -20,6 +20,7 @@ arguments
     opts.darken_strength=0.2 %in [0,1]: how far towards black to interp
     opts.draworder {mustBeMember(opts.draworder,["random","index","revind","flat"])} ='flat'
 %     opts.do_keypress=false
+    opts.textlabs=false
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
 
@@ -125,6 +126,7 @@ if ~opts.draw_outline
     hs0=[];
 end
 
+ht=[];
 for i=1:nSplit
     axes(ax(i))
     if opts.draw_outline
@@ -135,6 +137,7 @@ for i=1:nSplit
         end
         hs0(i)=scatterfun(coords(out_ix,:), opts.outline_size, opts.outline_col, opts.outline_alpha);
         hs0(i).Annotation.LegendInformation.IconDisplayStyle='off';
+        hs0(i).ZData=(-nGrp-1)*ones(size(hs0(i).XData));
 %         hs0.MarkerFaceAlpha=opts.outline_alpha;
 %     else
 %         hs0=[];
@@ -159,6 +162,7 @@ for i=1:nSplit
                 otherwise
             end
         end
+        
         if opts.darken_edges
             edgecol(1,1)=interp1([0,1],[gcols(j,1),0],opts.darken_strength);
             edgecol(1,2)=interp1([0,1],[gcols(j,2),0],opts.darken_strength);
@@ -167,7 +171,25 @@ for i=1:nSplit
             hs(j).MarkerEdgeColor=edgecol;
             hs(j).LineWidth=0.25;
         end
+
+        if opts.textlabs
+            tpos=median(coords(cellsub,:));
+            if ~do3D
+                tpos(3)=1.1;
+                switch opts.draworder
+                    case 'index'
+                        tpos(3)=nGrp+1; 
+                    case 'revind'
+                    case 'random'
+                    case 'flat' %not ordered - keep as 2D (eg. for alpha)
+                    otherwise
+                end
+            end
+            ht(j)=text(tpos(1),tpos(2),tpos(3),gnames{j},HorizontalAlignment="center",VerticalAlignment="middle");
+        end
     end
+
+
     hold off
 
     axis off
@@ -180,9 +202,9 @@ for i=1:nSplit
 end
 
 % common title/colorbar
-ht=[];
+htit=[];
 if ~isempty(opts.title)
-    ht=sgtitle(opts.title); %specify the figure
+    htit=sgtitle(opts.title); %specify the figure
 end
 
 % ax(end).Selected='on';
@@ -200,6 +222,7 @@ hsc.ax=ax;
 hsc.hs=hs;
 hsc.hs0=hs0;
 hsc.ht=ht;
+hsc.htit=htit;
 hsc.opts=opts;
 hsc.scopts=scopts;
 end
