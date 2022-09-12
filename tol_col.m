@@ -49,7 +49,7 @@ else
     else
         cmap=repmat(cmap,ceil(N/Nset(i)),1);
         cmap=cmap(1:N,:);
-        warning(name+" contains only "+string(Nset(i))+" colors, but "+string(N)+" were requested.");
+        warning(name+" contains only "+string(Nset(i))+" colors, but "+string(N)+" were requested. Repeating colors...");
     end
 end
 
