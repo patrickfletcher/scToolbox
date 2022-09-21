@@ -3,6 +3,7 @@ arguments
     datafile
     cellsub
     splitby {string,char,cellstr}
+    normpars.gene_subset=false
     normpars.n_features=3000
     normpars.do_multibatch=false
     normpars.do_pooledsizefactors=false
@@ -11,8 +12,8 @@ arguments
     mnnpars.d=50
     mnnpars.ndist=3
     mnnpars.merge_order=[]
-    options.parfile="D:\tmp\tmp_scran_fastMNN_pars.mat"
-    options.resultfile="D:\tmp\tmp_scran_fastMNN_results.mat"
+    options.parfile="D:/tmp/tmp_scran_fastMNN_pars.mat"
+    options.resultfile="D:/tmp/tmp_scran_fastMNN_results.mat"
     options.verbose=false
 end
 % TODO - complete api:
@@ -30,7 +31,7 @@ result.mnnpars=mnnpars;
 
 datafile=cellstr(datafile);
 
-cellsubsetfile='D:\tmp\tmp_cellsub.csv';
+cellsubsetfile='D:/tmp/tmp_cellsub.csv';
 writetable(cellsub,cellsubsetfile)
 cellsubsetfile=cellstr(cellsubsetfile);
 

@@ -25,6 +25,8 @@ min.mean = as.numeric(normpars$min.mean)
 do_pooledsizefactors = as.logical(normpars$do.pooledsizefactors)
 do_multibatch = as.logical(normpars$do.multibatch)
 
+
+
 mnnpars=mat$mnnpars[,,1]
 # print(mnnpars)
 
@@ -44,6 +46,18 @@ data <- Seurat::Read10X_h5(datafile, use.names = F)
 sce <- SingleCellExperiment(assays=list(counts=data))
 colData(sce) <- cellinfo
 sce <- sce[,sce$keep==1]
+
+print(dim(sce))
+
+gene_sub = as.logical(normpars$gene.subset)
+print(sum(gene_sub==T))
+
+if (length(gene_sub)==dim(sce)[1]) {
+  sce <- sce[gene_sub==T,]
+}
+
+print(dim(sce))
+
 
 #figure out the split/merge order
 split1<-sce@colData[,splits[1]]
