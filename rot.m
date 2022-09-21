@@ -1,4 +1,4 @@
-function X = rot(X,theta)
+function [X, R] = rot(X,theta)
 switch size(X,2)
     case 2
         R = [cos(theta) -sin(theta); sin(theta) cos(theta)];
@@ -11,3 +11,7 @@ switch size(X,2)
 end
 
 X=X*R;
+% X=(R*X')';
+
+%is it orthonormal?
+% norm(R'*R - eye(size(R)))
