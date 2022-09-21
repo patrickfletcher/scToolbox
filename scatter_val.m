@@ -211,9 +211,9 @@ end
 ht=[];
 if ~isempty(opts.title)
 %     if nSplit>1
-        ht=sgtitle(opts.title); %specify the figure?
+%         ht=sgtitle(opts.title); %specify the figure?
 %     else
-%         ht=title(opts.title); %specify the axis?
+        ht=title(opts.title); %specify the axis?
 %     end
 end
 if opts.commonCbar
