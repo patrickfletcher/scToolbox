@@ -5,10 +5,13 @@ arguments
     batch=[]
     params.hvgix=[]
     params.scale_method='zscore'
+    params.center=true
+    params.scale=false;
     params.maxScaled=10
     params.npc=0
     params.permute_reps=100
     params.scale_pcs=false
+    params.full_coeff=false
     options.verbose=true
     options.figID=[]
     options.pcix=[]
@@ -36,6 +39,7 @@ end
 
 result = params;
 
+[nGenes,nCells]=size(tcounts);
 if ~isempty(params.hvgix)
     X=tcounts(params.hvgix,:);
 else
@@ -47,6 +51,7 @@ end
 %TODO: create function handle
 scale_args = [];
 scale_fun = @(x) x;
+doscale=false;
 switch params.scale_method
     case 'zscore'
         % --> PCA on correlation matrix, not covariance.
@@ -58,7 +63,7 @@ switch params.scale_method
         scale_args.xmean=mean(X,2);
         scale_args.xstd=std(X,[],2);
         scale_fun = @(x, args) (x-args.xmean)./args.xstd;
-
+        doscale=true;
         %notes
         % - largest Zscores occur for small-mean genes.
                 
@@ -105,6 +110,10 @@ switch params.scale_method
         % --> PCA on covariance matrix
         scale_args = mean(X,2);
         scale_fun = @(x, mu) x-mu;
+
+    case 'none'
+        scale_args = [];
+        scale_fun = @(x, args) x;
         
 end
 
@@ -113,8 +122,10 @@ result.scale_fun=scale_fun;
 
 X = scale_fun(X, scale_args);
 
+if doscale
 X(X>params.maxScaled)=params.maxScaled;
 X(X<-params.maxScaled)=-params.maxScaled;
+end
 
 if params.npc<1
     % Find number of significant PCs
@@ -142,8 +153,27 @@ if params.scale_pcs
     score=score./std(score,0,1);
 end
 
+
+% apply the rotation to all genes
+% UNTESTED
+if params.full_coeff && ~isempty(params.hvgix)
+    fullC = zeros(size(tcounts,2),result.npc);
+    fullC(params.hvgix,:)=coeff;
+    nothvg=setdiff(1:size(tcounts,2), params.hvgix);
+    Xleft = tcounts(:, nothvg)';
+    Xleft = scale_fun(Xleft, scale_args);
+    Xleft = Xleft*U' - mean(Xleft,2)*sum(U,1);
+    Xleft = Xleft./diag(S)
+end
+
+result.U=U;
+result.S=S;
 result.coeff=coeff;
 result.coords=score;
+result.var_exp = diag(S).^2 / (nCells - 1);
+result.total_var = sum(var(X,0,2));
+
+
 
 % pc_gene_name(size(X,1),result.npc)="";
 % % pc_gene_id(size(X,1),result.npc)="";
