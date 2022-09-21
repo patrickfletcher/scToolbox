@@ -177,8 +177,8 @@ a=out{1}; b=out{2};
 densmap_kwds='';
 if params.do_densmap
     emb_dists=out_tuple{4};
-    densmap_kwds=py.dict(pyargs('graph_dists',emb_dists,'lambda',dens_lambda,...
-        'frac',dens_frac,'var_shift',dens_var_shift));
+    densmap_kwds=py.dict(pyargs('graph_dists',emb_dists,'lambda',params.dens_lambda,...
+        'frac',params.dens_frac,'var_shift',params.dens_var_shift));
 end
 
 kwargs = pyargs('verbose',verbose,'densmap',params.do_densmap,'densmap_kwds',densmap_kwds,'output_dens',false);
