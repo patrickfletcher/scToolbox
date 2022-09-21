@@ -51,6 +51,7 @@ end
 if ~iscategorical(block)
     block=categorical(block);
 end
+block=removecats(block);
 blocks=categories(block);
 n_blocks=length(blocks);
 
@@ -176,7 +177,7 @@ switch params.selectMethod
         hvgix=ixs(1:N);
         result=rmfield(result,'dispThr');
         
-    case 'threshold'
+    case {'thr','threshold'}
         hvgix=ixs(sorted_comb_val>params.dispThr);
         result.nHVG=length(hvgix);
 
