@@ -6,8 +6,10 @@ suppressPackageStartupMessages(library(R.matlab))
 
 args <- commandArgs(TRUE)
 
-parsmatfile <- args[1]
-resultsmatfile <- args[2]
+tmp_path <- args[1]
+tmp_fileroot <- args[2]
+
+parsmatfile<-file.path(tmp_path,paste0(tmp_fileroot,"_pars.mat"))
 
 mat <- readMat(parsmatfile)
 
@@ -20,11 +22,16 @@ splits <- unlist(mat$splitby)
 normpars=mat$normpars[,,1]
 # print(normpars)
 
-n_hvg = as.numeric(normpars$n.features)
-min.mean = as.numeric(normpars$min.mean)
 do_pooledsizefactors = as.logical(normpars$do.pooledsizefactors)
 do_multibatch = as.logical(normpars$do.multibatch)
+min_mean = as.numeric(normpars$min.mean)
 
+hvgpars=mat$hvgpars[,,1]
+do_poissonvar = as.logical(hvgpars$do.poissonvar)
+do_topn = as.logical(hvgpars$do.topn)
+n_hvg = as.numeric(hvgpars$n.features)
+var_thr = as.numeric(hvgpars$var.thr)
+fdr_thr = as.numeric(hvgpars$fdr.thr)
 
 
 mnnpars=mat$mnnpars[,,1]
@@ -47,10 +54,10 @@ sce <- SingleCellExperiment(assays=list(counts=data))
 colData(sce) <- cellinfo
 sce <- sce[,sce$keep==1]
 
-print(dim(sce))
+# print(dim(sce))
 
 gene_sub = as.logical(normpars$gene.subset)
-print(sum(gene_sub==T))
+# print(sum(gene_sub==T))
 
 if (length(gene_sub)==dim(sce)[1]) {
   sce <- sce[gene_sub==T,]
@@ -68,13 +75,13 @@ if (length(splits)==2) {
   merge.cats <- split(split1,split2)
   merge.cats <- lapply(merge.cats, unique)
 }
-print(merge.cats)
+# print(merge.cats)
 
 mergeix<-seq(from=1, to=length(merge.cats))
 if (length(mnnpars$merge.order)!=0) {
   mergeix <- mnnpars$merge.order
 }
-print(mergeix)
+# print(mergeix)
 
 merge.order<- merge.cats[c(mergeix)]
 print(merge.order)
@@ -90,7 +97,7 @@ if (do_pooledsizefactors==T) {
   start_time = Sys.time()
   
   clust.pin <- quickCluster(sce, block=block)
-  sce <- computeSumFactors(sce, cluster=clust.pin, min.mean=min.mean)
+  sce <- computeSumFactors(sce, cluster=clust.pin, min.mean=min_mean)
   
   end_time = Sys.time()
   print(end_time - start_time)
@@ -105,10 +112,20 @@ if (do_multibatch==T) {
   sce <- logNormCounts(sce)
 }
 
-blk <- modelGeneVarByPoisson(sce, block=block)
-# blk <- modelGeneVar(sce, block=block)
+if (do_poissonvar==T) {
+  blk <- modelGeneVarByPoisson(sce, block=block, min.mean=min_mean)
+} else
+{
+  blk <- modelGeneVar(sce, block=block, min.mean=min_mean)
+}
 
-chosen.hvgs <- getTopHVGs(blk, n=n_hvg)
+if (do_topn==T) {
+  chosen.hvgs <- getTopHVGs(blk, n=n_hvg, fdr.threshold = fdr_thr)
+} else
+{
+  chosen.hvgs <- getTopHVGs(blk, var.threshold = var_thr, fdr.threshold = fdr_thr)
+}
+
 
 print('Performing fastMNN correction...')
 start_time = Sys.time()
@@ -127,7 +144,17 @@ rot <- as.matrix(rowData(sce.mnn))
 print('Writing results to MAT file...')
 start_time = Sys.time()
 
-writeMat(resultsmatfile, mnn=mnn, hvgs=chosen.hvgs, rot=rot, sizefactors=sizeFactors(sce))
+mnnfile<-file.path(tmp_path,paste0(tmp_fileroot,"_mnn.csv"))
+rotfile<-file.path(tmp_path,paste0(tmp_fileroot,"_rot.csv"))
+hvgfile<-file.path(tmp_path,paste0(tmp_fileroot,"_hvgs.txt"))
+
+write.table(mnn, file=mnnfile, sep=',', row.names = F, col.names = F)
+write.table(rot, file=rotfile, sep=',', row.names = F, col.names = F)
+# write.table(chosen.hvgs, file=hvgfile, sep=',', row.names = F, col.names = F)
+writeLines(chosen.hvgs,con = hvgfile)
+
+# writeMat(resultsmatfile, mnn=mnn, hvgs=chosen.hvgs, rot=rot, sizefactors=sizeFactors(sce))
+
 
 end_time = Sys.time()
 print(end_time - start_time)
