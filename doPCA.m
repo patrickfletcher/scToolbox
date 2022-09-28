@@ -17,8 +17,6 @@ arguments
     options.pcix=[]
 end
 
-%TODO: return variance explained
-
 %TODO: multibatch PCA - batchelor.  Seems like just a specific choice of
 %centering/scaling??  
 % - center gene expression using grand mean of batch means
@@ -31,7 +29,6 @@ end
 
 % https://stats.stackexchange.com/questions/134282/relationship-between-svd-and-pca-how-to-use-svd-to-perform-pca
 
-%TODO: support returning eigenvalues (PC variances)  si^2/(n-1)
 %TODO: standardized scores = sqrt(n-1)*U
 %TODO: clarify loadings vs principal axes (V).  loadings need: *sqrt(S)
 %TODO: add interface to numerical options of eigs (tolerance, etc)
