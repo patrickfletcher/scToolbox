@@ -144,6 +144,9 @@ rot <- as.matrix(rowData(sce.mnn))
 print('Writing results to MAT file...')
 start_time = Sys.time()
 
+# library(rhdf5)
+# h5write(as.matrix(X),"output.h5","X")
+
 mnnfile<-file.path(tmp_path,paste0(tmp_fileroot,"_mnn.csv"))
 rotfile<-file.path(tmp_path,paste0(tmp_fileroot,"_rot.csv"))
 hvgfile<-file.path(tmp_path,paste0(tmp_fileroot,"_hvgs.txt"))
