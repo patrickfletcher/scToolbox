@@ -28,6 +28,7 @@ min_mean = as.numeric(normpars$min.mean)
 
 hvgpars=mat$hvgpars[,,1]
 do_poissonvar = as.logical(hvgpars$do.poissonvar)
+do_densityweights = as.logical(hvgpars$do.desnityweights)
 do_topn = as.logical(hvgpars$do.topn)
 n_hvg = as.numeric(hvgpars$n.features)
 var_thr = as.numeric(hvgpars$var.thr)
@@ -141,7 +142,7 @@ print(end_time - start_time)
 mnn <- reducedDim(sce.mnn, "corrected")
 rot <- as.matrix(rowData(sce.mnn))
 
-print('Writing results to MAT file...')
+print('Writing results to CSV files...')
 start_time = Sys.time()
 
 # library(rhdf5)
@@ -150,11 +151,13 @@ start_time = Sys.time()
 mnnfile<-file.path(tmp_path,paste0(tmp_fileroot,"_mnn.csv"))
 rotfile<-file.path(tmp_path,paste0(tmp_fileroot,"_rot.csv"))
 hvgfile<-file.path(tmp_path,paste0(tmp_fileroot,"_hvgs.txt"))
+sfsfile<-file.path(tmp_path,paste0(tmp_fileroot,"_sfs.txt"))
 
 write.table(mnn, file=mnnfile, sep=',', row.names = F, col.names = F)
 write.table(rot, file=rotfile, sep=',', row.names = F, col.names = F)
 # write.table(chosen.hvgs, file=hvgfile, sep=',', row.names = F, col.names = F)
 writeLines(chosen.hvgs,con = hvgfile)
+write.table(sizeFactors(sce), file=sfsfile, sep=',', row.names = F, col.names = F)
 
 # writeMat(resultsmatfile, mnn=mnn, hvgs=chosen.hvgs, rot=rot, sizefactors=sizeFactors(sce))
 

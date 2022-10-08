@@ -7,11 +7,11 @@ arguments
     normpars.do_multibatch=false
     normpars.do_pooledsizefactors=false
     normpars.min_mean=0.1
-    hvgpars.n_features=3000
-    hvgpars.do_poissonvar=true
-    hvgpars.do_topn=false
+    hvgpars.n_features=[]
+    hvgpars.do_poissonvar=false
+    hvgpars.do_densityweights=false
     hvgpars.var_thr=0
-    hvgpars.fdr_thr=1
+    hvgpars.fdr_thr=0.1
     mnnpars.k=20
     mnnpars.d=50
     mnnpars.ndist=3
@@ -35,6 +35,8 @@ end
 if options.verbose
     disp("Running " + mfilename + "...")
 end
+
+hvgpars.do_topn=~isempty(hvgpars.n_features);
 
 result.method="scran_fastMNN";
 result.normpars=normpars;
@@ -82,9 +84,11 @@ toc
 mnnfile=fullfile(options.tmp_path, options.tmp_fileroot+"_mnn.csv");
 rotfile=fullfile(options.tmp_path, options.tmp_fileroot+"_rot.csv");
 hvgfile=fullfile(options.tmp_path, options.tmp_fileroot+"_hvgs.txt");
+sfsfile=fullfile(options.tmp_path, options.tmp_fileroot+"_sfs.txt");
 result.coords=readmatrix(mnnfile);
 result.coeff=readmatrix(rotfile);
 result.hvgs=string(readcell(hvgfile));
+result.sizefactors=readmatrix(sfsfile);
 
 % R_result=load(options.resultfile);
 % result.coords=R_result.mnn;
