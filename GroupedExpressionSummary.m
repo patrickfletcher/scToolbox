@@ -130,6 +130,7 @@ classdef GroupedExpressionSummary < handle
                 options.transform="" %specify what transform was done
                 options.invtransform="" %and how to reverse it if needed?
                 options.do_full=true
+                options.verbose=false
             end
             %constructor.
             % -genes is a table containing the basics: id, name, n_cells, n_umi
@@ -197,14 +198,20 @@ classdef GroupedExpressionSummary < handle
             ges.pooled.name=ges.gene;
             ges.pooled.Properties.RowNames=ges.gene;
             ges.computeSummaries(expr, ["mean","prop","std","min","max"],use_group=0,block_reduce=options.block_reduce);
+            
+            if options.verbose
             toc
+            end
 
             %compute group summaries
 %             if ges.n_groups>1
                 tic
                 % basic grouped values
                 ges.computeSummaries(expr, ["mean","prop","std"],block_reduce=options.block_reduce);
+                
+                if options.verbose
                 toc
+                end
 % 
 %                 % basic effect sizes
 %                 tic
