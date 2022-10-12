@@ -21,6 +21,9 @@ arguments
     opts.draworder {mustBeMember(opts.draworder,["random","index","revind","flat"])} ='flat'
 %     opts.do_keypress=false
     opts.textlabs=false
+
+    opts.hide_axis=true
+
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
 
@@ -181,7 +184,7 @@ for i=1:nSplit
                         tpos(3)=nGrp+1; 
                     case 'revind'
                     case 'random'
-                    case 'flat' %not ordered - keep as 2D (eg. for alpha)
+                    case 'flat' 
                     otherwise
                 end
             end
@@ -192,13 +195,17 @@ for i=1:nSplit
 
     hold off
 
-    axis off
     if nSplit>1
         title(snames{i})
     end
 
     %by default tight/equal?
-    axis(ax(i),'tight','equal')
+%     axis(ax(i),'tight','equal')
+    ax(i).XTickLabelMode='auto';
+    ax(i).YTickLabelMode='auto';
+    if opts.hide_axis
+        axis(ax(i),'off')
+    end
 end
 
 % common title/colorbar
@@ -216,6 +223,7 @@ if length(ax)>1
     linkaxes(ax)
 end
 
+axes(ax(1))
 
 hsc.fig=fh;
 hsc.ax=ax;
