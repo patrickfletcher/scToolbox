@@ -18,6 +18,7 @@ arguments
     params.dens_lambda=2; %weight of density term in optimization
     params.dens_frac=0.3; %final fraction of epochs to use density term
     params.dens_var_shift=0.1; %small constant to prevent div by zero
+    options.do_parallel=false;
     options.verbose=false
     options.figID = []
 end
@@ -54,6 +55,7 @@ initY=params.initY;
 metric=params.metric;
 nn_method=params.nn_method;
 verbose=options.verbose;
+do_parallel=options.do_parallel;
 
 if isempty(initY)
     initY="spectral";
@@ -69,7 +71,7 @@ elseif isnumeric(initY)&&numel(initY)<10
     initY=py.numpy.array(initY,'float32',pyargs('order','C'));
 elseif size(initY,1)==size(X,1)
     initY=py.numpy.array(initY,'float32',pyargs('order','C'));
-elseif initY~="spectral" && initY~="random"
+elseif initY~="spectral" && initY~="random" && initY~="pca"
     error('unknown initialization method for UMAP');
 end
 
@@ -181,7 +183,15 @@ if params.do_densmap
         'frac',params.dens_frac,'var_shift',params.dens_var_shift));
 end
 
-kwargs = pyargs('verbose',verbose,'densmap',params.do_densmap,'densmap_kwds',densmap_kwds,'output_dens',false);
+%doesn't work on my system for some reason
+% do_parallel=true;
+if do_parallel
+    py_rand_state=py.numpy.random.RandomState();
+end
+
+
+kwargs = pyargs('verbose',verbose,'densmap',params.do_densmap,'densmap_kwds', ...
+    densmap_kwds,'output_dens',false, 'parallel',do_parallel);
 
 %metric here is for Spectral initY only
 metric=params.metric; %set it back to the original metric choice in case we used pre-computed.
