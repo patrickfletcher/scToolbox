@@ -23,8 +23,11 @@ arguments
     opts.isdiverging=false
 
     opts.draw_outline=true %when splitby is used draw all points behind
-    opts.outline_col=0.85*[1,1,1];
+    opts.outline_col=0.9*[.9,.95,1];
     opts.draworder {mustBeMember(opts.draworder,["random","value","valrev","flat"])} ='flat'
+
+    opts.hide_axis=true
+
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
 %returns a struct containing all handles for post-modification
@@ -130,8 +133,8 @@ for i=1:nSplit
     if nSplit>1 && opts.draw_outline
         hs0=scatterfun(coords,opts.outline_col);
         hs0.Annotation.LegendInformation.IconDisplayStyle='off';
+        hold on
     end
-    hold on
 
     if n>1
         thisgrp=splitby==snames{i};
@@ -174,6 +177,7 @@ for i=1:nSplit
         cbtick(end)=floor(max(cbtick)*10^opts.cbDigits)/10^opts.cbDigits;
         hcb(i).Ticks=sort(cbtick);
 %         hcb(i).TickLength=opts.cbdims(2);
+%         ylabel(hcb(i),snames{i})
     else
         if opts.isdiverging
             ax(i).CLim=maxmagc*[-1,1];
@@ -183,12 +187,10 @@ for i=1:nSplit
             end
         end
     end
-    
-    axis(ax(i),'off','tight','equal')
 
-%     if nSplit>1
+    if nSplit>1
         title(snames{i},'FontWeight','normal')
-%     end
+    end
 
     if ~isempty(opts.cmap)
         colormap(ax(i),opts.cmap)
@@ -205,16 +207,23 @@ for i=1:nSplit
         otherwise
     end
     end
+
+%     axis(ax(i),'off','tight','equal')
+    ax(i).XTickLabelMode='auto';
+    ax(i).YTickLabelMode='auto';
+    if opts.hide_axis
+        axis(ax(i),'off')
+    end
 end
 
 % common title/colorbar
 ht=[];
 if ~isempty(opts.title)
-%     if nSplit>1
-%         ht=sgtitle(opts.title); %specify the figure?
-%     else
+    if nSplit>1
+        ht=sgtitle(opts.title); %specify the figure?
+    else
         ht=title(opts.title); %specify the axis?
-%     end
+    end
 end
 if opts.commonCbar
     rectpos=[opts.margins(1:2),1-opts.margins(3:4)-opts.margins(1:2)];
@@ -238,11 +247,13 @@ end
 
 % ax(end).Selected='on';
 
-% if do3D
-%     axis(ax,'vis3d')
+if do3D
+    axis(ax,'vis3d')
 % elseif length(ax)>1
-%     linkaxes(ax)
-% end
+end
+if length(ax)>1
+    linkaxes(ax)
+end
 
 axes(ax(1))
 
