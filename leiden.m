@@ -37,40 +37,57 @@ N = int32(N); %cast to int for python
 sources = int32(sources-1); %convert to zero-based index as well
 targets = int32(targets-1);
 
-if length(params.resolution)==1
+n_part =length(params.resolution);
 
-% def find_partition(N,sources,targets,
-% weights=None, node_sizes=None, initial_membership=None, partition_type="RBC",
-% resolution=1, n_iterations=-1, max_comm_size=0, rng_seed=None)
+counts={};
+K=zeros(1,n_part);
+mod=zeros(1,n_part);
+q=zeros(1,n_part);
+clusterID=zeros(size(X,1),n_part);
+for r=1:n_part
 
-kwargs=pyargs('weights', weights, 'resolution', params.resolution,'n_iterations', ...
-    int32(params.n_iterations), 'max_comm_size', int32(params.max_comm_size), ...
-    'rng_seed', int32(params.rng_seed));
-
-partition=py.leiden.find_partition(N,sources,targets,partition_type, kwargs);
-
-groups = py.numpy.array(partition.membership);
-clusterID=double(groups);
-clusterID=clusterID+1; %python is 0-based
-K=max(clusterID); 
-
-%relabel to be in decreasing size
-nT=arrayfun(@(x)nnz(clusterID==x),1:K);
-if params.doRelabel
-    [nT,ix]=sort(nT,'descend');
-    IDold=clusterID;
-    for i=1:K
-        clusterID(IDold==ix(i))=i;
+    % def find_partition(N,sources,targets,
+    % weights=None, node_sizes=None, initial_membership=None, partition_type="RBC",
+    % resolution=1, n_iterations=-1, max_comm_size=0, rng_seed=None)
+    
+    kwargs=pyargs('weights', weights, 'resolution', params.resolution(r),'n_iterations', ...
+        int32(params.n_iterations), 'max_comm_size', int32(params.max_comm_size), ...
+        'rng_seed', int32(params.rng_seed));
+    
+    pypart=py.leiden.find_partition(N,sources,targets,partition_type, kwargs);
+    
+    groups = py.numpy.array(pypart.membership);
+    ids=double(groups);
+    ids=ids+1; %python is 0-based
+    k=max(ids); 
+    
+    %relabel to be in decreasing size
+    nT=arrayfun(@(x)nnz(ids==x),1:k);
+    if params.doRelabel
+        [nT,ix]=sort(nT,'descend');
+        IDold=ids;
+        for i=1:k
+            ids(IDold==ix(i))=i;
+        end
     end
+
+    K(r)=k;
+    mod(r)=pypart.modularity;
+    q(r)=pypart.q;
+    clusterID(:,r)=ids;
+    counts{r} = nT;
 end
 
-else
-end
-
-
-% result.partition=partition;
 result.K=K;
+result.mod=mod;
+result.q=q;
 result.clusterID=clusterID;
-result.mod=partition.modularity;
-result.q=partition.q;
-result.clusterCounts = nT;
+result.counts=counts;
+
+pinfo=table;
+pinfo.res=params.resolution(:);
+pinfo.K=K(:);
+pinfo.mod=mod(:);
+pinfo.q=q(:);
+
+result.info=pinfo;
