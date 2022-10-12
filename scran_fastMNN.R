@@ -93,6 +93,7 @@ block=split1
 #options? libsize
 # - seems like a different option for partitioning might work... 
 
+clust.pin <- NULL
 if (do_pooledsizefactors==T) {
   print('computeSumFactors...')
   start_time = Sys.time()
@@ -158,6 +159,12 @@ write.table(rot, file=rotfile, sep=',', row.names = F, col.names = F)
 # write.table(chosen.hvgs, file=hvgfile, sep=',', row.names = F, col.names = F)
 writeLines(chosen.hvgs,con = hvgfile)
 write.table(sizeFactors(sce), file=sfsfile, sep=',', row.names = F, col.names = F)
+
+clustfile<-file.path(tmp_path,paste0(tmp_fileroot,"_qclust.txt"))
+if (do_pooledsizefactors==T) {
+  write.table(clust.pin, file=clustfile, sep=',', row.names = F, col.names = F)
+}
+
 
 # writeMat(resultsmatfile, mnn=mnn, hvgs=chosen.hvgs, rot=rot, sizefactors=sizeFactors(sce))
 

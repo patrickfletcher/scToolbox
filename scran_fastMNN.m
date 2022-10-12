@@ -90,6 +90,12 @@ result.coeff=readmatrix(rotfile);
 result.hvgs=string(readcell(hvgfile));
 result.sizefactors=readmatrix(sfsfile);
 
+clustfile=fullfile(options.tmp_path, options.tmp_fileroot+"_qclust.txt");
+if normpars.do_pooledsizefactors
+    result.qclust=string(readcell(clustfile));
+end
+
+
 % R_result=load(options.resultfile);
 % result.coords=R_result.mnn;
 % result.coeff=R_result.rot;
