@@ -1,4 +1,4 @@
-function [tree, D, oo] = build_cluster_tree(X, clustid, options)
+function [tree, S, oo, clust_summary, g, ID] = build_cluster_tree(X, clustid, options)
 arguments
     X
     clustid
@@ -12,8 +12,8 @@ end
 %clusters specified in clustid. Computes distance matrix D from "average"
 %representative of each cluster, in X-space.
 
-% [g,ID]=findgroups(clustid);
-[g,ID]=grp2idx(string(clustid));
+[g,ID]=findgroups(clustid);
+% [g,ID]=grp2idx(string(clustid));
 
 switch options.summary_method
     case "mean"
@@ -40,6 +40,5 @@ if options.do_plot
 %     axis(gca,"square")
     hcg=clustergram(S, Symmetric=0, Colormap=turbo, ColumnLabels=ID, RowLabels=ID,...
         linkage=options.linkage, ColumnPDist=options.distance_metric, RowPDist=options.distance_metric);
-%     axis(gca,"square")
 end
         
