@@ -1,7 +1,7 @@
 function [ncounts,sfs]=normalizeCounts(counts, options)
 arguments
     counts
-    options.method="libsize"
+    options.sizefactors=[]
     options.scale=[]
     options.max_frac=[]
 end
@@ -18,7 +18,6 @@ end
 
 %TODO: params.method, etc. 
 
-method=options.method;
 scale=options.scale;
 max_frac=options.max_frac;
 
@@ -40,7 +39,11 @@ if exclude_hiexp
 end
 
 %size factors
-sfs=counts_per_cell/scale;
+sfs=options.sizefactors;
+if isempty(sfs)
+    sfs=counts_per_cell/scale;
+end
+sfs=sfs(:)';
 
 % %alt: DESeq - do I need to geomean only positive vals to avoid divbyzeros?
 % gm=geomean(counts,2); %pseudoreference sample (cell)
