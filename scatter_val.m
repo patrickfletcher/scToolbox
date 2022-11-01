@@ -23,7 +23,7 @@ arguments
     opts.isdiverging=false
 
     opts.draw_outline=true %when splitby is used draw all points behind
-    opts.outline_col=0.9*[.9,.95,1];
+    opts.outline_col=0.85*[1,1,1];
     opts.draworder {mustBeMember(opts.draworder,["random","value","valrev","flat"])} ='flat'
 
     opts.hide_axis=true
@@ -130,7 +130,7 @@ maxcvals=max(cvals(:));
 
 for i=1:nSplit
     axes(ax(i))
-    if nSplit>1 && opts.draw_outline
+    if opts.draw_outline
         hs0=scatterfun(coords,opts.outline_col);
         hs0.Annotation.LegendInformation.IconDisplayStyle='off';
         hold on
@@ -188,9 +188,9 @@ for i=1:nSplit
         end
     end
 
-    if nSplit>1
+%     if nSplit>1
         title(snames{i},'FontWeight','normal')
-    end
+%     end
 
     if ~isempty(opts.cmap)
         colormap(ax(i),opts.cmap)
@@ -219,11 +219,11 @@ end
 % common title/colorbar
 ht=[];
 if ~isempty(opts.title)
-    if nSplit>1
+%     if nSplit>1
         ht=sgtitle(opts.title); %specify the figure?
-    else
-        ht=title(opts.title); %specify the axis?
-    end
+%     else
+%         ht=title(opts.title); %specify the axis?
+%     end
 end
 if opts.commonCbar
     rectpos=[opts.margins(1:2),1-opts.margins(3:4)-opts.margins(1:2)];
@@ -266,56 +266,3 @@ hsc.opts=opts;
 hsc.scopts=scopts;
 
 end
-
-% %more location options (side,low/center/high)
-% function hcb=makeCB(ax,rectpos,gap,dims,placement,justify)
-%     %common features of east/west or north/south
-%     switch placement
-%         case {'east','west'}
-%             cbh=dims(1)*rectpos(4);
-%             cbw=dims(2);
-%             switch justify
-%                 case 'low'
-%                     cby=rectpos(2);
-%                 case 'midlo'
-%                     cby=rectpos(2)+(rectpos(4)-cbh)*0.25;
-%                 case 'mid'
-%                     cby=rectpos(2)+(rectpos(4)-cbh)*0.5;
-%                 case 'midhi'
-%                     cby=rectpos(2)+(rectpos(4)-cbh)*0.75;
-%                 case 'high'
-%                     cby=rectpos(2)+rectpos(4)-cbh;
-%             end
-%         case {'north','south'}
-%             cbw=dims(1)*rectpos(3);
-%             cbh=dims(2);
-%             switch justify
-%                 case 'low'
-%                     cbx=rectpos(1);
-%                 case 'midlo'
-%                     cbx=rectpos(1)+(rectpos(3)-cbw)*0.25;
-%                 case 'mid'
-%                     cbx=rectpos(1)+(rectpos(3)-cbw)*0.5;
-%                 case 'midhi'
-%                     cbx=rectpos(1)+(rectpos(3)-cbw)*0.75;
-%                 case 'high'
-%                     cbx=rectpos(1)+rectpos(3)-cbw;
-%             end
-%     end
-%     %unique features of each side: gap from axis
-%     switch placement
-%         case 'east'
-%             cbx=rectpos(1)+rectpos(3)+gap;
-%         case 'west'
-%             cbx=rectpos(1)-gap-cbw;
-%         case 'north'
-%             cby=rectpos(2)+rectpos(4)+gap;
-%         case 'south'
-%             cby=rectpos(2)-gap-cbh;
-%     end
-%     
-% 
-% %     [cbx,cby,cbw,cbh]
-%     hcb=colorbar(ax,placement);
-%     hcb.Position=[cbx,cby,cbw,cbh];
-% end
