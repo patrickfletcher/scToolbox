@@ -34,6 +34,7 @@ if isempty(newids)
     newids=oldids(ixs);
     if options.do_numbers
         newids = 1:length(oldids);
+        clustid=zeros(size(clustid));
     end
 end
 
@@ -41,6 +42,6 @@ for i=1:length(oldids)
     clustid(old_clustid==oldids(ixs(i)))=newids(i);
 end
 
-% if options.do_categorical
-%     clustid=categorical(clustid,newids,newids);
-% end
+if options.do_categorical
+    clustid=categorical(clustid,newids,newids);
+end
