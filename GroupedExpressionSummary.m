@@ -573,17 +573,18 @@ classdef GroupedExpressionSummary < handle
 
         % extract the top markers across all clusters based on thresholding
         % effect size summary tables
-        function result = topMarkers(ges, summary_name, method, selfnames, options)
+        function result = topMarkers(ges, summary_name, method, selfnames, othernames, options)
             arguments
                 ges
                 summary_name = "minrank_delta_prop"
                 method = "thr"
                 selfnames = ges.group_names
+                othernames = ges.group_names
                 options.nTop=10;
                 options.thr=5;
                 options.p=95;
                 options.min_self_prop=0
-%                 options.max_other_prop=1
+                options.max_other_prop=1
             end
             %default: keep minrank_delta_prop<=5
 
@@ -597,10 +598,12 @@ classdef GroupedExpressionSummary < handle
             result=table;
             for i=1:length(selfnames)
                 thisname=selfnames(i);
+                thisothers=setdiff(othernames,thisname);
                 thistab=ges.effectsizes.(thisname).summary;
 
-                propfilt=ges.grouped.prop.(thisname)>options.min_self_prop;
-%                 propfilt=propfilt&
+                minpropfilt=ges.grouped.prop.(thisname)>options.min_self_prop;
+                maxpropfilt=all(ges.grouped.prop{:,thisothers}<options.max_other_prop,2);
+                propfilt=minpropfilt&maxpropfilt;
                 thistab=thistab(propfilt,:);
     
                 thistab=sortrows(thistab,summary_name,sortdir,'missingplacement','last');
