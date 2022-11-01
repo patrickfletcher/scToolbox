@@ -5,7 +5,7 @@ arguments
     params.subset=[] %can be name of class or index of observations
     params.precomputed_nn=false
     params.n_neighbors=10
-    params.metric="euclidean"
+    params.metric="correlation"
     params.method="mode"
     params.exclude_self=true
     params.exclude_class=""
