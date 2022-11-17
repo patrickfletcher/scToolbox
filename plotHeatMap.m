@@ -9,10 +9,6 @@ function [ax,hc,lCG,htypelabs,subsamp, cellPerm, varPerm]=plotHeatMap(X,varNames
 %todo: manage groups of zero size consistently
 %TODO: column vs row vector group sub
 
-%%%% input parsing
-% p=inputParser();
-
-
 
 % HMgeneAxlabel='Genes';
 HMgeneAxlabel='Marker genes';
