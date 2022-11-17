@@ -10,8 +10,8 @@ arguments
     hvgpars.n_features=[]
     hvgpars.do_poissonvar=false
     hvgpars.do_densityweights=false
-    hvgpars.var_thr=0
-    hvgpars.fdr_thr=0.1
+    hvgpars.var_thr=0.001
+    hvgpars.fdr_thr=0.05
     mnnpars.k=20
     mnnpars.d=50
     mnnpars.ndist=3

@@ -1,4 +1,4 @@
-# command line script to run Seurat SCTransform normalization + fastMNN
+# command line script to run Seurat scran normalization + fastMNN
 suppressPackageStartupMessages(library(DropletUtils))
 suppressPackageStartupMessages(library(scran))
 suppressPackageStartupMessages(library(batchelor))
@@ -28,7 +28,7 @@ min_mean = as.numeric(normpars$min.mean)
 
 hvgpars=mat$hvgpars[,,1]
 do_poissonvar = as.logical(hvgpars$do.poissonvar)
-do_densityweights = as.logical(hvgpars$do.desnityweights)
+do_densityweights = as.logical(hvgpars$do.densityweights)
 do_topn = as.logical(hvgpars$do.topn)
 n_hvg = as.numeric(hvgpars$n.features)
 var_thr = as.numeric(hvgpars$var.thr)
@@ -118,7 +118,7 @@ if (do_poissonvar==T) {
   blk <- modelGeneVarByPoisson(sce, block=block, min.mean=min_mean)
 } else
 {
-  blk <- modelGeneVar(sce, block=block, min.mean=min_mean)
+  blk <- modelGeneVar(sce, block=block, min.mean=min_mean, density.weights=do_densityweights)
 }
 
 if (do_topn==T) {
