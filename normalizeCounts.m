@@ -2,7 +2,7 @@ function [ncounts,sfs]=normalizeCounts(counts, options)
 arguments
     counts
     options.sizefactors=[]
-    options.scale=[]
+    options.scale="median"
     options.max_frac=[]
 end
 %normalize counts
@@ -27,8 +27,11 @@ exclude_hiexp=~isempty(max_frac);
 counts_per_cell=full(sum(counts,1));
 
 %scale computed before exclude genes
-if isempty(scale)
-    scale=median(counts_per_cell);
+switch scale
+    case "median"
+        scale=median(counts_per_cell);
+    case "mean"
+        scale=mean(counts_per_cell);
 end
 
 if exclude_hiexp
