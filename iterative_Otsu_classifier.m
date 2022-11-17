@@ -22,8 +22,12 @@ end
 % Use gene scores + thresholding to call each cell type - a cell can be
 % assigned 0, 1, or many cell types.
 
+%what about using score ranks? generate ecdf: then scores are all in [0,1]
+
 M=markers;
 CTs=unique(M.celltype,'stable')';
+CTo=[CTs,"Unc"];
+% CTo=CTs;
 nCells=size(tcounts,2);
 
 block=options.blockvar;
@@ -125,7 +129,7 @@ for r=1:options.nReps
 
         M=table;
         for i=1:length(options.summary)
-            M=[M;ges.topMarkers(options.summary(i),options.method, CTs, CTs, ...
+            M=[M;ges.topMarkers(options.summary(i),options.method, CTs, CTo, ...
                   nTop=options.ntop, min_self_prop=options.min_self_prop)];
         end
         M=M(:,1:2);
