@@ -48,7 +48,11 @@ if params.exclude_self
     nnix(:,1)=[]; %don't remove self in case we need "myID"
     Dix(:,1)=[];
 end
+
 NnClass=input_class(nnix);
+if nnz(to_impute)==1
+    NnClass=NnClass';
+end
 
 class_imputed=input_class(to_impute)';
 switch params.method
