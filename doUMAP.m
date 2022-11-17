@@ -204,6 +204,7 @@ embedded = umap.simplicial_set_embedding(X, emb_graph,...
 disp("simplicial_set_embedding time: " + num2str(toc) + "s")
     
 %store the results
+tic
 result.graph=sparse(double(emb_graph.toarray())); %is this correct?
 % result.sigmas=double(emb_sigmas);
 % result.rhos=double(emb_rhos); 
@@ -211,10 +212,13 @@ result.graph=sparse(double(emb_graph.toarray())); %is this correct?
 result.a=double(a);
 result.b=double(b);
 result.coords=double(embedded{1});
+disp("extract and store result time: " + num2str(toc) + "s")
 
+if nargout==2
 %connectivities used to generate UMAP's graph:
 used_knn.indices=knn_indices;
 used_knn.dists=knn_dists;
+end
 
 %connectivities in UMAP graph:
 % [s,t,w]=find(cg.umap.graph);
