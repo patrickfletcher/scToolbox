@@ -3,7 +3,7 @@ arguments
     data
     group
     varNames
-    groupColors
+    groupColors=[]
     options.bandwidths=[]
     options.widths=0.3
     options.ymode='left'
