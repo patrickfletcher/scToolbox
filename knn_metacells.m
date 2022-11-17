@@ -30,8 +30,8 @@ else
     dist=dist(:,2:end);
 end
 
-%add counts of the K nearest neighbors
-MC=C;
+%add counts of the K nearest neighbors to self
+MC=C; %self
 for i=1:options.n_neighbors
     MC=MC+C(:,nnix(:,i));
 end
