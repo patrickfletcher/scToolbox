@@ -23,7 +23,8 @@ arguments
     opts.isdiverging=false
 
     opts.draw_outline=true %when splitby is used draw all points behind
-    opts.outline_col=0.85*[1,1,1];
+    opts.outline_col=0.85*[1,1,1]
+    opts.outline_size=4
     opts.draworder {mustBeMember(opts.draworder,["random","value","valrev","flat"])} ='flat'
 
     opts.hide_axis=true
@@ -70,16 +71,22 @@ end
 nSplit=length(snames);
 
 % default markersize
-% defsz=13-log(nObs);
-defsz=3;
+defsz=12-log(nObs);
+if ~isempty(scopts.SizeData)
+    defsz=scopts.SizeData;
+end
+if isempty(opts.outline_size)
+    opts.outline_size=defsz*3;
+end
+scopts=rmfield(scopts,'SizeData');
 
 %support 3D scatterplots
 do3D=false;
 scoptargs=namedargs2cell(scopts);
 if nDim==2
-    scatterfun=@(X,C)scatter(X(:,1),X(:,2),defsz,C,'filled',scoptargs{:});
+    scatterfun=@(X,S,C)scatter(X(:,1),X(:,2),S,C,'filled',scoptargs{:});
 elseif nDim==3
-    scatterfun=@(X,C)scatter3(X(:,1),X(:,2),X(:,3),defsz,C,'filled',scoptargs{:});
+    scatterfun=@(X,S,C)scatter3(X(:,1),X(:,2),X(:,3),S,C,'filled',scoptargs{:});
     do3D=true;
 else
     error('coors are not 2 or 3 dimensional');
@@ -128,10 +135,14 @@ end
 mincvals=min(cvals(:));
 maxcvals=max(cvals(:));
 
+if opts.draw_outline && isempty(opts.outline_size)
+    opts.outline_size=scopts.SizeData*3;
+end
+
 for i=1:nSplit
     axes(ax(i))
     if opts.draw_outline
-        hs0=scatterfun(coords,opts.outline_col);
+        hs0=scatterfun(coords, opts.outline_size, opts.outline_col);
         hs0.Annotation.LegendInformation.IconDisplayStyle='off';
         hold on
     end
@@ -145,8 +156,9 @@ for i=1:nSplit
         thiscvals=cvals(thisgrp);
         thiscoords=coords(thisgrp,:);
     end
-    hs(i)=scatterfun(thiscoords,thiscvals);
+    hs(i)=scatterfun(thiscoords, defsz, thiscvals);
     
+
     minc=min(thiscvals);
     maxc=max(thiscvals);
     maxmagc=max(abs(thiscvals(:)));

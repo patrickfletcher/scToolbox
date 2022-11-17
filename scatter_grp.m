@@ -11,10 +11,10 @@ arguments
     opts.panels=[] %specific layout of [nrow, ncol] subplots
 
     opts.draw_outline=false %when splitby is used draw all points behind
-    opts.outline_ident=[];
-    opts.outline_alpha=0.9;
-    opts.outline_col=0.85*[1,1,1];
-    opts.outline_size=4
+    opts.outline_ident=[]
+    opts.outline_alpha=0.9
+    opts.outline_col=0.85*[1,1,1]
+    opts.outline_size=[]
     opts.gcols=[]
     opts.darken_edges=0
     opts.darken_strength=0.2 %in [0,1]: how far towards black to interp
@@ -30,16 +30,22 @@ end
 [nObs,nDim]=size(coords);
 
 % default markersize
-% defsz=12-log(nObs);
-defsz=3;
+defsz=12-log(nObs);
+if ~isempty(scopts.SizeData)
+    defsz=scopts.SizeData;
+end
+if isempty(opts.outline_size)
+    opts.outline_size=defsz*3;
+end
+scopts=rmfield(scopts,'SizeData');
 
 %support 3D scatterplots
 do3D=false;
 soptargs=namedargs2cell(scopts);
 if nDim==2
-    scatterfun=@(X,S,C,A)scatter(X(:,1),X(:,2),S,C,'filled','MarkerFaceAlpha',A,soptargs{:});
+    scatterfun=@(X,S,C)scatter(X(:,1),X(:,2),S,C,'filled',soptargs{:});
 elseif nDim==3
-    scatterfun=@(X,S,C,A)scatter3(X(:,1),X(:,2),X(:,3),S,C,'filled','MarkerFaceAlpha',A,soptargs{:});
+    scatterfun=@(X,S,C)scatter3(X(:,1),X(:,2),X(:,3),S,C,'filled',soptargs{:});
     do3D=true;
 %     disp('3D scatterplot')
 else
@@ -138,7 +144,7 @@ for i=1:nSplit
         else
             out_ix=opts.outline_ident;
         end
-        hs0(i)=scatterfun(coords(out_ix,:), opts.outline_size, opts.outline_col, opts.outline_alpha);
+        hs0(i)=scatterfun(coords(out_ix,:), opts.outline_size, opts.outline_col);
         hs0(i).Annotation.LegendInformation.IconDisplayStyle='off';
         hs0(i).ZData=(-nGrp-1)*ones(size(hs0(i).XData));
 %         hs0.MarkerFaceAlpha=opts.outline_alpha;
@@ -150,7 +156,7 @@ for i=1:nSplit
     for j=1:nGrp
         thisgrp=groupby(:)==gnames{j};
         cellsub=thisgrp & this_split;
-        hs(j)=scatterfun(coords(cellsub,:), defsz, gcols(j,:), 1);
+        hs(j)=scatterfun(coords(cellsub,:), defsz, gcols(j,:));
         hs(j).DisplayName=gnames{j};
 
         if ~do3D
@@ -192,6 +198,9 @@ for i=1:nSplit
         end
     end
 
+%     if opts.draw_outline
+%         hs0(i).SizeData=hs(1).SizeData*3;
+%     end
 
     hold off
 
