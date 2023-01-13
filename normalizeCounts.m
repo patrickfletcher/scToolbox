@@ -4,6 +4,7 @@ arguments
     options.sizefactors=[]
     options.scale="median"
     options.max_frac=[]
+    options.scale_value = 1e4
 end
 %normalize counts
 
@@ -32,6 +33,8 @@ switch scale
         scale=median(counts_per_cell);
     case "mean"
         scale=mean(counts_per_cell);
+    case "value"
+        scale = options.scale_value;
 end
 
 if exclude_hiexp
