@@ -1,4 +1,4 @@
-function hcb=makeCB(ax,rectpos,gap,dims,placement,justify)
+function [hcb, cblab]=makeCB(ax,rectpos,gap,dims,placement,justify, label)
 arguments
     ax=[]
     rectpos=[]
@@ -6,6 +6,7 @@ arguments
     dims=[0.3,0.02]
     placement {mustBeMember(placement,["east","west","north","south"])}='east'
     justify {mustBeMember(justify,["low","midlo","mid","midhi","high"])}='high'
+    label = ""
 end
 
 if isempty(ax)
@@ -63,3 +64,13 @@ end
 %     [cbx,cby,cbw,cbh]
 hcb=colorbar(ax,placement);
 hcb.Position=[cbx,cby,cbw,cbh];
+
+cblab = [];
+if ~isempty(label)
+    switch placement
+        case {'east','west'}
+            cblab=ylabel(hcb,label);
+        case {'north','south'}
+            cblab=xlabel(hcb,label);
+    end
+end
