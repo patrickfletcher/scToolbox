@@ -26,18 +26,19 @@ arguments
 
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
+%returns a struct containing all handles for post-modification
 
 [nObs,nDim]=size(coords);
 
 % default markersize
 defsz=12-log(nObs);
-if ~isempty(scopts.SizeData)
+if isfield(scopts,"SizeData")
     defsz=scopts.SizeData;
+    scopts=rmfield(scopts,'SizeData');
 end
 if isempty(opts.outline_size)
     opts.outline_size=defsz*3;
 end
-scopts=rmfield(scopts,'SizeData');
 
 %support 3D scatterplots
 do3D=false;

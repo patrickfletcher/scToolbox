@@ -35,6 +35,16 @@ end
 
 [nObs,nDim]=size(coords);
 
+% default markersize
+defsz=12-log(nObs);
+if isfield(scopts,"SizeData")
+    defsz=scopts.SizeData;
+    scopts=rmfield(scopts,'SizeData');
+end
+if isempty(opts.outline_size)
+    opts.outline_size=defsz*3;
+end
+
 %default colors
 if isempty(cvals)
     cvals=ones(nObs,1);
@@ -69,16 +79,6 @@ if ~isempty(opts.splitnames) && length(opts.splitnames)==length(snames)
     splitby=renamecats(splitby,snames);
 end
 nSplit=length(snames);
-
-% default markersize
-defsz=12-log(nObs);
-if ~isempty(scopts.SizeData)
-    defsz=scopts.SizeData;
-end
-if isempty(opts.outline_size)
-    opts.outline_size=defsz*3;
-end
-scopts=rmfield(scopts,'SizeData');
 
 %support 3D scatterplots
 do3D=false;
