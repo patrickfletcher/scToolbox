@@ -1,4 +1,4 @@
-function result=iterative_corr_classifier(tcounts, genes, markers, options, options)
+function result=iterative_corr_classifier(tcounts, genes, markers, options)
 arguments
     tcounts
     genes
