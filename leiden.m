@@ -24,6 +24,8 @@ if count(Pypath,sctoolpath) == 0 && ~isempty(sctoolpath)
     insert(Pypath,int32(0),sctoolpath);
 end
 
+pyleiden = py.importlib.import_module('leiden');
+
 %X should contain the graph from umap... need to convert to a csr matrix
 %can't pass sparse to python
 
@@ -54,7 +56,7 @@ for r=1:n_part
         int32(params.n_iterations), 'max_comm_size', int32(params.max_comm_size), ...
         'rng_seed', int32(params.rng_seed));
     
-    pypart=py.leiden.find_partition(N,sources,targets,partition_type, kwargs);
+    pypart=pyleiden.find_partition(N,sources,targets,partition_type, kwargs);
     
     groups = py.numpy.array(pypart.membership);
     ids=double(groups);
