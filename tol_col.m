@@ -6,7 +6,6 @@ arguments
     args.N = 256
     args.list=false
 end
-% name=args.name;
 N=args.N;
 
 
