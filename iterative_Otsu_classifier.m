@@ -17,7 +17,10 @@ arguments
     options.summary=["min_cohen_d", "min_delta_prop"]
     options.method="top";
     options.ntop=10;
-    options.min_self_prop=0.1;
+    options.thr=5;
+    options.p=95;
+    options.min_self_prop=0
+    options.max_other_prop=1
 end
 % Use gene scores + thresholding to call each cell type - a cell can be
 % assigned 0, 1, or many cell types.
@@ -56,26 +59,22 @@ for r=1:options.nReps
     % get marker scores
     scores=zeros(length(CTs),nCells);
     scorethr=false(length(CTs),nCells);
-    thr=zeros(length(CTs),1);
+    thr=zeros(length(CTs),length(blocks));
     for j=1:length(blocks)
         blocksub=block==blocks{j};
         T=tcounts(:,blocksub);
         for i=1:length(CTs)
             thisCT=CTs(i);
             mnames=M.gene(M.celltype==thisCT);
-            scores(i,blocksub)=score_genes(mnames, T, genes.name, ctrl_size=options.ctrl_genes);
+            this_score=score_genes(mnames, T, genes.name, ctrl_size=options.ctrl_genes);
+            scores(i,blocksub)=this_score;
+
+            % Identify top scoring cells per marker set
+            % - Otsu thresholds
+            thr(i,j)=geneThresholdOtsu(this_score)*options.thrmult;
+            scorethr(i,blocksub)=this_score>thr(i,1);
         end
     end
-
-    % Identify top scoring cells per marker set
-    % - Otsu thresholds
-    for i=1:length(CTs)
-        this_score=scores(i,:);
-        thr(i,1)=geneThresholdOtsu(this_score)*options.thrmult;
-        scorethr(i,:)=this_score>thr(i,1);
-    end
-
-    % - alt: using correlation to reference built from topK scoring cells
     
     utype=sum(scorethr,1)==1;
     type=strings(nCells,1);
@@ -130,7 +129,7 @@ for r=1:options.nReps
         M=table;
         for i=1:length(options.summary)
             M=[M;ges.topMarkers(options.summary(i),options.method, CTs, CTo, ...
-                  nTop=options.ntop, min_self_prop=options.min_self_prop)];
+                  nTop=options.ntop, min_self_prop=options.min_self_prop, max_other_prop=options.max_other_prop)];
         end
         M=M(:,1:2);
         if options.retain_markers
