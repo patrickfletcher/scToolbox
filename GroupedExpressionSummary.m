@@ -141,6 +141,9 @@ classdef GroupedExpressionSummary < handle
             
             %group setup
             if ~iscategorical(group)
+                if isnumeric(group)
+                    group = compose("c%.2d",group);
+                end
                 group = categorical(group);
             end
             group = removecats(group(:));
@@ -587,6 +590,8 @@ classdef GroupedExpressionSummary < handle
                 options.max_other_prop=1
             end
             %default: keep minrank_delta_prop<=5
+
+            %TODO: could keep top but also require threshold on effect size
 
             sortdir="descend";
             thr_dir="gt";
