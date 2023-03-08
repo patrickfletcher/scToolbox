@@ -1,20 +1,7 @@
 General tools
 - file i/o: 10X h5<->mtx
-
-Preprocessing/QC
-
-Doublet Detection
-- collect my workflow/code, publish on Github
--- name?
-- can any basic theory be done?
-- test on multiple datasets:
--- ground truth
--- 10X, other tech?
-
-Dim reduction/clustering
-
-Differential expression
-
-Plotting
+- use json for R communication: parameter configs, parquet? for large data.
+- a thin file-backed scDataset class would be nice! interop with h5ad, SingleCellExperiment
+- 
 
 
