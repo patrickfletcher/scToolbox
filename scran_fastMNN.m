@@ -64,7 +64,7 @@ parfile=fullfile(options.tmp_path, options.tmp_fileroot+"_pars.mat");
 
 save(parfile,"datafile","cellsubsetfile","splitby","normpars","hvgpars","mnnpars")
 
-Rpath = [FindRpath, filesep, 'Rscript.exe', '" "', '--vanilla '];
+Rpath = [getExternalPath("R"), filesep, 'Rscript.exe', '" "', '--vanilla '];
 scriptfile = mfilename('fullpath')+".R";
 command = char(strjoin([scriptfile,options.tmp_path, options.tmp_fileroot]," "));
 commandline=['"', Rpath, command '"'];
