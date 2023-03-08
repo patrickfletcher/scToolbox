@@ -29,6 +29,7 @@ gpargs=pyargs('organism',organism,'ordered',options.Ordered,...
     'significance_threshold_method',options.significance_threshold_method);
 res=gp.profile(gpargs);
 
+%TODO: remove Core_py2matlab dependency
 res=Core_py2matlab(res);
 res=[res{:}];
 

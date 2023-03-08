@@ -10,6 +10,8 @@ pyquery=py.list(cellstr(query(:)'));
 gOrthArgs=pyargs('organism',source,'query',pyquery,'target',target);
 
 res=gp.orth(gOrthArgs); %returns list of dicts
+
+%TODO: remove Core_py2matlab dependency
 res=Core_py2matlab(res); 
 res=[res{:}];
 orthTab=struct2table(res);
