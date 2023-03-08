@@ -1,4 +1,4 @@
 *.asv
 .vscode
-
+extPaths.csv
 __pycache__
