@@ -50,11 +50,11 @@ result.dists=dists;
 %for graph representation
 % - weight options?
 
-sources = repelem(1:m, k);
-targets = reshape(idx', 1, []);
-weights = reshape(dists', 1, []);
-
 if options.makeGraph
+    sources = repelem(1:m, k);
+    targets = reshape(idx', 1, []);
+    weights = reshape(dists', 1, []);
+    
     switch params.graph_type
         case "knn"
             G=digraph(sources,targets,weights); %already knn
