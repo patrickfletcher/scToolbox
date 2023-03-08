@@ -98,7 +98,7 @@ for i=1:nGroups
 
     result.(groupNames{i})=res;
 
-    res.clust_id=repmat(string(groupNames{i}),height(res),1);
+    res.clust_id=repmat(compose("c%.2d",groupNames{i}),height(res),1);
     restab=[restab;res];
 end
 % result=[];
