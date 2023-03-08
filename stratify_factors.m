@@ -1,8 +1,9 @@
-function [result, name_combos]=stratify_factors(factor1,factor2, separator)
+function [result, name_combos]=stratify_factors(factor1,factor2, opts)
 arguments
     factor1
     factor2
-    separator="_"
+    opts.separator="_"
+    opts.min_count=1
 end
 %combine two categorical arrays into one stratified array
 
@@ -13,7 +14,7 @@ if ~iscategorical(factor2)
     factor2=categorical(factor2);
 end
 
-separator=string(separator);
+separator=string(opts.separator);
 
 %remove cats first?
 factor1=removecats(factor1);
@@ -30,3 +31,12 @@ for i=1:length(factor1Names)
         result(thisf1&thisf2)=factor1Names{i}+separator+factor2Names{j};
     end
 end
+
+cats = categories(result);
+C=countcats(result);
+for i=1:length(cats)
+    if C(i)<opts.min_count
+        result(result==cats{i})=missing();
+    end
+end
+result = removecats(result);
