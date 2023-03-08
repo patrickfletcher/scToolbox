@@ -106,8 +106,8 @@ if doKNN && nn_method=="matlab"
     disp('Computing neighbors...')
     tic
     [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors+1,'Distance',metric); %quite fast!
-    knn_indices(:,1)=[]; %remove self distances
-    knn_dists(:,1)=[];
+%     knn_indices(:,1)=[]; %remove self distances
+%     knn_dists(:,1)=[];
     disp("knnsearch time: " + num2str(toc) + "s")
     metric='precomputed'; %if I do KNN, UMAP doesn't use a metric
 end
