@@ -1,4 +1,12 @@
 function [fh,ax]=plot_violin_QC(QCdata, TF, sampleID, ctnames, cols, figpos)
+arguments
+    QCdata
+    TF 
+    sampleID
+    ctnames 
+    cols 
+    figpos=[]
+end
 
 samples=categories(sampleID);
 
@@ -32,11 +40,11 @@ nplots=length(QCdata);
 for pix=1:nplots
     
     fh(pix)=figure();clf
-    fh(pix).Units='inches';
-    if exist('figpos','var')
+    if ~isempty(figpos)
+    %     fh(pix).Units='inches';
         fh(pix).Position=figpos;
+    %     fh(pix).PaperPositionMode='auto'; 
     end
-    fh(pix).PaperPositionMode='auto';
     nPanels=length(QCdataFields);
     for i=1:nPanels
         ax(i)=tight_subplot(nPanels,1,i,gap,marg_h,marg_w);
