@@ -26,9 +26,14 @@ arguments
     %general
     options.simThr=0.75
     options.nReps=1
+
     options.doPlot=0;
     options.plot_coords=[]
+    options.plot_clusterSim=true
+    options.plot_simThr=true;
 end
+
+thr = options.simThr;
 
 %TODO:
 % - support/force externally computed markers? what API makes sense?
@@ -37,9 +42,16 @@ end
 %
 % - alternative cluster comparison methods: correlation of group means in
 % PC space + linkage?
+%
+% - autothr?
 clust0=clust;
 
 for n=1:options.nReps
+
+    cats = unique(clust);
+    K=length(cats);
+    cc = countcats(categorical(clust,cats));
+    [~,ixs] = sort(cc);
 
     switch options.method
         case "degs"
@@ -47,23 +59,30 @@ for n=1:options.nReps
         case "pca_distance"
             Sim = pca_distance(X, clust, metric=options.dist_metric);
     end
-    
-    [~,cats]=findgroups(clust);
-    K=length(cats);
+
+    y=squareform(Sim-eye(K),'tovector'); numel(y)
+%     thr = geneThresholdOtsu(y(:)')
 
     % merge and relabel
-    [r,c]=find(tril(Sim,-1)>=options.simThr);
-    
-    merged_clust=clust;
-    uC=unique(c);
-    for i=1:length(uC)
-        allR=r(c==uC(i));
-        tomerge = ismember(merged_clust,cats(allR));
-        merged_clust(tomerge)=cats(uC(i));
-    end
+    [r,c]=find(tril(Sim,-1)>=thr);
 
-%     rename_clusters(merged_clust, )
-    %TODO>use rename_clusters.
+    merged_clust=clust;
+%     uC=unique(c);
+    newids=zeros(K,1);
+    for i=1:K
+        equiv = [i; r(c==i)];
+        [~,mix]=max(cc(equiv));
+        tomerge = ismember(merged_clust,cats(equiv));
+        r(ismember(r,equiv))=equiv(mix);
+        if length(equiv)>1 && any(tomerge)
+            newids(equiv)=equiv(mix);
+            merged_clust(tomerge)=cats(equiv(mix));
+        end
+        
+%         allR=r(c==uC(i));
+%         tomerge = ismember(merged_clust,cats(allR));
+%         merged_clust(tomerge)=cats(uC(i));
+    end
 
     remaincats=unique(merged_clust);
     newK=length(remaincats);
@@ -85,30 +104,38 @@ end
 
 
 if options.doPlot
-    fh=figure(1);clf
+    fh=figure();clf
     ht=tiledlayout(1,3);
 
-    Y=squareform(1-Sim);
-    tree=linkage(Y,options.linkage);
-    oo=optimalleaforder(tree,Y);
-%     oo=1:K;
+    oo=1:K;
+    if options.plot_clusterSim
+        Y=squareform(1-Sim);
+        tree=linkage(Y,options.linkage);
+        oo=optimalleaforder(tree,Y);
+    end
 
-%     Sim=Sim-eye(size(Sim));
-    Sim=Sim(oo,oo);
-    Sim=Sim-options.simThr;
+    IM=Sim(oo,oo);
+
+    cmap=turbo;
+    if options.plot_simThr
+        IM=IM-thr;
+        cmap=split_cmap(Skip=16,nMid=1);
+    end
+
     ax=nexttile(ht);
-    imagesc(Sim)
-    %     colormap(ax,turbo);
-    colormap(ax,split_cmap(Skip=16,nMid=1));
+    imagesc(IM)
+    colormap(ax,cmap);
     xticks(1:K)
     xticklabels(cats(oo))
     yticks(1:K)
     yticklabels(cats(oo))
     cb=colorbar;
-    CLIM=[-1,1]*max(abs(Sim(:)));
-    ax.CLim = CLIM;
-    cb.Limits = [min(Sim(:)),max(Sim(:))];
 
+    if options.plot_simThr
+        CLIM=[-1,1]*max(abs(IM(:)));
+        ax.CLim = CLIM;
+        cb.Limits = [min(IM(:)),max(IM(:))];
+    end
 
     ax=nexttile(ht);
     scatter_grp(options.plot_coords, clust0, textlabs=true, ax=ax);
@@ -192,7 +219,7 @@ switch lower(options.simMetric)
     case 'jaccard'
         simfun=@(A,B) nnz(A&B)/(nnz(A|B));
     case 'overlap'
-        simfun=@(A,B) nnz(A&B)/min(nnz(A),nnz(B));
+        simfun=@(A,B) nnz(A&B)/min(nnz(A),nnz(B));  %asymmetric measure
     case 'dice'
         simfun=@(A,B) 2*nnz(A&B)/(nnz(A)+nnz(B));
     case 'correlation'
@@ -203,14 +230,19 @@ end
 
 % now get the similarity matrix. Should this be symmetric? 
 
+%pdist form: rows first, so can just do Sim(:) for linkage...
+% Distances arranged in the order (2,1), (3,1), ..., (m,1), (3,2), ..., (m,2), ..., (m,m – 1))
+
+% asymmetric: overlap but only when row has smaller gene set?
 Sim = zeros(K);
-for i=1:K-1
-    A=isDEG(i,:);
-    for j=i+1:K
-        B=isDEG(j,:);
+for j=1:K-1
+    A=isDEG(j,:);
+    for i=j+1:K
+        B=isDEG(i,:);
         Sim(i,j)=simfun(A,B);
     end
 end
+% makes symmetric. could also use squareform(Sim(:))?
 Sim = Sim + Sim' + eye(size(Sim));
 
 end
