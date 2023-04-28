@@ -576,6 +576,7 @@ classdef GroupedExpressionSummary < handle
 
         % extract the top markers across all clusters based on thresholding
         % effect size summary tables
+        % TODO - do this simultaneously for multiple summary features? 
         function result = topMarkers(ges, summary_name, method, selfnames, othernames, options)
             arguments
                 ges
@@ -588,10 +589,10 @@ classdef GroupedExpressionSummary < handle
                 options.p=95;
                 options.min_self_prop=0
                 options.max_other_prop=1
+                options.summary_min=-inf;
+                options.summary_max=inf;
             end
             %default: keep minrank_delta_prop<=5
-
-            %TODO: could keep top but also require threshold on effect size
 
             sortdir="descend";
             thr_dir="gt";
@@ -619,7 +620,7 @@ classdef GroupedExpressionSummary < handle
                             keep=thistab.(summary_name)<=options.thr; 
                         end
                     case "top"
-                        keep = 1:min(options.nTop,height(thistab));
+                        keep = ismember(1:height(thistab), 1:min(options.nTop,height(thistab)))';
                     case "prctile"
                         thr=prctile(thistab.(summary_name),options.p);
                         keep=thistab.(summary_name)>=thr; 
@@ -627,6 +628,10 @@ classdef GroupedExpressionSummary < handle
                             keep=thistab.(summary_name)<=thr; 
                         end
                 end
+
+                %apply summary min/max
+                keep = keep & thistab.(summary_name)>options.summary_min;
+                keep = keep & thistab.(summary_name)<options.summary_max;
 
                 thistab=thistab(keep,:);
                 thistab.celltype=repmat(thisname,nnz(keep),1);
