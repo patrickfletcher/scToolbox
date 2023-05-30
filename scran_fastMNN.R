@@ -107,7 +107,7 @@ if (do_pooledsizefactors==T) {
 
 if (do_multibatch==T) {
   print('multiBatchNorm...')
-  sce <- multiBatchNorm(sce, batch=block)
+  sce <- multiBatchNorm(sce, batch=block, min.mean=min_mean)
 } else
 {
   print('logNormCounts...')
