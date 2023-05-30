@@ -119,4 +119,5 @@ for i=1:nVars
 %     end
 end
 ax(end).XTickLabel=groupnames;
+ax(end).XAxis.TickLabelInterpreter="none";
 % ax(end).YTickLabelMode='auto';

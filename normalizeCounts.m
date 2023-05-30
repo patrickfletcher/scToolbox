@@ -3,8 +3,8 @@ arguments
     counts
     options.sizefactors=[]
     options.scale="median"
-    options.max_frac=[]
     options.scale_value = 1e4
+    options.max_frac=[]
 end
 %normalize counts
 

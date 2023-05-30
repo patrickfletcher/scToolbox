@@ -117,12 +117,12 @@ classdef GroupedExpressionSummary < handle
     methods
         % for simplicity, stick to one representation of expression at a
         % time. lognormcounts like scoreMarkers
-        function ges = GroupedExpressionSummary(genes, expr, group, block, options)
+        function ges = GroupedExpressionSummary(genes, expr, group, options)
             arguments
                 genes table
                 expr {mustBeNumeric, mustBeEqualRows(expr,genes)}
                 group {groupLengthCheck(group,expr)}
-                block {groupLengthCheck(block,expr)} = ones(1,size(expr,2))
+                options.block=[]
                 options.genesub=[]
                 options.expr_thr=0
                 options.min_cells=0
@@ -149,6 +149,10 @@ classdef GroupedExpressionSummary < handle
             group = removecats(group(:));
 
             %block setup
+            block=options.block;
+            if isempty(block)
+                block=ones(1,size(expr,2));
+            end
             if ~iscategorical(block)
                 block=categorical(block);
             end
@@ -607,8 +611,8 @@ classdef GroupedExpressionSummary < handle
                 thisothers=setdiff(othernames,thisname);
                 thistab=ges.effectsizes.(thisname).summary;
 
-                minpropfilt=ges.grouped.prop.(thisname)>options.min_self_prop;
-                maxpropfilt=all(ges.grouped.prop{:,thisothers}<options.max_other_prop,2);
+                minpropfilt=ges.grouped.prop.(thisname)>=options.min_self_prop;
+                maxpropfilt=all(ges.grouped.prop{:,thisothers}<=options.max_other_prop,2);
                 propfilt=minpropfilt&maxpropfilt;
                 thistab=thistab(propfilt,:);
     
@@ -630,8 +634,8 @@ classdef GroupedExpressionSummary < handle
                 end
 
                 %apply summary min/max
-                keep = keep & thistab.(summary_name)>options.summary_min;
-                keep = keep & thistab.(summary_name)<options.summary_max;
+                keep = keep & thistab.(summary_name)>=options.summary_min;
+                keep = keep & thistab.(summary_name)<=options.summary_max;
 
                 thistab=thistab(keep,:);
                 thistab.celltype=repmat(thisname,nnz(keep),1);

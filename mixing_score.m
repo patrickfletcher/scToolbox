@@ -7,15 +7,16 @@ arguments
     nndists = []
     options.method = "entropy"
     options.weigth_by_dist=false
+    options.knnmetric="correlation"
 end
 
 % find K-nearest neighbors if needed
 n_knn = size(nnix,2);
 if K>n_knn
-    [nnix,nndists]=knnsearch(coords,coords,'K',K+1,'Distance','correlation');
+    [nnix,nndists]=knnsearch(coords,coords,'K',K+1,'Distance',options.knnmetric);
     nnix(:,1)=[];
     nndists(:,1)=[];
-else    
+elseif K<n_knn    
     nnix(:,K+1:end)=[];
     nndists(:,K+1:end)=[];
 end

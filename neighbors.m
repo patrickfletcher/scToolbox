@@ -6,7 +6,6 @@ arguments
     params.graph_type{mustBeMember(params.graph_type,["knn","snn"])}="knn"
     options.makeGraph = false
     options.removeSelfNN = true
-    options.save_searcher
     options.verbose=false
 end
 %compute the k-nearest neighbors and their distances from a matrix of m

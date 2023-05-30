@@ -22,7 +22,7 @@ arguments
     opts.cmap=[]
     opts.isdiverging=false
 
-    opts.draw_outline=true %when splitby is used draw all points behind
+    opts.draw_outline=false %when splitby is used draw all points behind
     opts.outline_col=0.85*[1,1,1]
     opts.outline_size=4
     opts.draworder {mustBeMember(opts.draworder,["random","value","valrev","flat"])} ='flat'

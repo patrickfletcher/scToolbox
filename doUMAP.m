@@ -18,7 +18,7 @@ arguments
     params.dens_lambda=2; %weight of density term in optimization
     params.dens_frac=0.3; %final fraction of epochs to use density term
     params.dens_var_shift=0.1; %small constant to prevent div by zero
-    options.do_parallel=false;
+    options.do_parallel=true;
     options.verbose=false
     options.figID = []
 end

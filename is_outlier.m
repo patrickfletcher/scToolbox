@@ -135,8 +135,8 @@ for i=1:nvars
     end
 
     %pack the results.
-    res.name=varnames{i};
-    res.type=type{i};
+    res.name=string(varnames{i});
+    res.type=string(type{i});
     res.nmads=nmads(i);
     res.do_log=do_log(i);
     res.clip_max=clip_max(i);
