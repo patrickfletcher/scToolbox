@@ -1,4 +1,4 @@
-function [counts,genes,barcodes,geneIDs]=load10Xh5matrix(filename,doSparse, isPreV3)
+function [counts,genes,barcodes]=load10Xh5matrix(filename, doSparse, isPreV3)
 arguments
     filename
     doSparse=0
@@ -35,30 +35,32 @@ else
     end
 end
 
-barcodes=h5read(filename,[h5path 'barcodes'])'; 
-if isPreV3
-    geneIDs=h5read(filename,[h5path 'genes']);
-    genes=h5read(filename,[h5path 'gene_names']);
-else
-    geneIDs=h5read(filename,[h5path 'features/id']);
-    genes=h5read(filename,[h5path 'features/name']);
+if nargout>=2
+    genes = table;
+    if isPreV3
+        gene_id=h5read(filename,[h5path 'genes']);
+        gene_name=h5read(filename,[h5path 'gene_names']);
+    else
+        gene_id=h5read(filename,[h5path 'features/id']);
+        gene_name=h5read(filename,[h5path 'features/name']);
+        gene_feature_type=h5read(filename,[h5path 'features/feature_type']);
+        gene_genome=h5read(filename,[h5path 'features/genome']);
+    end
+    gene_id=string(gene_id(:));
+    genes.id=deblank(gene_id);
+    gene_name=string(gene_name(:));
+    genes.name=deblank(gene_name);
+    
+    if ~isPreV3
+        gene_feature_type=string(gene_feature_type(:));
+        genes.feature_type=deblank(gene_feature_type);
+        gene_genome=string(gene_genome(:));
+        genes.genome=deblank(gene_genome);
+    end
 end
 
-barcodes=string(barcodes(:));
-genes=string(genes(:));
-geneIDs=string(geneIDs(:));
-
-%slight cleanup
-genes=deblank(genes);
-geneIDs=deblank(geneIDs);
-barcodes=deblank(barcodes);
-
-% for i=1:length(genes)
-%     genes{i}=deblank(genes{i});
-% end
-% for i=1:length(geneIDs)
-%     geneIDs{i}=deblank(geneIDs{i});
-% end
-% for i=1:length(barcodes)
-%     barcodes{i}=deblank(barcodes{i});
-% end
+if nargout==3
+    barcodes=h5read(filename,[h5path 'barcodes'])'; 
+    barcodes=string(barcodes(:));
+    barcodes=deblank(barcodes);
+end
