@@ -60,6 +60,8 @@ classdef GroupedExpressionSummary < handle
 
     properties
 
+        init_options
+
         %pooled per-gene values (available without group) - one table?
         id %gene id
         gene %gene symbol
@@ -101,7 +103,7 @@ classdef GroupedExpressionSummary < handle
         effectsizes
 
         % store logicals on pooled, grouped, or pairwise quantities
-        filters
+        % filters
 
 %         %place to store parameters used?
 %         expr_thr
@@ -181,15 +183,13 @@ classdef GroupedExpressionSummary < handle
                 options.genesub = true(size(expr,1),1);
             end
             ges.genesub=options.genesub;
-
-            prop = sum(expr>options.expr_thr,2);
-            low_detected = prop<options.min_cells;
+            cells_per_gene = sum(expr>options.expr_thr,2);
+            low_detected = cells_per_gene<options.min_cells;
             ges.genesub = ges.genesub & ~low_detected;
 
             if ~isequal(nnz(ges.genesub),size(expr,1))
                 genes = genes(ges.genesub,:);
                 expr = expr(ges.genesub,:);
-                prop = prop(ges.genesub,:);
             end
 
             ges.id=genes.id;
@@ -204,30 +204,27 @@ classdef GroupedExpressionSummary < handle
             ges.pooled.id=ges.id;
             ges.pooled.name=ges.gene;
             ges.pooled.Properties.RowNames=ges.gene;
-            ges.computeSummaries(expr, ["mean","prop","std","min","max"],use_group=0,block_reduce=options.block_reduce);
+            ges.computeSummaries(expr, ["mean","prop","std","min","max"], use_group=0, block_reduce=options.block_reduce);
             
             if options.verbose
             toc
             end
 
             %compute group summaries
-%             if ges.n_groups>1
+            if ges.n_groups>1
                 tic
                 % basic grouped values
-                ges.computeSummaries(expr, ["mean","prop","std"],block_reduce=options.block_reduce);
+                ges.computeSummaries(expr, ["mean","prop","std"], block_reduce=options.block_reduce);
                 
                 if options.verbose
                 toc
                 end
-% 
-%                 % basic effect sizes
-%                 tic
+
                 % initialize the effectsize struct
                 for i=1:length(ges.group_names)
                     self=ges.group_names(i);
                     ges.effectsizes.(self).summary=table();
                     ges.effectsizes.(self).summary.gene=ges.gene;
-%                     ges.effectsizes.(self).summary=table('Size',[ges.n_genes,0],'RowNames',ges.gene);
                 end
 % %TODO: API - support passing list of multiple summary names to be computed
 %                 ges.pairwiseDeltas("fc_expr");
@@ -236,7 +233,8 @@ classdef GroupedExpressionSummary < handle
 %                 ges.pairwiseDeltas("lfc_prop");
 %                 ges.pairwiseDeltas("cohen_h");
 %                 toc
-%             end
+            end
+            ges.init_options=options;
         end
 
         
@@ -614,9 +612,15 @@ classdef GroupedExpressionSummary < handle
                 minpropfilt=ges.grouped.prop.(thisname)>=options.min_self_prop;
                 maxpropfilt=all(ges.grouped.prop{:,thisothers}<=options.max_other_prop,2);
                 propfilt=minpropfilt&maxpropfilt;
-                thistab=thistab(propfilt,:);
+                if nnz(propfilt)>0
+                    thistab=thistab(propfilt,:);
+                else
+                    disp("No top markers satisfying proportion constraints: "+ thisname)
+                    continue
+                end
     
                 thistab=sortrows(thistab,summary_name,sortdir,'missingplacement','last');
+                keep = true(size(thistab,1),1);
                 switch method
                     case "thr"
                         keep=thistab.(summary_name)>=options.thr; 
@@ -637,10 +641,14 @@ classdef GroupedExpressionSummary < handle
                 keep = keep & thistab.(summary_name)>=options.summary_min;
                 keep = keep & thistab.(summary_name)<=options.summary_max;
 
-                thistab=thistab(keep,:);
-                thistab.celltype=repmat(thisname,nnz(keep),1);
-                thistab=movevars(thistab,"celltype","before",1);
-                result=[result;thistab];
+                if nnz(keep)>0
+                    thistab=thistab(keep,:);
+                    thistab.celltype=repmat(thisname,nnz(keep),1);
+                    thistab=movevars(thistab,"celltype","before",1);
+                    result=[result;thistab];
+                else
+                    disp("No top markers satisfying effect size constraints: "+ thisname)
+                end
             end
 
         end
