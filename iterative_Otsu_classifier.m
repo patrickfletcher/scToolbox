@@ -14,8 +14,9 @@ arguments
 
     options.ref_subset=[]
 
-    options.summary=["min_cohen_d", "min_delta_prop"]
-    options.method="top";
+    options.summary="min_cohen_d"
+    options.summary_min=0.5
+    options.method="top"
     options.ntop=10;
     options.thr=5;
     options.p=95;
@@ -45,14 +46,19 @@ ref_subset=options.ref_subset;
 if isempty(ref_subset)
     ref_subset=true(size(tcounts,2),1);
 end
-subix=find(ref_subset);
+refix=find(ref_subset);
 
 if options.refine
     options.nReps=max(2,options.nReps);
 end
 
 typelast=strings(nCells,1);
-Mlast=M;
+Mlast=M(:,["celltype","gene"]);
+M0=M(:,["celltype","gene"]);
+
+% for i=1:length(options.summary)
+%     Mlast.(options.summary(i))=zeros(size(M.gene));
+% end
 
 for r=1:options.nReps
 
@@ -90,6 +96,7 @@ for r=1:options.nReps
     summary(type')
 
     if isequal(typelast,type)
+        disp("finished in " + string(r) + " iterations.")
         break
     end
     typelast=type;
@@ -101,39 +108,44 @@ for r=1:options.nReps
         %fraction applied to each type, or total cells?
 %         Q = quantile(scores,1-options.fractop,2)
         for i=1:length(CTs)
-%             topsel=scores(i,:)'>Q(i) & type==CTs{i};
-%             topix=find(topsel);
-%             topix=intersect(topix,subix);
-%             keepn=max(options.mintop, length(topix))
-%             TOP=[TOP;topix];
             thistype=type==CTs{i} & ref_subset;
             keepn=max(options.mintop, round(options.fractop*nnz(thistype)));
-            [~, topix]=maxk(scores(i,ref_subset),keepn,2);
-            TOP=[TOP,topix];
+            keepn=min(keepn, nnz(thistype));
+            [~, ix]=maxk(scores(i,ref_subset),keepn); %may include amb...
+            topix=refix(ix);
+            % [~, ix]=maxk(scores(i,thistype),keepn); %exclude amb...
+            % subix=find(thistype);
+            % topix=subix(ix);
+            TOP=[TOP;topix(:)];
         end
         TOP=unique(TOP);
-        keep=ismember(1:length(type),TOP);
+        discard=setdiff(1:length(type),TOP);
         
         typetop=removecats(type,["Amb","Unc"]);
-        typetop(~keep)=missing(); 
+        typetop(discard)=missing();
         unc=find(type=="Unc"); 
         keepn=max(options.mintop, round(options.fractop*nnz(type=="Unc")));
         kix=randi(length(unc),keepn,1);
         typetop(unc(kix))="Unc";
+        % typetop(type=="Unc")="Unc";
         typetop=removecats(typetop);
+        % summary(typetop)
 
         % get the new marker list based on top scoring cells
-        ges=GroupedExpressionSummary(genes,tcounts,typetop,block);
+        ges=GroupedExpressionSummary(genes,tcounts,typetop,block=block);
         ges.computeEffectSizes();
 
         M=table;
         for i=1:length(options.summary)
             M=[M;ges.topMarkers(options.summary(i),options.method, CTs, CTo, ...
-                  nTop=options.ntop, min_self_prop=options.min_self_prop, max_other_prop=options.max_other_prop)];
+                  nTop=options.ntop, summary_min=options.summary_min(i),...
+                  min_self_prop=options.min_self_prop, max_other_prop=options.max_other_prop)];
         end
-        M=M(:,1:2);
+        M=M(:,["celltype","gene"]);
+        % M=M(:,["celltype","gene",options.summary]);
         if options.retain_markers
-            M=[M;Mlast];
+            M=[M;M0];
+            % M=[M;Mlast];
 %             M=[M;markers(ismember(markers.celltype,CTs),:)];
         end
         M=unique(M,'rows','stable');
