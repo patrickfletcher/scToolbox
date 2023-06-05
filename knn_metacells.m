@@ -1,13 +1,11 @@
-function MC = knn_metacells(C, scores, batch, options)
+function MC = knn_metacells(C, scores, options)
 arguments
     C %count matrix
     scores %reduced dimensionality scores (eg. PCA, MNN latent...)
-    batch = []
-    options.batch=[]
+    options.batch=[] %unused for now... do it externally
     options.precomputed=false
     options.n_neighbors=5
     options.metric='correlation'
-    options.normalize=true
     options.force_int_method='none'
 end
 % get KNN-aggregated counts for each cell ("meta-cells") - find knn of each
@@ -25,9 +23,9 @@ end
 if options.precomputed
     nnix=scores(:,1:options.n_neighbors);
 else
-    [nnix,dist]=knnsearch(scores, scores, 'K',options.n_neighbors+1,'Distance',options.metric); %quite fast!
+    [nnix,~]=knnsearch(scores, scores, 'K',options.n_neighbors+1,'Distance',options.metric); %quite fast!
     nnix=nnix(:,2:end); %remove self
-    dist=dist(:,2:end);
+    % dist=dist(:,2:end);
 end
 
 %add counts of the K nearest neighbors to self
@@ -36,12 +34,7 @@ for i=1:options.n_neighbors
     MC=MC+C(:,nnix(:,i));
 end
 
-%normalize by # neighbors to get back to original scale?
-if options.normalize
-    MC = MC/options.n_neighbors;
-end
-
-%force integer values?
+%force integer values? should be ints anyway
 switch options.force_int_method
     case "round"
         MC = round(MC);
