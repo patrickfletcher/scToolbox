@@ -7,8 +7,10 @@ arguments
     options.do_log=false
     options.madconst=1.4826 %gives std scale
     options.min_diff=0
-    options.clip_min=0;
-    options.clip_max=inf;
+    options.lower_min=-inf;
+    options.lower_max=inf;
+    options.upper_min=-inf;
+    options.upper_max=inf;
     options.clip_to_data=true
 end
 %compute median +/- k*mad threshold, identify outliers. 
@@ -35,8 +37,10 @@ type=cellstr(type);
 do_log=options.do_log;
 nmads=options.nmads;
 min_diff=options.min_diff;
-clip_min=options.clip_min;
-clip_max=options.clip_max;
+lower_min=options.lower_min;
+lower_max=options.lower_max;
+upper_min=options.upper_min;
+upper_max=options.upper_max;
 
 if isempty(group)
     group=ones(nobs,1);
@@ -61,20 +65,26 @@ if length(min_diff)==1
     min_diff=repmat(min_diff,1,nvars);
 end
 
-if length(clip_min)==1
-    clip_min=repmat(clip_min,1,nvars);
+if length(lower_min)==1
+    lower_min=repmat(lower_min,1,nvars);
 end
-if length(clip_max)==1
-    clip_max=repmat(clip_max,1,nvars);
+if length(lower_max)==1
+    lower_max=repmat(lower_max,1,nvars);
+end
+if length(upper_min)==1
+    upper_min=repmat(upper_min,1,nvars);
+end
+if length(upper_max)==1
+    upper_max=repmat(upper_max,1,nvars);
 end
 
 %adjust clip values in case of log
-% clip_min(do_log&clip_min==-inf)=0;
-% clip_max(do_log&clip_max==-inf)=0;
+% lower_min(do_log&lower_min==-inf)=0;
+% upper_max(do_log&upper_max==-inf)=0;
 
 %compute the stats
 result=struct('name',{},'type',{},'nmads',{},'do_log',{}, ...
-    'clip_max',{},'clip_min',{},...
+    'lower_min',{},'lower_max',{},'upper_min',{},'upper_max',{},...
     'stats',{},'outlier',{});
 outliers = false(size(group));
 for i=1:nvars
@@ -112,11 +122,15 @@ for i=1:nvars
 
     %apply global clip values
     if do_log(i) 
-        lower = max(lower, log(clip_min(i)));
-        upper = min(upper, log(clip_max(i)));
+        lower = min(lower, log(lower_max(i)));
+        lower = max(lower, log(lower_min(i)));
+        upper = min(upper, log(upper_max(i)));
+        upper = max(upper, log(upper_min(i)));
     else
-        lower = max(lower, clip_min(i));
-        upper = min(upper, clip_max(i));
+        lower = min(lower, lower_max(i));
+        lower = max(lower, lower_min(i));
+        upper = min(upper, upper_max(i));
+        upper = max(upper, upper_min(i));
     end
 
     this_outliers = false(size(group));
@@ -139,8 +153,10 @@ for i=1:nvars
     res.type=string(type{i});
     res.nmads=nmads(i);
     res.do_log=do_log(i);
-    res.clip_max=clip_max(i);
-    res.clip_min=clip_min(i);
+    res.lower_min=lower_min(i);
+    res.lower_max=lower_max(i);
+    res.upper_min=upper_min(i);
+    res.upper_max=upper_max(i);
     stats=table();
     stats.groupnames=gN;
     stats.med=meds;
