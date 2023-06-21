@@ -60,7 +60,7 @@ classdef GroupedExpressionSummary < handle
 
     properties
 
-        init_options
+        options
 
         %pooled per-gene values (available without group) - one table?
         id %gene id
@@ -127,11 +127,13 @@ classdef GroupedExpressionSummary < handle
                 options.block=[]
                 options.genesub=[]
                 options.expr_thr=0
+                options.expr_thr_method="prctile"
                 options.min_cells=0
                 options.block_reduce="grand_mean"
                 options.transform="" %specify what transform was done
                 options.invtransform="" %and how to reverse it if needed?
-                options.do_full=true
+                options.only_expressing=false
+                options.nanflag {mustBeMember(options.nanflag,["includenan","omitnan"])} ='omitnan'
                 options.verbose=false
             end
             %constructor.
@@ -183,14 +185,16 @@ classdef GroupedExpressionSummary < handle
                 options.genesub = true(size(expr,1),1);
             end
             ges.genesub=options.genesub;
-            cells_per_gene = sum(expr>options.expr_thr,2);
-            low_detected = cells_per_gene<options.min_cells;
+            cells_per_gene = sum(expr > 0,2);
+            low_detected = cells_per_gene < options.min_cells;
             ges.genesub = ges.genesub & ~low_detected;
 
             if ~isequal(nnz(ges.genesub),size(expr,1))
                 genes = genes(ges.genesub,:);
                 expr = expr(ges.genesub,:);
             end
+
+            ges.options=options;
 
             ges.id=genes.id;
             ges.gene=make_vars_unique(genes.name); %needs makeVarsUnique
@@ -204,7 +208,7 @@ classdef GroupedExpressionSummary < handle
             ges.pooled.id=ges.id;
             ges.pooled.name=ges.gene;
             ges.pooled.Properties.RowNames=ges.gene;
-            ges.computeSummaries(expr, ["mean","prop","std","min","max"], use_group=0, block_reduce=options.block_reduce);
+            ges.computeSummaries(expr, ["mean","prop","std"], use_group=0);
             
             if options.verbose
             toc
@@ -214,7 +218,7 @@ classdef GroupedExpressionSummary < handle
             if ges.n_groups>1
                 tic
                 % basic grouped values
-                ges.computeSummaries(expr, ["mean","prop","std"], block_reduce=options.block_reduce);
+                ges.computeSummaries(expr, ["mean","prop","std"]);
                 
                 if options.verbose
                 toc
@@ -234,7 +238,6 @@ classdef GroupedExpressionSummary < handle
 %                 ges.pairwiseDeltas("cohen_h");
 %                 toc
             end
-            ges.init_options=options;
         end
 
         
@@ -255,14 +258,11 @@ classdef GroupedExpressionSummary < handle
                 options.use_group=1
                 options.use_block=1
                 options.block_reduce="grand_mean"
-                options.only_expressing=0
-                options.nanflag {mustBeMember(options.nanflag,["includenan","omitnan"])} ='omitnan'
-                options.expr_thr=0
             end
 
-            [keys, funcs] = parseSummaryMethods(methods, keys, options);
+            [keys, funcs] = parseSummaryMethods(methods, keys, ges.options);
 
-            if options.only_expressing
+            if ges.options.only_expressing
                 X(X==0)=nan;
             end
 
@@ -836,6 +836,13 @@ end
         return
     end
 
+    switch options.expr_thr_method
+        case "prctile"
+            thr_fun = @(x) x > prctile(x,options.expr_thr);
+        otherwise
+            thr_fun = @(x) x > options.expr_thr;
+    end
+
     %methods could be a cell array with mix of names/fcn handles. force
     %cellstr if it is a string array
     if isstring(methods)
@@ -890,11 +897,11 @@ end
                 case 'sum'
                     funcs{i}=@(x) sum(x,2);
                 case 'num'
-                    funcs{i}=@(x) sum(x>options.expr_thr,2);
+                    funcs{i}=@(x) sum(thr_fun(x),2);
                 case 'prop'
-                    funcs{i}=@(x) sum(x>options.expr_thr,2)./size(x,2);
+                    funcs{i}=@(x) sum(thr_fun(x),2)./size(x,2);
                 case 'prct'
-                    funcs{i}=@(x) sum(x>options.expr_thr,2)./size(x,2)*100;
+                    funcs{i}=@(x) sum(thr_fun(x),2)./size(x,2)*100;
                 otherwise
                     disp("method '"+methods{i}+"' not implemented")
                     removeix(i)=1;
