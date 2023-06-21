@@ -187,7 +187,9 @@ for i=1:nSplit
         hcb(i).Limits=[minc,maxc];
         cbtick(1)=ceil(min(cbtick)*10^opts.cbDigits)/10^opts.cbDigits;
         cbtick(end)=floor(max(cbtick)*10^opts.cbDigits)/10^opts.cbDigits;
-        hcb(i).Ticks=sort(cbtick);
+        if length(unique(cbtick))>1
+            hcb(i).Ticks=sort(cbtick);
+        end
 %         hcb(i).TickLength=opts.cbdims(2);
 %         ylabel(hcb(i),snames{i})
     else
