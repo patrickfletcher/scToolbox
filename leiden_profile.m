@@ -6,7 +6,7 @@ arguments
     params.min_diff_bisect_value=1,
     params.min_diff_resolution=0.001,
     params.linear_bisection=false,
-    params.n_iterations=1,
+    params.n_iterations=-1,
     params.rng_seed=42
     params.doRelabel=true
 end
