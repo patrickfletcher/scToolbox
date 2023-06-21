@@ -52,6 +52,10 @@ if options.refine
     options.nReps=max(2,options.nReps);
 end
 
+if length(options.summary)~=length(options.summary_min)
+    options.summary_min = zeros(size(options.summary));
+end
+
 typelast=strings(nCells,1);
 Mlast=M(:,["celltype","gene"]);
 M0=M(:,["celltype","gene"]);
@@ -60,11 +64,13 @@ M0=M(:,["celltype","gene"]);
 %     Mlast.(options.summary(i))=zeros(size(M.gene));
 % end
 
+typetop=[];
 for r=1:options.nReps
 
     % get marker scores
     scores=zeros(length(CTs),nCells);
     scorethr=false(length(CTs),nCells);
+    thrvec=zeros(1,nCells);
     thr=zeros(length(CTs),length(blocks));
     for j=1:length(blocks)
         blocksub=block==blocks{j};
@@ -78,6 +84,7 @@ for r=1:options.nReps
             % Identify top scoring cells per marker set
             % - Otsu thresholds
             thr(i,j)=geneThresholdOtsu(this_score)*options.thrmult;
+            thrvec(blocksub)=repmat(thr(i,j),1,nnz(blocksub));
             scorethr(i,blocksub)=this_score>thr(i,1);
         end
     end
@@ -111,11 +118,13 @@ for r=1:options.nReps
             thistype=type==CTs{i} & ref_subset;
             keepn=max(options.mintop, round(options.fractop*nnz(thistype)));
             keepn=min(keepn, nnz(thistype));
-            [~, ix]=maxk(scores(i,ref_subset),keepn); %may include amb...
-            topix=refix(ix);
-            % [~, ix]=maxk(scores(i,thistype),keepn); %exclude amb...
-            % subix=find(thistype);
-            % topix=subix(ix);
+
+            % [~, ix]=maxk(scores(i,ref_subset),keepn); %may include amb...
+            % topix=refix(ix);
+            [~, ix]=maxk(scores(i,thistype),keepn); %exclude amb...
+            subix=find(thistype);
+            topix=subix(ix);
+
             TOP=[TOP;topix(:)];
         end
         TOP=unique(TOP);
@@ -144,8 +153,8 @@ for r=1:options.nReps
         M=M(:,["celltype","gene"]);
         % M=M(:,["celltype","gene",options.summary]);
         if options.retain_markers
-            M=[M;M0];
-            % M=[M;Mlast];
+            % M=[M;M0];
+            M=[M;Mlast];
 %             M=[M;markers(ismember(markers.celltype,CTs),:)];
         end
         M=unique(M,'rows','stable');
@@ -164,6 +173,7 @@ end
 result = options;
 result.type = type;
 result.scores = scores;
+result.thrvec = thrvec;
 result.thr = thr;
 result.markers = M;
 result.CTs = CTs;
