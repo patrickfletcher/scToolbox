@@ -1,4 +1,4 @@
-function [counts,genes,barcodes]=load10Xh5matrix(filename, doSparse, isPreV3)
+function [counts,genes,barcodes, fileInfo]=load10Xh5matrix(filename, doSparse, isPreV3)
 arguments
     filename
     doSparse=0
@@ -59,8 +59,12 @@ if nargout>=2
     end
 end
 
-if nargout==3
+if nargout>=3
     barcodes=h5read(filename,[h5path 'barcodes'])'; 
     barcodes=string(barcodes(:));
     barcodes=deblank(barcodes);
+end
+
+if nargout==4
+    fileInfo = hi; 
 end
