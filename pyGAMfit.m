@@ -12,9 +12,10 @@ arguments
     modelopts.max_iter=200
     modelopts.tol=1e-4
     modelopts.verbose=false
+    options.model = "LinearGAM"
     options.gridLam = []
     options.gridKnots = []
-    options.model = "LinearGAM"
+    options.objective = 'auto'
 end
 pygam=py.importlib.import_module('pygam.pygam');
 
@@ -90,11 +91,11 @@ if ~isempty(options.gridKnots)
 end
 
 if doGridL&&~doGridK
-    model.gridsearch(X,y,progress=modelopts.verbose, lam=options.gridLam);
+    model.gridsearch(X,y,progress=modelopts.verbose, lam=options.gridLam, objective=options.objective);
 end
 if ~doGridL&&doGridK
-    model.gridsearch(X,y,progress=modelopts.verbose,n_splines=options.gridKnots);
+    model.gridsearch(X,y,progress=modelopts.verbose,n_splines=options.gridKnots, objective=options.objective);
 end
 if doGridL&&doGridK
-    model.gridsearch(X,y,progress=modelopts.verbose,lam=options.gridLam, n_splines=options.gridKnots);
+    model.gridsearch(X,y,progress=modelopts.verbose,lam=options.gridLam, n_splines=options.gridKnots, objective=options.objective);
 end
