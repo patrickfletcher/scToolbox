@@ -4,6 +4,7 @@ arguments
     factor2
     opts.separator="_"
     opts.min_count=1
+    opts.removecats = true
 end
 %combine two categorical arrays into one stratified array
 
@@ -17,8 +18,10 @@ end
 separator=string(opts.separator);
 
 %remove cats first?
-factor1=removecats(factor1);
-factor2=removecats(factor2);
+if opts.removecats
+    factor1=removecats(factor1);
+    factor2=removecats(factor2);
+end
 
 factor1Names=categories(factor1);
 factor2Names=categories(factor2);
@@ -39,4 +42,6 @@ for i=1:length(cats)
         result(result==cats{i})=missing();
     end
 end
-result = removecats(result);
+if opts.removecats
+    result = removecats(result);
+end
