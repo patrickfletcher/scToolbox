@@ -183,8 +183,6 @@ if params.do_densmap
         'frac',params.dens_frac,'var_shift',params.dens_var_shift));
 end
 
-%doesn't work on my system for some reason
-% do_parallel=true;
 if do_parallel
     py_rand_state=py.numpy.random.RandomState();
 end

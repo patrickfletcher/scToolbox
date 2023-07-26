@@ -15,10 +15,13 @@ arguments
     options.overwrite=true
     options.featuretype=""
     options.genome=""
+    options.templatefile = ""
 end
 % Write count data to an h5 file in 10X v3 format
 
 %TODO: attributes etc..
+% - use original file as template. Copy the whole structure.
+% --> get h5info. Create the same hierarchy in a new file. Write the datasets
 
 shape = size(X);
 

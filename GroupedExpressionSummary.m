@@ -578,7 +578,7 @@ classdef GroupedExpressionSummary < handle
 
         % extract the top markers across all clusters based on thresholding
         % effect size summary tables
-        % TODO - do this simultaneously for multiple summary features? 
+        % TODO - simultaneously constraints!!! 
         function result = topMarkers(ges, summary_name, method, selfnames, othernames, options)
             arguments
                 ges
@@ -605,17 +605,17 @@ classdef GroupedExpressionSummary < handle
 
             result=table;
             for i=1:length(selfnames)
-                thisname=selfnames(i);
-                thisothers=setdiff(othernames,thisname);
-                thistab=ges.effectsizes.(thisname).summary;
+                thisgroup=selfnames(i);
+                othergroups=setdiff(othernames,thisgroup);
+                thistab=ges.effectsizes.(thisgroup).summary;
 
-                minpropfilt=ges.grouped.prop.(thisname)>=options.min_self_prop;
-                maxpropfilt=all(ges.grouped.prop{:,thisothers}<=options.max_other_prop,2);
+                minpropfilt=ges.grouped.prop.(thisgroup)>=options.min_self_prop;
+                maxpropfilt=all(ges.grouped.prop{:,othergroups}<=options.max_other_prop,2);
                 propfilt=minpropfilt&maxpropfilt;
                 if nnz(propfilt)>0
                     thistab=thistab(propfilt,:);
                 else
-                    disp("No top markers satisfying proportion constraints: "+ thisname)
+                    disp("No top markers satisfying proportion constraints: "+ thisgroup)
                     continue
                 end
     
@@ -643,11 +643,12 @@ classdef GroupedExpressionSummary < handle
 
                 if nnz(keep)>0
                     thistab=thistab(keep,:);
-                    thistab.celltype=repmat(thisname,nnz(keep),1);
+                    thistab.celltype=repmat(thisgroup,nnz(keep),1);
                     thistab=movevars(thistab,"celltype","before",1);
+                    % thistab=[thistab,ges.grouped.prop(keep,:)];
                     result=[result;thistab];
                 else
-                    disp("No top markers satisfying effect size constraints: "+ thisname)
+                    disp("No top markers satisfying effect size constraints: "+ thisgroup)
                 end
             end
 

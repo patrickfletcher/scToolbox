@@ -4,7 +4,7 @@ arguments
     partition_type="RBC"
     resolution_range=[0,1]   %can be a vector of values to run
     params.min_diff_bisect_value=1,
-    params.min_diff_resolution=0.001,
+    params.min_diff_resolution=1e-3,
     params.linear_bisection=false,
     params.n_iterations=-1,
     params.rng_seed=42
