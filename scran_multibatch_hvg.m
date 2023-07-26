@@ -1,8 +1,9 @@
-function result = scran_multibatch_hvg(datafile, cellsub, batchvar, normpars, hvgpars, options)
+function result = scran_multibatch_hvg(datafile, cellsub, batchvar, genes, normpars, hvgpars, options)
 arguments
     datafile
     cellsub
     batchvar {string,char,cellstr}
+    genes
     normpars.gene_subset=false
     normpars.do_multibatch=true
     normpars.do_pooledsizefactors=false
@@ -12,11 +13,12 @@ arguments
     hvgpars.do_densityweights=false
     hvgpars.var_thr=0.001
     hvgpars.fdr_thr=1
-    options.tmp_path="D:/tmp/tmp_scran_multibatch_hvg/"
+    options.tmp_path=[]
     options.tmp_fileroot="tmp"
     options.verbose=false
 end
 %TODO: support user clusters for pooled sfs
+% gene subset? aka row_subset in scran?
 
 % do_poissonvar = as.logical(hvgpars$do.poissonvar)
 % do_topn = as.logical(hvgpars$do.topn)
@@ -28,11 +30,12 @@ if options.verbose
     disp("Running " + mfilename + "...")
 end
 
-hvgpars.do_topn=~isempty(hvgpars.n_features);
+if isempty(options.tmp_path)
+    options.tmp_path="D:/tmp/tmp_"+mfilename+"/";
+end
 
-result.method="scran_fastMNN";
-result.normpars=normpars;
-result.hvgpars=hvgpars;
+
+hvgpars.do_topn=~isempty(hvgpars.n_features);
 
 datafile=cellstr(datafile);
 
@@ -67,10 +70,23 @@ end
 disp(mfilename+": ")
 toc
 
-hvgfile=fullfile(options.tmp_path, options.tmp_fileroot+"_hvgs.txt");
+%TODO: link actual methods - pooledSFS vs libsize (pre multibatch)
+normpars.method="scran_multibatchnorm";
+hvgpars.method="scran_hvgs";
+result.subset = cellsub.keep;
+result.norm=normpars;
+result.hvg=hvgpars;
+
+%TODO: return regular libsizefactors
 sfsfile=fullfile(options.tmp_path, options.tmp_fileroot+"_sfs.txt");
-result.hvgs=string(readcell(hvgfile));
-result.sizefactors=readmatrix(sfsfile);
+result.norm.sizefactors=readmatrix(sfsfile);
+% result.norm.libsizefactors
+
+%TODO: pass gene table in to get name/ix
+hvgfile=fullfile(options.tmp_path, options.tmp_fileroot+"_hvgs.txt");
+result.hvg.id=string(readcell(hvgfile));
+result.hvg.ix= getGeneIndices(result.hvg.id,genes.id);
+result.hvg.name = genes.name(result.hvg.ix);
 
 if normpars.do_pooledsizefactors
     clustfile=fullfile(options.tmp_path, options.tmp_fileroot+"_qclust.txt");
