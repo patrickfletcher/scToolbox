@@ -29,9 +29,24 @@ gpargs=pyargs('organism',organism,'ordered',options.Ordered,...
     'significance_threshold_method',options.significance_threshold_method);
 res=gp.profile(gpargs);
 
-%TODO: remove Core_py2matlab dependency
-res=Core_py2matlab(res);
-res=[res{:}];
+res = pyrun("out={key: [i[key] for i in data] for key in data[0]}","out",data=res);
+resStruct = struct(res);
+fields=fieldnames(resStruct);
+for i=1:length(fields)
+    field = fields{i};
+    thisData=resStruct.(field); thisData=thisData(:);
+    pyType = class(thisData{1});
+    switch pyType
+        case {'py.str'}
+            resStruct.(field) = string(thisData)';
+        case {'py.int','double','logical'}
+            resStruct.(field) = double(thisData)';
+        case {'py.list'}
+            resStruct.(field) = cell(thisData)';
+             resStruct.(field) = cellfun(@(x)string(x)', resStruct.(field), "UniformOutput",false);
+    end
+end
+res=resStruct;
 
 %some post-processing
 if ~isempty(res) && isstruct(res)
