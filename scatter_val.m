@@ -27,7 +27,13 @@ arguments
     opts.outline_size=4
     opts.draworder {mustBeMember(opts.draworder,["random","value","valrev","flat"])} ='flat'
 
+    opts.knnsmooth=[] %smooth a value using knn-average?
+    opts.nnix=[]
+        
     opts.hide_axis=true
+    opts.axisTight=true
+    opts.axisEqual=true
+    opts.linkAxes=true
 
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
@@ -139,6 +145,9 @@ if opts.draw_outline && isempty(opts.outline_size)
     opts.outline_size=scopts.SizeData*3;
 end
 
+XLIM=[Inf,-Inf];
+YLIM=[Inf,-Inf];
+ZLIM=[Inf,-Inf];
 for i=1:nSplit
     axes(ax(i))
     if opts.draw_outline
@@ -214,7 +223,7 @@ for i=1:nSplit
         case 'value'
             hs(i).ZData=thiscvals; %high on top
         case 'valrev'
-            hs(i).ZData=-thiscvals; %low on top
+            hs(i).ZData=-thiscvals+max(thiscvals); %low on top
         case 'random'
             hs(i).ZData=rand(size(hs(i).XData));  %randomize the "depth" of points
         case 'flat' %not ordered - keep as 2D (eg. for alpha)
@@ -222,11 +231,29 @@ for i=1:nSplit
     end
     end
 
-%     axis(ax(i),'off','tight','equal')
     ax(i).XTickLabelMode='auto';
     ax(i).YTickLabelMode='auto';
     if opts.hide_axis
         axis(ax(i),'off')
+    end
+    if opts.axisTight
+        axis(ax(i),"tight")
+    end
+    if opts.axisEqual
+        axis(ax(i),"equal")
+    end
+    
+    thisxlim=xlim();
+    XLIM(1)=min(XLIM(1),thisxlim(1));
+    XLIM(2)=max(XLIM(2),thisxlim(2));
+    thisylim=ylim();
+    YLIM(1)=min(YLIM(1),thisylim(1));
+    YLIM(2)=max(YLIM(2),thisylim(2));
+    if do3D
+        axis(ax,'vis3d')
+        thiszlim=zlim();
+        ZLIM(1)=min(ZLIM(1),thiszlim(1));
+        ZLIM(2)=max(ZLIM(2),thiszlim(2));
     end
 end
 
@@ -259,15 +286,19 @@ if opts.commonCbar
     hcb.TickLength=opts.cbdims(2);
 end
 
+for i=1:nSplit
+    xlim(ax(i),XLIM)
+    ylim(ax(i),YLIM)
+    if do3D
+        zlim(ax(i),ZLIM)
+    end
+end
+
 % ax(end).Selected='on';
 
-if do3D
-    axis(ax,'vis3d')
-% elseif length(ax)>1
+if length(ax)>1 && opts.linkAxes
+    linkaxes(ax)
 end
-% if length(ax)>1
-%     linkaxes(ax)
-% end
 
 axes(ax(1))
 

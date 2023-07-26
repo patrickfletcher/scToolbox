@@ -23,6 +23,9 @@ arguments
     opts.textlabs=false
 
     opts.hide_axis=true
+    opts.axisTight=true
+    opts.axisEqual=true
+    opts.linkAxes=true
 
     scopts.?matlab.graphics.chart.primitive.Scatter
 end
@@ -137,6 +140,9 @@ if ~opts.draw_outline
 end
 
 ht=[];
+XLIM=[Inf,-Inf];
+YLIM=[Inf,-Inf];
+ZLIM=[Inf,-Inf];
 for i=1:nSplit
     axes(ax(i))
     if opts.draw_outline
@@ -216,6 +222,25 @@ for i=1:nSplit
     if opts.hide_axis
         axis(ax(i),'off')
     end
+    if opts.axisTight
+        axis(ax(i),"tight")
+    end
+    if opts.axisEqual
+        axis(ax(i),"equal")
+    end
+    
+    thisxlim=xlim();
+    XLIM(1)=min(XLIM(1),thisxlim(1));
+    XLIM(2)=max(XLIM(2),thisxlim(2));
+    thisylim=ylim();
+    YLIM(1)=min(YLIM(1),thisylim(1));
+    YLIM(2)=max(YLIM(2),thisylim(2));
+    if do3D
+        axis(ax,'vis3d')
+        thiszlim=zlim();
+        ZLIM(1)=min(ZLIM(1),thiszlim(1));
+        ZLIM(2)=max(ZLIM(2),thiszlim(2));
+    end
 end
 
 % common title/colorbar
@@ -229,7 +254,7 @@ end
 if do3D
     axis(ax,'vis3d')
 end
-if length(ax)>1
+if opts.linkAxes
     linkaxes(ax)
 end
 

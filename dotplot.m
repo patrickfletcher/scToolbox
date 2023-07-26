@@ -25,7 +25,7 @@ arguments
     options.only_expressing=false
     options.verbose=false
     options.log=true
-    options.logbase='e'
+    options.logbase='10'
     options.pre_scale=false
     options.scale_method=[]
     options.scale_param=[]
@@ -87,9 +87,11 @@ if ~iscategorical(ident)
     ident=categorical(ident);
 end
 ident=removecats(ident);
-identnames=categories(ident);
 cellsub=~ismissing(ident);
+
 ident=ident(cellsub);
+ident=removecats(ident);
+identnames=categories(ident);
 if isempty(ctnames)
     ctnames=identnames;
 end
@@ -163,7 +165,7 @@ end
 G(discard)=[];
 Ggrp(discard)=[];
 
-if options.log
+if options.expr_vals=="ncounts" && options.log
     switch options.logbase
         case '2'
             EXPR=log2(EXPR+1);
@@ -174,7 +176,7 @@ if options.log
     end
 end
 
-if ~options.pre_scale
+if options.pre_scale
     if ~isempty(options.scale_method)
         if isempty(options.scale_param)
             EXPR=normalize(EXPR,2,options.scale_method);
