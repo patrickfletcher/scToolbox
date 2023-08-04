@@ -1,10 +1,11 @@
-function result = scran_fastMNN(datafile, cellsub, splitby, normpars, hvgpars, mnnpars, options)
+function [norm, hvg, mnn] = scran_fastMNN(datafile, cellsub, splitby, genes, normpars, hvgpars, mnnpars, options)
 arguments
     datafile
     cellsub
     splitby {string,char,cellstr}
+    genes
     normpars.gene_subset=false
-    normpars.do_multibatch=false
+    normpars.do_multibatch=true
     normpars.do_pooledsizefactors=false
     normpars.min_mean=0.1
     hvgpars.n_features=[]
@@ -13,6 +14,7 @@ arguments
     hvgpars.var_thr=0.001
     hvgpars.fdr_thr=0.05
     mnnpars.k=20
+    mnnpars.prop_k=[]
     mnnpars.d=50
     mnnpars.ndist=3
     mnnpars.merge_order=[]
@@ -37,11 +39,7 @@ if options.verbose
 end
 
 hvgpars.do_topn=~isempty(hvgpars.n_features);
-
-result.method="scran_fastMNN";
-result.normpars=normpars;
-result.hvgpars=hvgpars;
-result.mnnpars=mnnpars;
+mnnpars.do_propk=~isempty(mnnpars.prop_k);
 
 datafile=cellstr(datafile);
 
@@ -81,23 +79,26 @@ end
 disp(mfilename+": ")
 toc
 
+
+norm=normpars;
+sfsfile=fullfile(options.tmp_path, options.tmp_fileroot+"_sfs.txt");
+norm.sizefactors=readmatrix(sfsfile);
+
+hvg=hvgpars;
+hvgfile=fullfile(options.tmp_path, options.tmp_fileroot+"_hvgs.txt");
+hvg.id=string(readcell(hvgfile));
+hvg.ix= getGeneIndices(hvg.id,genes.id);
+hvg.name = genes.name(hvg.ix);
+
+mnn=mnnpars;
 mnnfile=fullfile(options.tmp_path, options.tmp_fileroot+"_mnn.csv");
 rotfile=fullfile(options.tmp_path, options.tmp_fileroot+"_rot.csv");
-hvgfile=fullfile(options.tmp_path, options.tmp_fileroot+"_hvgs.txt");
-sfsfile=fullfile(options.tmp_path, options.tmp_fileroot+"_sfs.txt");
-result.coords=readmatrix(mnnfile);
-result.coeff=readmatrix(rotfile);
-result.hvgs=string(readcell(hvgfile));
-result.sizefactors=readmatrix(sfsfile);
+infofile=fullfile(options.tmp_path, options.tmp_fileroot+"_minfo.csv");
+mnn.coords=readmatrix(mnnfile);
+mnn.coeff=readmatrix(rotfile);
+mnn.merge_info = readtable(infofile);
 
 clustfile=fullfile(options.tmp_path, options.tmp_fileroot+"_qclust.txt");
 if normpars.do_pooledsizefactors
-    result.qclust=string(readcell(clustfile));
+    norm.clust=string(readcell(clustfile));
 end
-
-
-% R_result=load(options.resultfile);
-% result.coords=R_result.mnn;
-% result.coeff=R_result.rot;
-% result.hvgs=R_result.hvgs;
-% result.sizefactors=R_result.sizefactors;
