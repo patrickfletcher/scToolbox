@@ -140,8 +140,8 @@ for i=1:nvars
 
     if do_log(i)
         meds=exp(meds);
-%         mads=2.^mads;
-%         diffval=2.^diffval;
+        mads=exp(mads);
+        diffval=exp(diffval);
         lower=exp(lower);
         upper=exp(upper);
         lower_noclip=exp(lower_noclip);
@@ -160,8 +160,8 @@ for i=1:nvars
     stats=table();
     stats.groupnames=gN;
     stats.med=meds;
-%     stats.mad=mads;
-%     stats.diffval=diffval;
+    stats.mad=mads;
+    stats.diffval=diffval;
     stats.lower=lower;
     stats.upper=upper;
     stats.lower_noclip=lower_noclip;
