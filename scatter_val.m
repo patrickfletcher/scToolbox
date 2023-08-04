@@ -28,7 +28,8 @@ arguments
     opts.draworder {mustBeMember(opts.draworder,["random","value","valrev","flat"])} ='flat'
 
     opts.knnsmooth=[] %smooth a value using knn-average?
-    opts.nnix=[]
+    opts.scores=[]
+    opts.precomputedKNN = false
         
     opts.hide_axis=true
     opts.axisTight=true
@@ -137,6 +138,12 @@ if length(ax)>nSplit
     delete(ax(nSplit+1:end))
     ax=ax(1:nSplit);
 end
+
+if ~isempty(opts.knnsmooth)
+    csmooth = knn_metacells(cvals', opts.scores, n_neighbors=opts.knnsmooth, precomputed=opts.precomputedKNN)/opts.knnsmooth;
+    cvals = csmooth';
+end
+
 
 mincvals=min(cvals(:));
 maxcvals=max(cvals(:));
