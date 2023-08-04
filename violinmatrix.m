@@ -1,4 +1,4 @@
-function [v,ax,ylh]=violinmatrix(data,group,varNames,groupColors,options)
+function hvm=violinmatrix(data,group,varNames,groupColors,options)
 arguments
     data
     group
@@ -9,8 +9,9 @@ arguments
     options.ymode='left'
     options.ylabmode='vertical'
     options.Padding='compact'
-    options.TileSpacing='none'
+    options.TileSpacing='compact'
     options.grid{mustBeMember(options.grid,["on","off"])}='off';
+    options.fig=[]
     options.ax=[]
     options.ShowData=false;
     options.ShowMedian{mustBeMember(options.ShowMedian,["on","off"])}='off';
@@ -44,10 +45,15 @@ elseif length(options.widths)==nGroups
     widths=options.widths;
 end
 
+fh=options.fig;
+if isempty(fh)
+    fh = figure();
+end
+
 if isempty(options.ax)
-t=tiledlayout(nVars,1);
-t.Padding=options.Padding;
-t.TileSpacing=options.TileSpacing;
+    t=tiledlayout(fh,nVars,1);
+    t.Padding=options.Padding;
+    t.TileSpacing=options.TileSpacing;
 end
 
 for i=1:nVars
@@ -121,3 +127,8 @@ end
 ax(end).XTickLabel=groupnames;
 ax(end).XAxis.TickLabelInterpreter="none";
 % ax(end).YTickLabelMode='auto';
+
+hvm.fig = fh;
+hvm.ax = ax;
+hvm.v = v;
+hvm.ylh = ylh;
