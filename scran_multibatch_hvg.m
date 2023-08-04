@@ -1,4 +1,4 @@
-function result = scran_multibatch_hvg(datafile, cellsub, batchvar, genes, normpars, hvgpars, options)
+function [norm, hvg] = scran_multibatch_hvg(datafile, cellsub, batchvar, genes, normpars, hvgpars, options)
 arguments
     datafile
     cellsub
@@ -73,22 +73,22 @@ toc
 %TODO: link actual methods - pooledSFS vs libsize (pre multibatch)
 normpars.method="scran_multibatchnorm";
 hvgpars.method="scran_hvgs";
-result.subset = cellsub.keep;
-result.norm=normpars;
-result.hvg=hvgpars;
+
+norm=normpars;
+hvg=hvgpars;
 
 %TODO: return regular libsizefactors
 sfsfile=fullfile(options.tmp_path, options.tmp_fileroot+"_sfs.txt");
-result.norm.sizefactors=readmatrix(sfsfile);
-% result.norm.libsizefactors
+norm.sizefactors=readmatrix(sfsfile);
+% norm.libsizefactors
 
 %TODO: pass gene table in to get name/ix
 hvgfile=fullfile(options.tmp_path, options.tmp_fileroot+"_hvgs.txt");
-result.hvg.id=string(readcell(hvgfile));
-result.hvg.ix= getGeneIndices(result.hvg.id,genes.id);
-result.hvg.name = genes.name(result.hvg.ix);
+hvg.id=string(readcell(hvgfile));
+hvg.ix= getGeneIndices(hvg.id,genes.id);
+hvg.name = genes.name(hvg.ix);
 
 if normpars.do_pooledsizefactors
     clustfile=fullfile(options.tmp_path, options.tmp_fileroot+"_qclust.txt");
-    result.qclust=string(readcell(clustfile));
+    norm.clust=string(readcell(clustfile));
 end
