@@ -11,7 +11,7 @@ arguments
     hvgpars.n_features=[]
     hvgpars.do_poissonvar=false
     hvgpars.do_densityweights=false
-    hvgpars.var_thr=0.001
+    hvgpars.var_thr=0.0
     hvgpars.fdr_thr=1
     options.tmp_path=[]
     options.tmp_fileroot="tmp"
@@ -34,8 +34,9 @@ if isempty(options.tmp_path)
     options.tmp_path="D:/tmp/tmp_"+mfilename+"/";
 end
 
-
-hvgpars.do_topn=~isempty(hvgpars.n_features);
+if ~exist(options.tmp_path,"dir")
+    mkdir(options.tmp_path)
+end
 
 datafile=cellstr(datafile);
 
@@ -44,10 +45,6 @@ writetable(cellsub,cellsubsetfile)
 cellsubsetfile=cellstr(cellsubsetfile);
 
 batchvar=cellstr(batchvar);
-
-if ~exist(options.tmp_path,"dir")
-    mkdir(options.tmp_path)
-end
 
 parfile=fullfile(options.tmp_path, options.tmp_fileroot+"_pars.mat");
 

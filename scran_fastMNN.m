@@ -11,8 +11,8 @@ arguments
     hvgpars.n_features=[]
     hvgpars.do_poissonvar=false
     hvgpars.do_densityweights=false
-    hvgpars.var_thr=0.001
-    hvgpars.fdr_thr=0.05
+    hvgpars.var_thr=0.0
+    hvgpars.fdr_thr=1
     mnnpars.k=20
     mnnpars.prop_k=[]
     mnnpars.d=50
@@ -38,25 +38,16 @@ if options.verbose
     disp("Running " + mfilename + "...")
 end
 
-hvgpars.do_topn=~isempty(hvgpars.n_features);
-mnnpars.do_propk=~isempty(mnnpars.prop_k);
-
-datafile=cellstr(datafile);
-
-cellsubsetfile='D:/tmp/tmp_cellsub.csv';
-writetable(cellsub,cellsubsetfile)
-cellsubsetfile=cellstr(cellsubsetfile);
-
-splitby=cellstr(splitby);
-% mnnpars.merge_order
-if isempty(mnnpars.merge_order)
-%     mnnpars.merge_order=1:length(unique(cellsub.(string(splitby))));
-%     mnnpars.merge_order=cellstr(unique(cellsub.(string(splitby))));
-end
-
 if ~exist(options.tmp_path,"dir")
     mkdir(options.tmp_path)
 end
+
+datafile=cellstr(datafile);
+cellsubsetfile='D:/tmp/tmp_cellsub.csv';
+writetable(cellsub,cellsubsetfile)
+
+cellsubsetfile=cellstr(cellsubsetfile);
+splitby=cellstr(splitby);
 
 parfile=fullfile(options.tmp_path, options.tmp_fileroot+"_pars.mat");
 

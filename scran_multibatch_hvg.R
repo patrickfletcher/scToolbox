@@ -30,10 +30,12 @@ min_mean = as.numeric(normpars$min.mean)
 hvgpars=mat$hvgpars[,,1]
 do_poissonvar = as.logical(hvgpars$do.poissonvar)
 do_densityweights = as.logical(hvgpars$do.densityweights)
-do_topn = as.logical(hvgpars$do.topn)
-n_hvg = as.numeric(hvgpars$n.features)
+
 var_thr = as.numeric(hvgpars$var.thr)
+n_hvg = as.numeric(hvgpars$n.features)
+if (n_hvg==0) { n_hvg = NULL}
 fdr_thr = as.numeric(hvgpars$fdr.thr)
+if (fdr_thr==1) { fdr_thr = NULL}
 
 cellinfo <-read.csv(cellsubsetfile, row.names = 'id', header = T)
 cellinfo <- as(cellinfo, "DataFrame")
@@ -44,7 +46,6 @@ colData(sce) <- cellinfo
 sce <- sce[,sce$keep==1]
 
 gene_sub = as.logical(normpars$gene.subset)
-
 if (length(gene_sub)==dim(sce)[1]) {
   sce <- sce[gene_sub==T,]
 }
@@ -81,12 +82,9 @@ if (do_poissonvar==T) {
   blk <- modelGeneVar(sce, block=block, min.mean=min_mean, density.weights=do_densityweights)
 }
 
-if (do_topn==T) {
-  chosen.hvgs <- getTopHVGs(blk, n=n_hvg, fdr.threshold = fdr_thr)
-} else
-{
-  chosen.hvgs <- getTopHVGs(blk, var.threshold = var_thr, fdr.threshold = fdr_thr)
-}
+
+chosen.hvgs <- getTopHVGs(blk, n=n_hvg, var.threshold = var_thr, fdr.threshold = fdr_thr)
+
 
 print('Writing results to CSV files...')
 start_time = Sys.time()

@@ -22,8 +22,6 @@ cellsubsetfile <- unlist(mat$cellsubsetfile) #two column file with full list of 
 splits <- unlist(mat$splitby)
 
 normpars=mat$normpars[,,1]
-# print(normpars)
-
 do_pooledsizefactors = as.logical(normpars$do.pooledsizefactors)
 do_multibatch = as.logical(normpars$do.multibatch)
 min_mean = as.numeric(normpars$min.mean)
@@ -31,39 +29,30 @@ min_mean = as.numeric(normpars$min.mean)
 hvgpars=mat$hvgpars[,,1]
 do_poissonvar = as.logical(hvgpars$do.poissonvar)
 do_densityweights = as.logical(hvgpars$do.densityweights)
-do_topn = as.logical(hvgpars$do.topn)
-n_hvg = as.numeric(hvgpars$n.features)
+
 var_thr = as.numeric(hvgpars$var.thr)
+n_hvg = as.numeric(hvgpars$n.features)
+if (n_hvg==0) { n_hvg = NULL}
 fdr_thr = as.numeric(hvgpars$fdr.thr)
+if (fdr_thr==1) { fdr_thr = NULL}
 
 
 mnnpars=mat$mnnpars[,,1]
-# print(mnnpars)
-
-k <- as.numeric(mnnpars$k)
 d <- as.numeric(mnnpars$d)
 ndist <- as.numeric(mnnpars$ndist)
-
-prop_k <- NULL
-if (as.logical(mnnpars$do.propk)) { prop_k = as.numeric(mnnpars$prop.k)}
+k <- as.numeric(mnnpars$k)
+prop_k = as.numeric(mnnpars$prop.k)
+if (prop_k==0) { prop_k = NULL}
 
 cellinfo <-read.csv(cellsubsetfile, row.names = 'id', header = T)
 cellinfo <- as(cellinfo, "DataFrame")
 
-# restrict=cellsubset$restrict
-
 data <- Seurat::Read10X_h5(datafile, use.names = F)
-# data<-read10xCounts(datafile)
-# data <- as.array(counts(data))
 sce <- SingleCellExperiment(assays=list(counts=data))
 colData(sce) <- cellinfo
 sce <- sce[,sce$keep==1]
 
-# print(dim(sce))
-
 gene_sub = as.logical(normpars$gene.subset)
-# print(sum(gene_sub==T))
-
 if (length(gene_sub)==dim(sce)[1]) {
   sce <- sce[gene_sub==T,]
 }
@@ -105,18 +94,7 @@ if (do_poissonvar==T) {
   blk <- modelGeneVar(sce, block=block, min.mean=min_mean, density.weights=do_densityweights)
 }
 
-if (do_topn==T) {
-  chosen.hvgs <- getTopHVGs(blk,  n=n_hvg, var.threshold = var_thr, fdr.threshold = fdr_thr)
-} else
-{
-  chosen.hvgs <- getTopHVGs(blk, var.threshold = var_thr, fdr.threshold = fdr_thr)
-}
-
-
-# myUnlist <- function(X){
-#   U <- sapply(mnnpars$merge.order, unlist, recursive=F)
-# }
-
+chosen.hvgs <- getTopHVGs(blk, n=n_hvg, var.threshold = var_thr, fdr.threshold = fdr_thr)
 
 #figure out the split/merge order
 split1 <- sce@colData[,splits[1]]
@@ -138,19 +116,9 @@ if (length(mnnpars$merge.order)!=0) {
 }
 print(mergeix)
 
-# make_order <- function(groups, or){
-#   for ()
-# }
-
 # merge.order <- merge.cats[c(mergeix)]
 merge.order <- lapply(mergeix, function(X){merge.cats[X]})
 
-
-# merge.order = NULL
-# if (length(mnnpars$merge.order)!=0) {
-#   # merge.order <- mnnpars$merge.order
-#   merge.order <- sapply(mnnpars$merge.order, unlist)
-# }
 print(merge.order)
 
 
@@ -167,7 +135,7 @@ end_time = Sys.time()
 print(end_time - start_time)
 
 merge.info <- metadata(sce.mnn)$merge.info
-pairs <- merge.info$pairs
+pairs <- merge.info$pairs #could try the mnnDeltas thing?
 merge.info$pairs <- NULL
 merge.info <- data.frame(merge.info)
 merge.info$num.pairs <- sapply(pairs, nrow)
