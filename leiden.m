@@ -11,9 +11,7 @@ end
 
 %TODO: support building adjacency from data in X
 
-% tic
-result = params;
-
+t0 = tic;
 disp('Performing Leidenalg clustering...')
 
 %add path to python script if needed...
@@ -47,7 +45,7 @@ mod=zeros(1,n_part);
 q=zeros(1,n_part);
 clusterID=zeros(size(X,1),n_part);
 for r=1:n_part
-
+    disp("computing partition with resolution = " + num2str(params.resolution(r)))
     % def find_partition(N,sources,targets,
     % weights=None, node_sizes=None, initial_membership=None, partition_type="RBC",
     % resolution=1, n_iterations=-1, max_comm_size=0, rng_seed=None)
@@ -78,10 +76,16 @@ for r=1:n_part
     q(r)=pypart.q;
     clusterID(:,r)=ids;
     counts{r} = nT;
+
+    disp("number of clusters = " + num2str(k))
 end
 
+[~,maxmod]=max(mod);
+
+result = params;
 result.K=K;
 result.mod=mod;
+result.maxmod = maxmod;
 result.q=q;
 result.clusterID=clusterID;
 result.counts=counts;
@@ -93,3 +97,5 @@ pinfo.mod=mod(:);
 pinfo.q=q(:);
 
 result.info=pinfo;
+
+disp("leiden time: " + num2str(toc(t0)) + "s")

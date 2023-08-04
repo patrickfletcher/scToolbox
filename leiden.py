@@ -107,16 +107,16 @@ def find_partition(
     if node_sizes is not None:
         partition_kwargs['node_sizes'] = node_sizes
 
-    start_time = time.time()
+    #start_time = time.time()
 
     # find a partition
     ## leidenalg.find_partition(graph, partition_type, initial_membership=None, weights=None, n_iterations=2, max_comm_size=0, seed=None, **kwargs)
     partition = la.find_partition(g, partition_type, initial_membership=initial_membership, weights=weights,
                                   n_iterations=n_iterations, max_comm_size=max_comm_size, seed=rng_seed, **partition_kwargs)
 
-    groups = np.array(partition.membership)
-    print(f"leidenalg took {time.time()-start_time}s")
-    print(f"number of clusters = {len(np.unique(groups))}")
+    #groups = np.array(partition.membership)
+    #print(f"leidenalg took {time.time()-start_time}s")
+    #print(f"number of clusters = {len(np.unique(groups))}")
 
     return partition
     # write the labels to CSV
