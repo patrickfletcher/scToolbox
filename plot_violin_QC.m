@@ -1,108 +1,62 @@
-function [fh,ax]=plot_violin_QC(QCdata, TF, sampleID, ctnames, cols, figpos)
+function hvqc=plot_violin_QC(cells, qc_data, blockvar, opts)
 arguments
-    QCdata
-    TF 
-    sampleID
-    ctnames 
-    cols 
-    figpos=[]
+    cells
+    qc_data
+    blockvar = []
+    opts.varlabs = [] 
+    opts.gcols = []
+    opts.fig = []
 end
 
-samples=categories(sampleID);
+varnames=[qc_data(:).name]; 
+do_log=[qc_data(:).do_log];
 
-thrw=0.33;
-datasz=1;
-%'Units','inches','Position',[2,2,4,2]
-gap=0.01;
-marg_w=[0.15,0.1];
-marg_h=[0.1,0.05];
-
-% cols=raw.cols;
-% cols(end-1,:)=[]; %remove Amb
-% cols(1,:)=[]; %remove E
-
-% ylabs
-
-% TF=raw.TF_imp;
-% TF(end+1,:)=~any(TF,1);
-
-% qcctnames=ctnames;
-% qcctnames(end+1)={'Unc'};  %Amb are hidden in the other types
-% qcctnames(1)=[]; %remove E
-% TF(1,:)=[];
-
-
-QCdataFields=fieldnames(QCdata(1));
-QCdataFields(QCdataFields=="samplename")=[];
-ylabs = QCdataFields;
-
-nplots=length(QCdata);
-for pix=1:nplots
-    
-    fh(pix)=figure();clf
-    if ~isempty(figpos)
-    %     fh(pix).Units='inches';
-        fh(pix).Position=figpos;
-    %     fh(pix).PaperPositionMode='auto'; 
-    end
-    nPanels=length(QCdataFields);
-    for i=1:nPanels
-        ax(i)=tight_subplot(nPanels,1,i,gap,marg_h,marg_w);
-        thisQC=QCdata(pix).(QCdataFields{i});
-        thisvals=thisQC.vals;
-        thislow=thisQC.lowthr;
-        thishi=thisQC.hithr;
-        if thisQC.params.logval
-            thisvals=log10(thisvals);
-%             thislow=log10(thislow);
-%             thishi=log10(thishi);
-        end
-        thissamplecells=sampleID==samples{pix};
-        for j=1:size(TF,1)
-            thisTF=TF(j,thissamplecells);
-            valsub=thisvals(thisTF);
-            
-            %don't plot thresholds for low num cts
-            if length(valsub)<30
-                continue
-            end
-            
-            hvn(j)=Violin(valsub, j,'ViolinColor',cols(j,:));
-            hvn(j).MedianPlot.Marker='+';
-            hvn(j).ScatterPlot.SizeData=datasz;
-%             hvn(j).ShowData=false;
-            hvn(j).ViolinAlpha=1;
-%             if j==length(qcctnames)
-            hvn(j).MedianPlot.Visible=false;
-            hvn(j).BoxPlot.Visible=false;
-%             end
-            
-            if thishi(j)>=min(thisvals)
-                line(ax(i),j+thrw*[-1,1],thislow(j)*[1,1],'color','k')
-            end
-            if thishi(j)<=max(thisvals)
-                line(ax(i),j+thrw*[-1,1],thishi(j)*[1,1],'color','k')
-            end
-        end
-        
-        if i<nPanels
-            ax(i).XTick=[];
-        else
-            ax(i).XTick=1:length(ctnames);
-        end
-        ax(i).XTickLabel=ctnames;
-        ax(i).XLim=[0.5,length(ctnames)+0.5];
-%         if mod(i,2)==0
-%             ax(i).YAxisLocation='right';
-%         end
-        ylabel(ax(i),ylabs{i})
-        
-        if thisQC.params.logval
-            ax(i).YTick=0:4;
-            ax(i).YTickLabels={'10^0','10^1','10^2','10^3','10^4'};
-        else
-            thishi(thishi==thisQC.params.hithr_clipval)=[];
-            ax(i).YLim=[0,min(1.5*max(thishi),1)];
-        end
-    end
+if isempty(blockvar)
+    blockvar=ones(size(cells,1), 1);
 end
+varlabs=opts.varlabs;
+if isempty(varlabs)
+    varlabs=varnames;
+end
+
+data=cells{:,varnames};
+data(:,do_log)=log10(data(:,do_log));
+
+gcols=opts.gcols;
+if isempty(gcols)
+    gcols = turbo(length(unique(blockvar)));
+end
+
+hvm=violinmatrix(data, blockvar, varlabs, gcols, ...
+    grid='on',ShowMedian='on', ShowBox='on', ...
+    ShowData='off', fig=opts.fig);
+
+for i=1:length(hvm.v(:))
+    hvm.v(i).ViolinAlpha=0.9;
+    hvm.v(i).MedianPlot.SizeData=5;
+    hvm.v(i).ScatterPlot.Marker='x';
+end
+
+K=length(unique(blockvar));
+for i=1:length(varnames)
+    x=[0.66;1.33]+(1:K)-1;
+    yup=repmat(qc_data(i).stats.upper(:)',2,1);
+    ylo=repmat(qc_data(i).stats.lower(:)',2,1);
+    if qc_data(i).do_log
+%         ax(i).YScale='log';
+        yup=log10(yup);
+        ylo=log10(ylo);
+    end
+    if qc_data(i).type=="upper" || qc_data(i).type=="both" 
+        hlhi{i}=line(hvm.ax(i),x,yup,'color',0.6*[1,1,1]);
+    end
+    if qc_data(i).type=="lower" || qc_data(i).type=="both" 
+        hllo{i}=line(hvm.ax(i),x,ylo,'color',0.6*[1,1,1]);
+    end
+%     line(ax(i),[min(x(:)),max(x(:))],median(data(:,i))*[1,1],'color',0.7*[1,1,1])
+    ylim(hvm.ax(i),'padded')
+end
+
+hvqc = hvm;
+hvqc.hlhi=hlhi;
+hvqc.hllo=hllo;
