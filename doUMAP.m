@@ -13,7 +13,10 @@ arguments
     params.gam=1.0; %gamma is repulsion strength
     params.negative_sample_rate=5; %double or int?
     params.initY = []
-    params.rngSeed=42
+    params.init_noise = []
+    params.init_offset = []
+    params.init_norm = 'none'
+    params.rngSeed=42  %default same seed... externally set if desired?
     params.do_densmap=false
     params.dens_lambda=2; %weight of density term in optimization
     params.dens_frac=0.3; %final fraction of epochs to use density term
@@ -24,6 +27,7 @@ arguments
 end
 
 t0=tic;
+n_obs = size(X,1); 
 
 %TODO: is it correct to use the graph output by umap.fuzzy_simplicial_set
 %for downstream clustering?
@@ -34,7 +38,7 @@ t0=tic;
 % npc=10, distance=correlation, n_neighbors=30, min_dist=0.3, seed=0.
 % https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/using/reanalyze
 %
-% Umap defaults to n_epochs=500 if size(X,1)<10000, else 200
+% Umap defaults to n_epochs=500 if n_obs<10000, else 200
 
 %TODO: might be better to use the highest level interface, UMAP(), to
 %prevent frequent breaking of code..
@@ -57,10 +61,13 @@ nn_method=params.nn_method;
 verbose=options.verbose;
 do_parallel=options.do_parallel;
 
+isFullInitY = false;
 if isempty(initY)
     initY="spectral";
     params.initY=initY;
+
 elseif isnumeric(initY)&&numel(initY)<10
+    isFullInitY = true;
     %initY=[pc1,pc2] indicates index of PCs to use as initial points
     pcix=initY;
     signix=sign(pcix);
@@ -69,25 +76,45 @@ elseif isnumeric(initY)&&numel(initY)<10
     initY(:,1)=signix(1)*initY(:,1);
     initY(:,2)=signix(2)*initY(:,2);
     initY=py.numpy.array(initY,'float32',pyargs('order','C'));
-elseif size(initY,1)==size(X,1)
+
+elseif size(initY,1)==n_obs
+    isFullInitY = true;
     initY=py.numpy.array(initY,'float32',pyargs('order','C'));
+
 elseif initY~="spectral" && initY~="random" && initY~="pca"
     error('unknown initialization method for UMAP');
+end
+
+if isFullInitY
+    % scatter_grp(initY); axis on
+    if ~isempty(params.init_offset)
+        initY = initY + params.init_offset;
+    end
+    if ~isempty(params.init_noise)
+        initY = initY + params.init_noise.*range(initY,2).*(rand(size(initY))-0.5);
+    end
+    switch params.init_norm
+        case {'range','zscore','center','norm','scale','medianiqr'}
+            initY = normalize(initY,1,params.init_norm);
+        otherwise
+            %nop
+    end
+    % scatter_grp(initY); axis on
 end
 
 if isstring(params.n_neighbors)||ischar(params.n_neighbors)
     switch params.n_neighbors
         case "sqrtN"
-            params.n_neighbors=round(sqrt(size(X,1)));
+            params.n_neighbors=ceil(sqrt(n_obs));
         otherwise
-            error('unknoqn n_neighbors string')
+            error('unknown n_neighbors string')
     end
 end
-
-%initialize results (flat struct with all params + results)
-result = params;
-
+if isempty(params.rngSeed)
+    params.rngSeed = randi(intmax,1);
+end
 rng(params.rngSeed)
+
 
 %common python function arguments
 n_neighbors=int64(params.n_neighbors);
@@ -95,7 +122,7 @@ n_neighbors=int64(params.n_neighbors);
 % break into three steps for reuse of intermediates.
 % 1. nearest neighbors --> nnIDX, nnDist (for impute!) - in python, quite slow! the bottleneck.
 doKNN=true;
-if ~isempty(knn) && size(knn.idx,1)==size(X,1) && params.n_neighbors<=size(knn.idx,2)
+if ~isempty(knn) && size(knn.idx,1)==n_obs && params.n_neighbors<=size(knn.idx,2)
     doKNN=false;
     knn_indices=knn.idx(:,1:params.n_neighbors);
     knn_dists=knn.dists(:,1:params.n_neighbors);
@@ -152,66 +179,88 @@ emb_graph=out_tuple{1};
 
 disp("fuzzy_simplicial_set time: " + num2str(toc) + "s")
 
-
-% 3. embedding --> result
-tic
-
-n_components=int64(params.n_components);
-
-n_epochs=params.n_epochs;
-if n_epochs==0
-    if size(X,1)<10000
-        n_epochs=500;
-    else
-        n_epochs=200;
-    end
-end
-n_epochs=int64(n_epochs);
-
-initial_alpha=params.initial_alpha; %alpha is SGD learning rate
-gam=params.gam; %gamma is repulsion strength
-negative_sample_rate=params.negative_sample_rate; %double or int?
-
 out=umap.find_ab_params(params.spread, params.min_dist);
 a=out{1}; b=out{2};
-
-%do dens_map?
-densmap_kwds='';
-if params.do_densmap
-    emb_dists=out_tuple{4};
-    densmap_kwds=py.dict(pyargs('graph_dists',emb_dists,'lambda',params.dens_lambda,...
-        'frac',params.dens_frac,'var_shift',params.dens_var_shift));
-end
-
-if do_parallel
-    py_rand_state=py.numpy.random.RandomState();
-end
-
-
-kwargs = pyargs('verbose',verbose,'densmap',params.do_densmap,'densmap_kwds', ...
-    densmap_kwds,'output_dens',false, 'parallel',do_parallel);
-
-%metric here is for Spectral initY only
-metric=params.metric; %set it back to the original metric choice in case we used pre-computed.
-% - has special code branch for Euclidean - is it faster??
-embedded = umap.simplicial_set_embedding(X, emb_graph,...
-    n_components, initial_alpha, a, b, gam, negative_sample_rate,... 
-    n_epochs, initY, py_rand_state, metric, metric_kwargs, kwargs);
-
-
-disp("simplicial_set_embedding time: " + num2str(toc) + "s")
+if params.n_epochs >=0  
+    % 3. embedding --> result
+    tic
     
+    n_components=int64(params.n_components);
+    
+    n_epochs=params.n_epochs;
+    if n_epochs==0
+        if n_obs<10000
+            n_epochs=500;
+        else
+            n_epochs=200;
+        end
+    end
+    n_epochs=int64(n_epochs);
+    
+    initial_alpha=params.initial_alpha; %alpha is SGD learning rate
+    gam=params.gam; %gamma is repulsion strength
+    negative_sample_rate=params.negative_sample_rate; %double or int?
+    
+    %do dens_map?
+    densmap_kwds='';
+    if params.do_densmap
+        emb_dists=out_tuple{4};
+        densmap_kwds=py.dict(pyargs('graph_dists',emb_dists,'lambda',params.dens_lambda,...
+            'frac',params.dens_frac,'var_shift',params.dens_var_shift));
+    end
+    
+    if do_parallel
+        py_rand_state=py.numpy.random.RandomState();
+    end
+    
+    
+    kwargs = pyargs('verbose',verbose,'densmap',params.do_densmap,'densmap_kwds', ...
+        densmap_kwds,'output_dens',false, 'parallel',do_parallel);
+    
+    %metric here is for Spectral initY only
+    metric=params.metric; %set it back to the original metric choice in case we used pre-computed.
+    % - has special code branch for Euclidean - is it faster??
+    embedded = umap.simplicial_set_embedding(X, emb_graph,...
+        n_components, initial_alpha, a, b, gam, negative_sample_rate,... 
+        n_epochs, initY, py_rand_state, metric, metric_kwargs, kwargs);
+    
+    
+    disp("simplicial_set_embedding time: " + num2str(toc) + "s")
+
+end
+
 %store the results
 tic
-result.graph=sparse(double(emb_graph.toarray())); %is this correct?
+
+result = params;
+result.a=double(a);
+result.b=double(b);
+if params.n_epochs >= 0
+    result.coords=double(embedded{1});   
+end
+
 % result.sigmas=double(emb_sigmas);
 % result.rhos=double(emb_rhos); 
 % result.dists=sparse(double(emb_dists.toarray())); 
-result.a=double(a);
-result.b=double(b);
-result.coords=double(embedded{1});
-disp("extract and store result time: " + num2str(toc) + "s")
 
+%just transfer the graph data, build sparse here. Much faster!
+% CSR:  
+% - data, row_ind and col_ind satisfy the relationship a[row_ind[k], col_ind[k]] = data[k]
+% - column indices for row i are stored in    indices[indptr[i]:indptr[i+1]] 
+% and their corresponding values are stored in   data[indptr[i]:indptr[i+1]] 
+
+indptr = int64(emb_graph.indptr);
+r = int64(emb_graph.indices) + 1;
+data = double(emb_graph.data);
+
+cdiff=diff(indptr);
+c=zeros(size(r), 'int64');
+for i=1:length(cdiff)
+    c(indptr(i)+1:indptr(i+1))=i*ones(cdiff(i),1, 'int64');
+end
+
+result.graph=sparse(r, c, data, n_obs, n_obs);
+    
 if nargout==2
 %connectivities used to generate UMAP's graph:
 used_knn.indices=knn_indices;
@@ -222,7 +271,7 @@ end
 % [s,t,w]=find(cg.umap.graph);
 % umap_graph_neighbors=splitapply(@(x) {x}, t, s);
 
-disp("doUMAP time: " + num2str(toc(t0)) + "s")
+disp("extract and store result time: " + num2str(toc) + "s")
 
 if ~isempty(options.figID)
     figure(options.figID);clf
@@ -230,3 +279,6 @@ if ~isempty(options.figID)
     axis tight equal
     drawnow
 end
+
+
+disp("doUMAP time: " + num2str(toc(t0)) + "s")
