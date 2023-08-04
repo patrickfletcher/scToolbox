@@ -23,7 +23,7 @@ Nset=get_N(cset_names);
 color_counts=table(); color_counts.cset_name=cset_names(:); color_counts.N=Nset;
 
 names=[cmap_names, cset_names];
-if args.list
+if nargin==0 || args.list
     cmap_names
     cset_names
     disp(color_counts)
