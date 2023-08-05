@@ -29,6 +29,7 @@ min_mean = as.numeric(normpars$min.mean)
 hvgpars=mat$hvgpars[,,1]
 do_poissonvar = as.logical(hvgpars$do.poissonvar)
 do_densityweights = as.logical(hvgpars$do.densityweights)
+min_mean_hvg = as.numeric(hvgpars$min.mean.hvg)
 
 var_thr = as.numeric(hvgpars$var.thr)
 n_hvg = as.numeric(hvgpars$n.features)
@@ -88,10 +89,10 @@ if (do_multibatch==T) {
 }
 
 if (do_poissonvar==T) {
-  blk <- modelGeneVarByPoisson(sce, block=block, min.mean=min_mean)
+  blk <- modelGeneVarByPoisson(sce, block=block, min.mean=min_mean_hvg)
 } else
 {
-  blk <- modelGeneVar(sce, block=block, min.mean=min_mean, density.weights=do_densityweights)
+  blk <- modelGeneVar(sce, block=block, min.mean=min_mean_hvg, density.weights=do_densityweights)
 }
 
 chosen.hvgs <- getTopHVGs(blk, n=n_hvg, var.threshold = var_thr, fdr.threshold = fdr_thr)
