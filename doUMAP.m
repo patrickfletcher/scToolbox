@@ -9,6 +9,8 @@ arguments
     params.n_epochs=0  %let UMAP decide
     params.min_dist=0.3
     params.spread=1
+    params.a=[]
+    params.b=[]
     params.initial_alpha=1.0; %alpha is SGD learning rate
     params.gam=1.0; %gamma is repulsion strength
     params.negative_sample_rate=5; %double or int?
@@ -23,14 +25,14 @@ arguments
     params.dens_var_shift=0.1; %small constant to prevent div by zero
     options.do_parallel=true;
     options.verbose=false
-    options.figID = []
+    options.doPlot = false
 end
 
 t0=tic;
 n_obs = size(X,1); 
 
 %TODO: is it correct to use the graph output by umap.fuzzy_simplicial_set
-%for downstream clustering?
+%for downstream clustering? --> the graph is what scanpy calls "connectivities"
 
 %TODO - use of projection methods to add new points into UMAP?
 
@@ -116,32 +118,36 @@ end
 rng(params.rngSeed)
 
 
+umap=py.importlib.import_module('umap.umap_');
+
 %common python function arguments
 n_neighbors=int64(params.n_neighbors);
-
-% break into three steps for reuse of intermediates.
-% 1. nearest neighbors --> nnIDX, nnDist (for impute!) - in python, quite slow! the bottleneck.
-doKNN=true;
-if ~isempty(knn) && size(knn.idx,1)==n_obs && params.n_neighbors<=size(knn.idx,2)
-    doKNN=false;
-    knn_indices=knn.idx(:,1:params.n_neighbors);
-    knn_dists=knn.dists(:,1:params.n_neighbors);
-end
-
-%matlab knn
-if doKNN && nn_method=="matlab"
-    disp('Computing neighbors...')
-    tic
-    [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors+1,'Distance',metric); %quite fast!
-%     knn_indices(:,1)=[]; %remove self distances
-%     knn_dists(:,1)=[];
-    disp("knnsearch time: " + num2str(toc) + "s")
-    metric='precomputed'; %if I do KNN, UMAP doesn't use a metric
-end
-
 metric_kwargs=py.dict();
 py_rand_state=py.numpy.random.RandomState(int64(params.rngSeed));
 
+% break into three steps for reuse of intermediates.
+% 1. nearest neighbors --> nnIDX, nnDist (for impute!) - in python, quite slow! the bottleneck.
+
+%matlab knn (otherwise, let UMAP do it)
+if nn_method=="matlab"
+    if ~isempty(knn) && size(knn.idx,1)==n_obs && params.n_neighbors<=size(knn.idx,2)
+        doKNN=false;
+        knn_indices=knn.idx(:,1:params.n_neighbors);
+        knn_dists=knn.dists(:,1:params.n_neighbors);
+    else
+        disp('Computing neighbors (knnsearch)...')
+        tic
+        % k+1 because we don't want to remove self
+        [knn_indices,knn_dists]=knnsearch(X,X,'K',params.n_neighbors+1,'Distance',metric); %quite fast!
+        disp("knnsearch time: " + num2str(toc) + "s")
+    end
+
+    metric='precomputed'; %if I do KNN, UMAP doesn't use a metric
+    kwargs = pyargs('knn_indices',py.numpy.int64(knn_indices-1),...
+                    'knn_dists', py.numpy.array(knn_dists,'float32',pyargs('order','C')),...
+                    'verbose',verbose,'return_dists',params.do_densmap);
+else
+    
 %python version
 % do_sparse=1; %seems much faster for py nearest neighbors
 % if do_sparse %transform seemed to fail when X is sparse.
@@ -155,19 +161,28 @@ py_rand_state=py.numpy.random.RandomState(int64(params.rngSeed));
 % result.knn_dists=double(out{2});
 % toc
 
+    % disp('Computing neighbors (umap.nearest_neighbors)...')
+    % kwargs = pyargs('angular',false,'verbose',true,'random_state',py_rand_state);
+    % out=umap.nearest_neighbors(py.scipy.sparse.csr_matrix(X),n_neighbors,...
+    %     metric,metric_kwargs,false,kwargs); 
+    % knn_indices_py = out{1};
+    % knn_dists_py=out{2};
+    % knn_indices=double(knn_indices_py)+1; %+1 to convert to Matlab 1-based
+    % knn_dists=double(knn_dists_py);
+    % disp("nearest_neighbors time: " + num2str(toc) + "s")
 
-umap=py.importlib.import_module('umap.umap_');
-disp('Computing UMAP...')
+    % metric='precomputed';
+    % kwargs = pyargs('knn_indices',knn_indices_py,...
+    %                 'knn_dists', knn_dists_py,...
+    %                 'verbose',verbose,'return_dists',true);
+    kwargs = pyargs('verbose',verbose,'return_dists',params.do_densmap);
+end
+
+
+disp('Computing fuzzy simplicial set...')
 
 % 2. fuzzy simplicial set --> graph
 tic
-if nn_method=="matlab" || ~doKNN
-kwargs = pyargs('knn_indices',py.numpy.int64(knn_indices-1),...
-                'knn_dists', py.numpy.array(knn_dists,'float32',pyargs('order','C')),...
-                'verbose',verbose,'return_dists',true);
-else
-kwargs = pyargs('verbose',verbose,'return_dists',true);
-end
             
 out_tuple=umap.fuzzy_simplicial_set(py.numpy.array(X,'float32',pyargs('order','C')),...
     n_neighbors, py_rand_state, metric, kwargs);
@@ -179,10 +194,18 @@ emb_graph=out_tuple{1};
 
 disp("fuzzy_simplicial_set time: " + num2str(toc) + "s")
 
-out=umap.find_ab_params(params.spread, params.min_dist);
-a=out{1}; b=out{2};
+if ~isempty(params.a) && ~isempty(params.b)
+    a=params.a;
+    b=params.b;
+else
+    out=umap.find_ab_params(params.spread, params.min_dist);
+    a=out{1}; 
+    b=out{2};
+end
+
 if params.n_epochs >=0  
     % 3. embedding --> result
+    disp('Computing simplicial set embedding...')
     tic
     
     n_components=int64(params.n_components);
@@ -225,7 +248,7 @@ if params.n_epochs >=0
         n_epochs, initY, py_rand_state, metric, metric_kwargs, kwargs);
     
     
-    disp("simplicial_set_embedding time: " + num2str(toc) + "s")
+    disp("simplicial set embedding time: " + num2str(toc) + "s")
 
 end
 
@@ -259,7 +282,7 @@ for i=1:length(cdiff)
     c(indptr(i)+1:indptr(i+1))=i*ones(cdiff(i),1, 'int64');
 end
 
-result.graph=sparse(r, c, data, n_obs, n_obs);
+result.graph=sparse(r, c, data, n_obs, n_obs);  %umap "connectivities"
     
 if nargout==2
 %connectivities used to generate UMAP's graph:
@@ -273,9 +296,9 @@ end
 
 disp("extract and store result time: " + num2str(toc) + "s")
 
-if ~isempty(options.figID)
-    figure(options.figID);clf
-    scatter_grp(result.coords,ones(size(result.coords,1),1),gcols=0.66*[1,1,1],fig=options.figID);
+if options.doPlot
+    fh=figure();clf
+    scatter_grp(result.coords,ones(size(result.coords,1),1),gcols=0.66*[1,1,1], fig=fh);
     axis tight equal
     drawnow
 end
