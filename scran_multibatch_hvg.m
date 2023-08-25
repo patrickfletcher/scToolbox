@@ -84,6 +84,15 @@ hvg.id=string(readcell(hvgfile));
 hvg.ix= getGeneIndices(hvg.id,genes.id);
 hvg.name = genes.name(hvg.ix);
 
+meanfile=fullfile(options.tmp_path, options.tmp_fileroot+"_mean.txt");
+varfile=fullfile(options.tmp_path, options.tmp_fileroot+"_var.txt");
+biofile=fullfile(options.tmp_path, options.tmp_fileroot+"_bio.txt");
+techfile=fullfile(options.tmp_path, options.tmp_fileroot+"_tech.txt");
+hvg.mean=readmatrix(meanfile);
+hvg.var=readmatrix(varfile);
+hvg.bio=readmatrix(biofile);
+hvg.tech=readmatrix(techfile);
+
 if normpars.do_pooledsizefactors
     clustfile=fullfile(options.tmp_path, options.tmp_fileroot+"_qclust.txt");
     norm.clust=string(readcell(clustfile));
