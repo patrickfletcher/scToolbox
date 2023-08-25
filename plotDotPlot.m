@@ -51,12 +51,9 @@ switch options.sortby
             sizesub=sizeData(thiscat,:);
             colorsub=colorData(thiscat,:);
             [~,ixs]=natsort(cellstr(varsub));
-            varsub=varsub(ixs);
-            sizesub=sizesub(ixs,:);
-            colorsub=colorsub(ixs,:);
-            varNames(thiscat)=varsub;
-            sizeData(thiscat,:)=sizesub; 
-            colorData(thiscat,:)=colorsub; 
+            varNames(thiscat)=varsub(ixs);
+            sizeData(thiscat,:)=sizesub(ixs,:); 
+            colorData(thiscat,:)=colorsub(ixs,:); 
 %             IXS=[IXS;ixs(:)+length(IXS)];
         end
 
