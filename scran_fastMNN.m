@@ -1,51 +1,40 @@
-function [norm, hvg, mnn] = scran_fastMNN(datafile, cellsub, splitby, genes, normpars, hvgpars, mnnpars, options)
+function [norm, hvg, mnn] = scran_fastMNN(datafile, csubtab, splitby, genes, normpars, hvgpars, mnnpars, options)
 arguments
     datafile
-    cellsub
+    csubtab
     splitby {string,char,cellstr}
     genes
     normpars.gene_subset=false
+    normpars.min_mean=0.1 
     normpars.do_multibatch=true
     normpars.do_pooledsizefactors=false
-    normpars.min_mean=0.1 %key param
-    hvgpars.n_features=0 %return all passing other thresholds
+    hvgpars.min_mean_hvg=0.1
+    hvgpars.n_features=0     
     hvgpars.do_poissonvar=false
     hvgpars.do_densityweights=false %overrides fitTrendVar default of TRUE. important when HVGs are also high-abundance
-    hvgpars.var_thr=0.0 %key param
-    hvgpars.fdr_thr=1  % set to 1 to omit FDR threshold. overly conservative.
-    hvgpars.min_mean_hvg=0.1 %key param
+    hvgpars.var_thr=0.0 
+    hvgpars.fdr_thr=1
+    mnnpars.merge_order=[]
+    mnnpars.d=50
     mnnpars.k=20
     mnnpars.prop_k=[]
-    mnnpars.d=50
     mnnpars.ndist=3
-    mnnpars.merge_order=[]
-    options.tmp_path="D:/tmp/tmp_scran_fastMNN/"
+    options.tmp_path="D:/tmp/tmp_"+mfilename+"/"
     options.tmp_fileroot="tmp"
-%     options.resultfile="D:/tmp/tmp_scran_fastMNN_results.mat"
     options.verbose=false
 end
-% TODO - complete api:
-% - control size factors
-% - control HVG selection
-%TODO: save the SCE object
-
-% do_poissonvar = as.logical(hvgpars$do.poissonvar)
-% do_topn = as.logical(hvgpars$do.topn)
-% n_hvg = as.numeric(hvgpars$n.features)
-% var_thr = as.numeric(hvgpars$var.thr)
-% fdr_thr = as.numeric(hvgpars$fdr.thr)
+%TODO: save the SCE object to RDS?
 
 if options.verbose
     disp("Running " + mfilename + "...")
 end
-
 if ~exist(options.tmp_path,"dir")
     mkdir(options.tmp_path)
 end
 
 datafile=cellstr(datafile);
-cellsubsetfile='D:/tmp/tmp_cellsub.csv';
-writetable(cellsub,cellsubsetfile)
+cellsubsetfile=options.tmp_path + options.tmp_fileroot + "cellsub.csv";
+writetable(csubtab,cellsubsetfile)
 
 cellsubsetfile=cellstr(cellsubsetfile);
 splitby=cellstr(splitby);
