@@ -106,17 +106,17 @@ elseif isempty(opts.fig)&&~isempty(opts.ax) %create correct # ax
     if length(opts.ax)~=nSplit
         error("Cannot fit "+string(nSplit)+" scatterplots into "+string(length(opts.ax))+" axes");
     end
-    ax=opts.ax;
+    ax=opts.ax; cla
     fh=gcf;
 elseif ~isempty(opts.fig)&&isempty(opts.ax) %make new axes
-    fh=figure(opts.fig);
+    fh=figure(opts.fig); clf
     doNewAx=true;
 else %both fig and ax specified: splitby only possible if correct # ax
     if length(opts.ax)~=nSplit
         error("Cannot fit "+string(nSplit)+" scatterplots into "+string(length(opts.ax))+" axes");
     end
     fh=figure(opts.fig);
-    ax=opts.ax;
+    ax=opts.ax; cla
 end
 
 if doNewAx
