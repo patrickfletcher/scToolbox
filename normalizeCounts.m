@@ -53,7 +53,7 @@ if issparse(counts)
     end
     ncounts=sparse(i,j,an,m,n);
 else
-    ncounts=counts./sfs;
+    ncounts=double(counts)./sfs;
 end
 
 % verify
