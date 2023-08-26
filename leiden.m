@@ -39,6 +39,7 @@ targets = int32(targets-1);
 
 n_part =length(params.resolution);
 
+
 counts={};
 K=zeros(1,n_part);
 mod=zeros(1,n_part);
@@ -78,6 +79,10 @@ for r=1:n_part
     counts{r} = nT;
 
     disp("number of clusters = " + num2str(k))
+end
+
+if n_part==1
+    counts = counts{1};
 end
 
 [~,maxmod]=max(mod);
