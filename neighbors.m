@@ -1,11 +1,14 @@
-function result = neighbors(X, params, options)
+function result = neighbors(X, params, gparams, options)
 arguments
     X
     params.n_neighbors=30
     params.metric="correlation"
-    params.graph_type{mustBeMember(params.graph_type,["knn","snn"])}="knn"
+    gparams.graph_type{mustBeMember(gparams.graph_type,["knn","snn"])}="knn"
+    gparams.graph_weights = "adj"
+    gparams.pruneThr = 0
+    gparams.symmetrize = false
     options.makeGraph = false
-    options.removeSelfNN = true
+    options.removeSelfNN = false
     options.verbose=false
 end
 %compute the k-nearest neighbors and their distances from a matrix of m
@@ -42,29 +45,71 @@ disp("knnsearch time: " + num2str(toc) + "s")
 %refinement options?
 % - snn
 % - snn + something to keep graph connected?
+% https://github.com/LTLA/bluster/blob/master/src/build_snn.cpp
 
 result.idx=idx;
 result.dists=dists;
 
-%for graph representation
-% - weight options?
-
+%graph representation
+% TODO: split out graph building stuff into separate function?
 if options.makeGraph
-    sources = repelem(1:m, k);
-    targets = reshape(idx', 1, []);
-    weights = reshape(dists', 1, []);
-    
-    switch params.graph_type
-        case "knn"
-            G=digraph(sources,targets,weights); %already knn
-        case "snn"
-            %needs weights: "rank","number","jaccard"
-            knnAdjacency = sparse(sources,targets,ones(size(sources)));
-            A = knnAdjacency + knnAdjacency';
-            A(A==1) = 0;
-            % normalize to weights of 1 so the undirected mutual knn graph is unweighted
-            A = A/2;
-            G = graph(A);
+    sources = repelem(1:m, k)';
+    targets = reshape(idx', [], 1);
+
+    if gparams.graph_type=="snn" || gparams.graph_weights=="jaccard" || gparams.graph_weights=="number"
+        [shared_neighbors, jaccard_index] = get_jaccard();
     end
+
+    % - weight options? reciprocal knn_dist? "rank", "number", "jaccard" ???
+    % https://rdrr.io/github/LTLA/bluster/man/makeSNNGraph.html
+    switch gparams.graph_weights
+        case "adj"
+            weights = ones(size(sources));
+
+        case "rank" 
+            % w=k-r/2, where r is the smallest sum of ranks for any shared neighboring node
+            % need to compute this alongside shared/jaccard... more complex cellfun function?
+
+        case "number"
+            weights = shared_neighbors;
+
+        case "jaccard"
+            weights = jaccard_index;
+
+        case "dist" %reciprocal? 1/dist?  exponential kernel???
+            weights = reshape(1./dists', 1, []);
+            weights(isinf(weights))=0;
+    end
+
+    G = sparse(sources, targets, weights, m, m);
+
+    switch gparams.graph_type
+        case "knn"
+            discards = false(m,1);
+
+        case "snn" 
+            discards = jaccard_index<gparams.pruneThr;
+    end
+    G(discards) = 0;
+
+    %symmetrize? Louvain non-oriented does this anyway.
+    if gparams.symmetrize
+        G = (G + G')/2;
+    end
+
     result.graph=G;
+end
+
+    %TODO: speed of looping? outer loop is on columns, cellfun loops on rows...
+    function [shared_neighbors, jaccard_index] = get_jaccard()
+        %similarity = Jaccard index (shared neighbors) -> what fraction of my neighbors include me as one of theirs?         
+        shared_neighbors = zeros(size(idx));
+        for i=1:k
+            n_of_n=idx(idx(:,i),:);
+            this_intersect = cellfun(@(c,d) length(intersect(c,d)), num2cell(idx, 2), num2cell(n_of_n, 2));
+            shared_neighbors(:,i) = this_intersect;
+        end
+        shared_neighbors = reshape(shared_neighbors', [], 1);
+        jaccard_index = shared_neighbors ./ (2*k - shared_neighbors); % <--- union = size(a) + size(b) - intersection
+    end
 end
