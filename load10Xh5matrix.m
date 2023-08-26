@@ -11,9 +11,9 @@ hi = h5info(filename); h5path = hi.Groups(:).Name; h5path(end+1)='/';
 if ~exist('doSparse','var'), doSparse=true; end
 if ~exist('preVersion3','var'), isPreV3=false; end
 
-vals=double(h5read(filename,[h5path 'data']));
-r=double(h5read(filename,[h5path 'indices']));
-indptr=double(h5read(filename,[h5path 'indptr']));
+vals=int32(h5read(filename,[h5path 'data']));
+r=int64(h5read(filename,[h5path 'indices']));
+indptr=int64(h5read(filename,[h5path 'indptr']));
 shape=double(h5read(filename,[h5path 'shape']))';
 
 r=r+1; %make sure it is 1 indexed for Matlab...
@@ -23,13 +23,13 @@ cdiff=diff(indptr);
 
 % for building sparse matrix:
 if doSparse
-    c=zeros(size(r));
+    c=zeros(size(r),'like',r);
     for i=1:length(cdiff)
         c(indptr(i)+1:indptr(i+1))=i*ones(cdiff(i),1);
     end
     counts=sparse(r,c,vals,shape(1),shape(2));
 else
-    counts=zeros(shape);
+    counts=zeros(shape,'like',vals);
     for i=1:length(cdiff)
         counts(r(indptr(i)+1:indptr(i+1)),i)=vals(indptr(i)+1:indptr(i+1));
     end
