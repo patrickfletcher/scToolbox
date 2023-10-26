@@ -53,7 +53,7 @@ elseif nDim==3
     do3D=true;
 %     disp('3D scatterplot')
 else
-    error('coors are not 2 or 3 dimensional');
+    error('coords must be 2 or 3 dimensional');
 end
 
 % organize panel splitting
@@ -135,7 +135,7 @@ if length(ax)>nSplit
     ax=ax(1:nSplit);
 end
 
-if ~opts.draw_outline
+if ~opts.draw_outline || do3D
     hs0=[];
 end
 
@@ -145,7 +145,7 @@ YLIM=[Inf,-Inf];
 ZLIM=[Inf,-Inf];
 for i=1:nSplit
     axes(ax(i))
-    if opts.draw_outline
+    if opts.draw_outline && ~do3D
         if isempty(opts.outline_ident)
             out_ix=true(size(coords,1),1);
         else
@@ -205,10 +205,6 @@ for i=1:nSplit
         end
     end
 
-%     if opts.draw_outline
-%         hs0(i).SizeData=hs(1).SizeData*3;
-%     end
-
     hold off
 
     if nSplit>1
@@ -252,7 +248,8 @@ end
 % ax(end).Selected='on';
 
 if do3D
-    axis(ax,'vis3d')
+    axis(ax,'vis3d','padded')
+    view(3)
 end
 if opts.linkAxes
     linkaxes(ax)
