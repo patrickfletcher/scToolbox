@@ -1,6 +1,7 @@
 # command line script to run Seurat scran normalization + fastMNN
 # suppressPackageStartupMessages(library(DropletUtils))
 suppressPackageStartupMessages(library(scran))
+suppressPackageStartupMessages(library(scuttle))
 suppressPackageStartupMessages(library(batchelor))
 suppressPackageStartupMessages(library(R.matlab))
 
@@ -24,6 +25,7 @@ splits <- unlist(mat$splitby)
 normpars=mat$normpars[,,1]
 do_pooledsizefactors = as.logical(normpars$do.pooledsizefactors)
 do_multibatch = as.logical(normpars$do.multibatch)
+doCosNorm = !do_multibatch
 min_mean = as.numeric(normpars$min.mean)
 
 # HVG parameters
@@ -64,25 +66,34 @@ block <- sce@colData[,splits[1]]
 print(Sys.time() - start_time)
 print(dim(sce))
 
- 
-clust.pin <- NULL
-if (do_pooledsizefactors==T) {
-  print('computeSumFactors...')
-  start_time = Sys.time()
-  
-  clust.pin <- quickCluster(sce, block=block)
-  sce <- computeSumFactors(sce, cluster=clust.pin, min.mean=min_mean)
-  
-  print(Sys.time() - start_time)
+qclust <- sce$qclust
+sfs <- sce$sfs
+
+if (is.null(sfs) == F) {
+  print('using precomputed size factors')
+  sizeFactors(sce) <- sfs
+  do_pooledsizefactors = F
+  do_multibatch = F ###############################################
 }
 
 start_time = Sys.time()
 
+if (do_pooledsizefactors==T) {
+  print('computePooledFactors...')
+  if (is.null(sce$qclust) == T) {
+    qclust <- quickCluster(sce, block=block)
+  } else {
+    print('using precomputed clusters')
+    }
+  sce <- computePooledFactors(sce, cluster=qclust, min.mean=min_mean)
+}
+
 if (do_multibatch==T) {
   print('multiBatchNorm...')
   sce <- multiBatchNorm(sce, batch=block, min.mean=min_mean)
-} else
-{
+}
+
+if (do_pooledsizefactors==F && do_multibatch==F) {
   print('logNormCounts...')
   sce <- logNormCounts(sce)
 }
@@ -90,6 +101,8 @@ if (do_multibatch==T) {
 print(Sys.time() - start_time)
 
 
+print('Model gene variance and select HVGs...')
+start_time = Sys.time()
 if (do_poissonvar==T) {
   blk <- modelGeneVarByPoisson(sce, block=block, min.mean=min_mean_hvg)
 } else
@@ -103,6 +116,8 @@ print(Sys.time() - start_time)
 
 
 #figure out the split/merge order
+# TODO: just go to a list of lists type approach using one batch var
+
 split1 <- sce@colData[,splits[1]]
 # split1 <- cellinfo[,splits[1]]
 
@@ -118,20 +133,29 @@ print(merge.cats)
 mergeix<-seq(from=1, to=length(merge.cats))
 if (length(mnnpars$merge.order)!=0) {
   mergeix <- mnnpars$merge.order
-  mergeix <- lapply(mergeix, unlist, use.names =F)
+  mergeix <- lapply(mergeix, unlist, use.names=F)
 }
 print(mergeix)
 
 # merge.order <- merge.cats[c(mergeix)]
 merge.order <- lapply(mergeix, function(X){merge.cats[X]})
 
-print(merge.order)
+# merge.cats <- unique(block)
+# mergeix <- seq(from=1, to=length(merge.cats))
+# if (length(mnnpars$merge.order)!=0) {
+#   mergeix <- mnnpars$merge.order
+#   mergeix <- lapply(mergeix, unlist, recursive=T, use.names=F)
+# }
+# merge.order <- lapply(mergeix, function(X){merge.cats[X]})
+# print(merge.order)
 
 
 print('Performing fastMNN correction...')
 start_time = Sys.time()
 
-fp <-FastMnnParam(k=k, prop.k=prop_k, d=d, ndist=ndist, merge.order=merge.order, get.variance = FALSE)
+# TODO: use multiBatchPCA + reducedMNN and return the mbPCA
+
+fp <-FastMnnParam(k=k, prop.k=prop_k, d=d, ndist=ndist, merge.order=merge.order, cos.norm = doCosNorm)
 
 sce.mnn <- correctExperiments(sce,
                               batch = block,
@@ -171,7 +195,7 @@ write.table(sizeFactors(sce), file=sfsfile, sep=',', row.names = F, col.names = 
 
 clustfile<-file.path(tmp_path,paste0(tmp_fileroot,"_qclust.txt"))
 if (do_pooledsizefactors==T) {
-  write.table(clust.pin, file=clustfile, sep=',', row.names = F, col.names = F)
+  write.table(qclust, file=clustfile, sep=',', row.names = F, col.names = F)
 }
 
 print(Sys.time() - start_time)
