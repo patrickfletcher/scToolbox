@@ -28,7 +28,9 @@ py_rand_state=int64(params.rngSeed);
 
 %handle initY
 initY=params.initY;
-if isnumeric(initY) && numel(initY)<10
+if isempty(initY)
+    initY="random";
+elseif isnumeric(initY) && numel(initY)<10
     %initY=[pc1,pc2] indicates index of PCs to use as initial points
     pcix=initY;
     signix=sign(pcix);
@@ -57,7 +59,7 @@ if params.nn_method=="matlab"
         disp('Computing neighbors (knnsearch)...')
         tic
         % k+1 because we don't want to remove self
-        [knn_indices,~]=knnsearch(X,X,K=params.n_neighbors+1,Distance=metric); %quite fast!
+        [knn_indices,~]=knnsearch(X,X,K=params.n_neighbors+1,Distance=params.metric);
         disp("knnsearch time: " + num2str(toc) + "s")
     end
 

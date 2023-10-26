@@ -1,12 +1,12 @@
-function result = doPCA(tcounts, genes, batch, params, options)
+function result = doPCA(tcounts, genes, params, options)
 arguments
     tcounts
     genes
-    batch=[]
+    params.batch=[]
     params.hvgix=[]
-    params.scale_method='zscore'
-    params.center=true
-    params.scale=false;
+    params.scale_method='center'
+    % params.center=true
+    % params.scale=false
     params.maxScaled=10
     params.npc=0
     params.permute_reps=100
@@ -16,6 +16,9 @@ arguments
     options.figID=[]
     options.pcix=[]
 end
+
+% TODO: simpler version. remove all the stuff that was exploration
+% TODO: validate vs "[coeff,score,latent,tsquared,explained,mu] = pca(___) "
 
 %TODO: multibatch PCA - batchelor.  Seems like just a specific choice of
 %centering/scaling??  
@@ -33,7 +36,6 @@ end
 %TODO: clarify loadings vs principal axes (V).  loadings need: *sqrt(S)
 %TODO: add interface to numerical options of eigs (tolerance, etc)
 
-
 result = params;
 
 [nGenes,nCells]=size(tcounts);
@@ -43,9 +45,6 @@ else
     X=tcounts;
 end
 
-%is rescaling necessary? covariance vs correlation? logtransformed counts are roughly on same scale, in [0,3]
-
-%TODO: create function handle
 scale_args = [];
 scale_fun = @(x) x;
 doscale=false;
@@ -120,8 +119,8 @@ result.scale_fun=scale_fun;
 X = scale_fun(X, scale_args);
 
 if doscale
-X(X>params.maxScaled)=params.maxScaled;
-X(X<-params.maxScaled)=-params.maxScaled;
+    X(X>params.maxScaled)=params.maxScaled;
+    X(X<-params.maxScaled)=-params.maxScaled;
 end
 
 if params.npc<1
@@ -153,15 +152,15 @@ end
 
 % apply the rotation to all genes
 % UNTESTED
-if params.full_coeff && ~isempty(params.hvgix)
-    fullC = zeros(size(tcounts,2),result.npc);
-    fullC(params.hvgix,:)=coeff;
-    nothvg=setdiff(1:size(tcounts,2), params.hvgix);
-    Xleft = tcounts(:, nothvg)';
-    Xleft = scale_fun(Xleft, scale_args);
-    Xleft = Xleft*U' - mean(Xleft,2)*sum(U,1);
-    Xleft = Xleft./diag(S)
-end
+% if params.full_coeff && ~isempty(params.hvgix)
+%     fullC = zeros(size(tcounts,2),result.npc);
+%     fullC(params.hvgix,:)=coeff;
+%     nothvg=setdiff(1:size(tcounts,2), params.hvgix);
+%     Xleft = tcounts(:, nothvg)';
+%     Xleft = scale_fun(Xleft, scale_args);
+%     Xleft = Xleft*U' - mean(Xleft,2)*sum(U,1);
+%     Xleft = Xleft./diag(S);
+% end
 
 result.U=U;
 result.S=S;

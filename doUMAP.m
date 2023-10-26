@@ -3,7 +3,7 @@ arguments
     X
     knn = [] 
     params.nn_method='matlab'
-    params.metric="correlation"
+    params.metric="euclidean"
     params.n_neighbors=30
     params.n_components=2
     params.n_epochs=0  %let UMAP decide
@@ -264,26 +264,14 @@ end
 
 % result.sigmas=double(emb_sigmas);
 % result.rhos=double(emb_rhos); 
-% result.dists=sparse(double(emb_dists.toarray())); 
+% result.dists=sparse(double(emb_dists.toarray()));
 
 %just transfer the graph data, build sparse here. Much faster!
-% CSR:  
-% - data, row_ind and col_ind satisfy the relationship a[row_ind[k], col_ind[k]] = data[k]
-% - column indices for row i are stored in    indices[indptr[i]:indptr[i+1]] 
-% and their corresponding values are stored in   data[indptr[i]:indptr[i+1]] 
-
 indptr = int64(emb_graph.indptr);
-r = int64(emb_graph.indices) + 1;
-data = double(emb_graph.data);
+indices = int64(emb_graph.indices) + 1;
+vals = double(emb_graph.data);
+result.graph=build_sparse_matrix(vals, indptr, indices, n_obs, n_obs, 'csr');  %umap "connectivities"
 
-cdiff=diff(indptr);
-c=zeros(size(r), 'int64');
-for i=1:length(cdiff)
-    c(indptr(i)+1:indptr(i+1))=i*ones(cdiff(i),1, 'int64');
-end
-
-result.graph=sparse(r, c, data, n_obs, n_obs);  %umap "connectivities"
-    
 if nargout==2
 %connectivities used to generate UMAP's graph:
 used_knn.indices=knn_indices;
