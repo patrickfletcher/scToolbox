@@ -7,6 +7,7 @@ arguments
     options.n_neighbors=5
     options.metric='correlation'
     options.force_int_method='none'
+    % options.method=@sum %must be simple functions for accumarray
 end
 % get KNN-aggregated counts for each cell ("meta-cells") - find knn of each
 % cell, replace counts with the sum of counts across neighbors
@@ -21,7 +22,7 @@ end
 % * no need if performed on integrated scores
 
 if options.precomputed
-    nnix=scores(:,1:options.n_neighbors);
+    nnix=scores(:,1:options.n_neighbors); %assume self is removed??
 else
     [nnix,~]=knnsearch(scores, scores, 'K',options.n_neighbors+1,'Distance',options.metric); %quite fast!
     nnix=nnix(:,2:end); %remove self
@@ -33,6 +34,7 @@ MC=C; %self
 for i=1:options.n_neighbors
     MC=MC+C(:,nnix(:,i));
 end
+
 
 %force integer values? should be ints anyway
 switch options.force_int_method
